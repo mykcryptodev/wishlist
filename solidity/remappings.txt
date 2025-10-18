@@ -3,3 +3,4 @@ xdeployer/=node_modules/xdeployer/
 forge-std/=contracts/lib/forge-std/src/
 @openzeppelin/=node_modules/@openzeppelin/
 @chainlink/=node_modules/@chainlink/
+@thirdweb-dev/=node_modules/@thirdweb-dev/
