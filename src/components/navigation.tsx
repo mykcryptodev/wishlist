@@ -4,18 +4,29 @@
 import { useTheme } from "next-themes";
 import Link from "next/link";
 /* eslint-enable simple-import-sort/imports */
-import { ConnectButton, darkTheme, lightTheme } from "thirdweb/react";
+import {
+  AccountAddress,
+  AccountAvatar,
+  AccountName,
+  AccountProvider,
+  Blobbie,
+  ConnectButton,
+  darkTheme,
+  lightTheme,
+  useActiveWallet,
+} from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 
-import { appDescription, appName, chain, usdc } from "@/constants";
-import { useDisplayToken } from "@/providers/DisplayTokenProvider";
+import { appDescription, appName, chain } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 
 import { ModeToggle } from "./mode-toggle";
+import { shortenAddress } from "thirdweb/utils";
+import { Button } from "./ui/button";
 
 export function Navigation() {
   const { resolvedTheme } = useTheme();
-  const { tokenAddress } = useDisplayToken();
+  const wallet = useActiveWallet();
 
   const wallets = [
     inAppWallet({
@@ -70,10 +81,31 @@ export function Navigation() {
               showThirdwebBranding: false,
             }}
             detailsButton={{
-              className: "!border-none",
-              displayBalanceToken: {
-                [chain.id]: tokenAddress || usdc[chain.id],
-              },
+              render: () => (
+                <AccountProvider
+                  address={wallet?.getAccount()?.address ?? ""}
+                  client={client}
+                >
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <AccountAvatar
+                      className="!size-6 rounded-full"
+                      fallbackComponent={
+                        <Blobbie
+                          address={wallet?.getAccount()?.address ?? ""}
+                          className="!size-9"
+                        />
+                      }
+                    />
+                    <AccountName
+                      fallbackComponent={
+                        <AccountAddress
+                          formatFn={addr => shortenAddress(addr)}
+                        />
+                      }
+                    />
+                  </Button>
+                </AccountProvider>
+              ),
             }}
             theme={
               resolvedTheme === "dark"
