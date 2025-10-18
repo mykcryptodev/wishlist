@@ -8,9 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, ExternalLink, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
 import {
@@ -18,6 +15,7 @@ import {
   showSuccessToast,
   showErrorToast,
 } from "@/lib/toast";
+import { WishlistItemCard } from "./WishlistItemCard";
 
 interface WishlistItem {
   id: string;
@@ -102,16 +100,6 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
     }
   };
 
-  const formatPrice = (priceInWei: string) => {
-    const price = parseFloat(priceInWei) / 1e18;
-    if (price === 0) return "Price not specified";
-    return `$${price.toFixed(2)}`;
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(parseInt(timestamp) * 1000).toLocaleDateString();
-  };
-
   useEffect(() => {
     if (userAddress) {
       fetchItems();
@@ -156,97 +144,39 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
     );
   }
 
+  const handleEdit = (itemId: string) => {
+    // TODO: Implement edit functionality
+    toast.info("Edit functionality coming soon!");
+  };
+
+  const handleViewPurchasers = (itemId: string) => {
+    // TODO: Show purchasers modal
+    toast.info("Purchasers view coming soon!");
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Wishlist Items ({items.length})</CardTitle>
-        <CardDescription>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Your Wishlist ({items.length})
+        </h2>
+        <p className="text-muted-foreground mt-2">
           Manage your wishlist items and see who's interested in purchasing them
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {items.map(item => (
-            <Card key={item.id} className="border-l-4 border-l-primary">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{item.title}</h3>
-                      <Badge variant="secondary">
-                        {formatPrice(item.price)}
-                      </Badge>
-                    </div>
+        </p>
+      </div>
 
-                    {item.description && (
-                      <p className="text-muted-foreground mb-3">
-                        {item.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Added: {formatDate(item.createdAt)}</span>
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-16 h-16 object-cover rounded-md"
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(item.url, "_blank")}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View Item
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // TODO: Implement edit functionality
-                          toast.info("Edit functionality coming soon!");
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteItem(item.id)}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // TODO: Show purchasers modal
-                        toast.info("Purchasers view coming soon!");
-                      }}
-                    >
-                      <Users className="w-4 h-4 mr-1" />
-                      Purchasers
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map(item => (
+          <WishlistItemCard
+            key={item.id}
+            item={item}
+            onDelete={deleteItem}
+            onEdit={handleEdit}
+            onViewPurchasers={handleViewPurchasers}
+            isDeleting={isDeleting}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
