@@ -65,10 +65,11 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
       if (data.success) {
         setItems(data.items);
       } else {
-        toast.error("Failed to fetch wishlist items");
+        toast.error(
+          `Failed to fetch wishlist items: ${data.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
-      console.error("Error fetching items:", error);
       toast.error("Failed to fetch wishlist items");
     } finally {
       setLoading(false);
@@ -114,6 +115,8 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
   useEffect(() => {
     if (userAddress) {
       fetchItems();
+    } else {
+      setLoading(false);
     }
   }, [userAddress]);
 

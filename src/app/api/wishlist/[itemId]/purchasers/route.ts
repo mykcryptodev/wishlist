@@ -172,8 +172,9 @@ export async function GET(request: NextRequest) {
       chain.id,
     );
 
-    const purchasers = result.result[0].result;
-    const count = result.result[1].result;
+    // Extract data from thirdweb API response (handles both .data and .result formats)
+    const purchasers = result.result[0].data || result.result[0].result;
+    const count = result.result[1].data || result.result[1].result;
 
     return NextResponse.json({
       success: true,

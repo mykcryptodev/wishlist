@@ -128,8 +128,9 @@ export async function GET(request: NextRequest) {
       chain.id,
     );
 
-    const itemIds = result.result[0].result;
-    const totalItems = result.result[1].result;
+    // Extract data from thirdweb API response (handles both .data and .result formats)
+    const itemIds = result.result[0].data || result.result[0].result;
+    const totalItems = result.result[1].data || result.result[1].result;
 
     // Return early if no items
     if (!itemIds || itemIds.length === 0) {
@@ -142,11 +143,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get details for each item
+    // Get details for each item using the public items mapping
+    // This returns: (id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt)
     const itemDetailsCalls = itemIds.map((itemId: string) => ({
       contractAddress: wishlist[chain.id],
       method:
-        "function getItem(uint256 _itemId) external view returns (WishlistItem memory)",
+        "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
       params: [itemId],
     }));
 
@@ -155,17 +157,33 @@ export async function GET(request: NextRequest) {
       chain.id,
     );
 
-    const items = itemDetailsResult.result.map((item: any) => ({
-      id: item.result.id,
-      owner: item.result.owner,
-      title: item.result.title,
-      description: item.result.description,
-      url: item.result.url,
-      imageUrl: item.result.imageUrl,
-      price: item.result.price,
-      createdAt: item.result.createdAt,
-      updatedAt: item.result.updatedAt,
-    }));
+    // The thirdweb API returns the public mapping data as an array
+    // Array format: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
+    const items = itemDetailsResult.result
+      .map((item: any) => {
+        const data = item.data || item.result;
+
+        // Skip items with errors or no data
+        if (!data || !item.success) {
+          console.error("Item fetch failed:", item.error?.message);
+          return null;
+        }
+
+        // Data is an array: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
+        return {
+          id: data[0],
+          owner: data[1],
+          title: data[2],
+          description: data[3],
+          url: data[4],
+          imageUrl: data[5],
+          price: data[6],
+          // Skip data[7] which is the 'exists' boolean
+          createdAt: data[8],
+          updatedAt: data[9],
+        };
+      })
+      .filter(Boolean); // Remove any null entries
 
     return NextResponse.json({
       success: true,
