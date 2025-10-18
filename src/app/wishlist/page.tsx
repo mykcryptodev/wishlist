@@ -18,7 +18,7 @@ export default function WishlistPage() {
       toast.error("Please connect your wallet first");
       return;
     }
-    
+
     const url = `${window.location.origin}/wishlist/${address}`;
     try {
       await navigator.clipboard.writeText(url);

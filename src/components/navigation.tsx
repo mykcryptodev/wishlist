@@ -49,36 +49,6 @@ export function Navigation() {
             >
               Wishlist
             </Link>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              href="/contest/create"
-            >
-              Create Contest
-            </Link>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              href="/games"
-            >
-              Games
-            </Link>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              href="/leaderboard"
-            >
-              Leaderboard
-            </Link>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              href="/how-to-play"
-            >
-              How to Play
-            </Link>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              href="/pickem"
-            >
-              Pick&apos;em
-            </Link>
           </div>
         </div>
 
