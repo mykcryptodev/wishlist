@@ -309,6 +309,40 @@ export function roleRevokedEvent(filters: RoleRevokedEventFilters = {}) {
   
 
 /**
+ * Represents the filters for the "UserAddedToWishlistDirectory" event.
+ */
+export type UserAddedToWishlistDirectoryEventFilters = Partial<{
+  user: AbiParameterToPrimitiveType<{"indexed":true,"internalType":"address","name":"user","type":"address"}>
+}>;
+
+/**
+ * Creates an event object for the UserAddedToWishlistDirectory event.
+ * @param filters - Optional filters to apply to the event.
+ * @returns The prepared event object.
+ * @example
+ * ```
+ * import { getContractEvents } from "thirdweb";
+ * import { userAddedToWishlistDirectoryEvent } from "TODO";
+ *
+ * const events = await getContractEvents({
+ * contract,
+ * events: [
+ *  userAddedToWishlistDirectoryEvent({
+ *  user: ...,
+ * })
+ * ],
+ * });
+ * ```
+ */
+export function userAddedToWishlistDirectoryEvent(filters: UserAddedToWishlistDirectoryEventFilters = {}) {
+  return prepareEvent({
+    signature: "event UserAddedToWishlistDirectory(address indexed user)",
+    filters,
+  });
+};
+  
+
+/**
 * Contract read functions
 */
 
@@ -418,6 +452,54 @@ export async function MANAGER_ROLE(
 
 
 /**
+ * Represents the parameters for the "addressesWithWishlists" function.
+ */
+export type AddressesWithWishlistsParams = {
+  arg_0: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"","type":"uint256"}>
+};
+
+/**
+ * Calls the "addressesWithWishlists" function on the contract.
+ * @param options - The options for the addressesWithWishlists function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { addressesWithWishlists } from "TODO";
+ *
+ * const result = await addressesWithWishlists({
+ *  arg_0: ...,
+ * });
+ *
+ * ```
+ */
+export async function addressesWithWishlists(
+  options: BaseTransactionOptions<AddressesWithWishlistsParams>
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+  "0x03841da0",
+  [
+    {
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }
+  ],
+  [
+    {
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }
+  ]
+],
+    params: [options.arg_0]
+  });
+};
+
+
+/**
  * Represents the parameters for the "checkIsPurchaser" function.
  */
 export type CheckIsPurchaserParams = {
@@ -468,6 +550,41 @@ export async function checkIsPurchaser(
   ]
 ],
     params: [options.itemId, options.purchaser]
+  });
+};
+
+
+
+
+/**
+ * Calls the "getAllWishlistAddresses" function on the contract.
+ * @param options - The options for the getAllWishlistAddresses function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getAllWishlistAddresses } from "TODO";
+ *
+ * const result = await getAllWishlistAddresses();
+ *
+ * ```
+ */
+export async function getAllWishlistAddresses(
+  options: BaseTransactionOptions
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+  "0x4491310d",
+  [],
+  [
+    {
+      "internalType": "address[]",
+      "name": "addresses",
+      "type": "address[]"
+    }
+  ]
+],
+    params: []
   });
 };
 
@@ -876,6 +993,101 @@ export async function getTotalItems(
 };
 
 
+
+
+/**
+ * Calls the "getWishlistAddressCount" function on the contract.
+ * @param options - The options for the getWishlistAddressCount function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getWishlistAddressCount } from "TODO";
+ *
+ * const result = await getWishlistAddressCount();
+ *
+ * ```
+ */
+export async function getWishlistAddressCount(
+  options: BaseTransactionOptions
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+  "0x88633e82",
+  [],
+  [
+    {
+      "internalType": "uint256",
+      "name": "count",
+      "type": "uint256"
+    }
+  ]
+],
+    params: []
+  });
+};
+
+
+/**
+ * Represents the parameters for the "getWishlistAddressesPaginated" function.
+ */
+export type GetWishlistAddressesPaginatedParams = {
+  offset: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_offset","type":"uint256"}>
+limit: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_limit","type":"uint256"}>
+};
+
+/**
+ * Calls the "getWishlistAddressesPaginated" function on the contract.
+ * @param options - The options for the getWishlistAddressesPaginated function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getWishlistAddressesPaginated } from "TODO";
+ *
+ * const result = await getWishlistAddressesPaginated({
+ *  offset: ...,
+ *  limit: ...,
+ * });
+ *
+ * ```
+ */
+export async function getWishlistAddressesPaginated(
+  options: BaseTransactionOptions<GetWishlistAddressesPaginatedParams>
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+  "0x315eb36d",
+  [
+    {
+      "internalType": "uint256",
+      "name": "_offset",
+      "type": "uint256"
+    },
+    {
+      "internalType": "uint256",
+      "name": "_limit",
+      "type": "uint256"
+    }
+  ],
+  [
+    {
+      "internalType": "address[]",
+      "name": "addresses",
+      "type": "address[]"
+    },
+    {
+      "internalType": "bool",
+      "name": "hasMore",
+      "type": "bool"
+    }
+  ]
+],
+    params: [options.offset, options.limit]
+  });
+};
+
+
 /**
  * Represents the parameters for the "hasManagerRole" function.
  */
@@ -1030,6 +1242,54 @@ export async function hasRoleWithSwitch(
   ]
 ],
     params: [options.role, options.account]
+  });
+};
+
+
+/**
+ * Represents the parameters for the "hasWishlist" function.
+ */
+export type HasWishlistParams = {
+  arg_0: AbiParameterToPrimitiveType<{"internalType":"address","name":"","type":"address"}>
+};
+
+/**
+ * Calls the "hasWishlist" function on the contract.
+ * @param options - The options for the hasWishlist function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { hasWishlist } from "TODO";
+ *
+ * const result = await hasWishlist({
+ *  arg_0: ...,
+ * });
+ *
+ * ```
+ */
+export async function hasWishlist(
+  options: BaseTransactionOptions<HasWishlistParams>
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+  "0x3bb09007",
+  [
+    {
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }
+  ],
+  [
+    {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+  ]
+],
+    params: [options.arg_0]
   });
 };
 

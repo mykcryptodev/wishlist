@@ -598,4 +598,266 @@ contract WishlistTest is Test {
         vm.expectRevert("Only managers can remove purchasers for users");
         wishlist.removePurchaserForUser(itemId, purchaser1);
     }
+
+    // Wishlist Address Directory Tests
+
+    function testFirstItemAddsUserToDirectory() public {
+        // Initially no addresses
+        assertEq(wishlist.getWishlistAddressCount(), 0);
+        assertFalse(wishlist.hasWishlist(user1));
+        
+        // Create first item
+        vm.prank(user1);
+        wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        // User should be added to directory
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+        assertTrue(wishlist.hasWishlist(user1));
+        
+        address[] memory addresses = wishlist.getAllWishlistAddresses();
+        assertEq(addresses.length, 1);
+        assertEq(addresses[0], user1);
+    }
+
+    function testSecondItemDoesNotDuplicateUser() public {
+        // Create first item
+        vm.prank(user1);
+        wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+        
+        // Create second item for same user
+        vm.prank(user1);
+        wishlist.createItem(
+            "MacBook Pro",
+            "Latest MacBook",
+            "https://apple.com/macbook-pro",
+            "",
+            1999 ether
+        );
+        
+        // Count should still be 1
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+        
+        address[] memory addresses = wishlist.getAllWishlistAddresses();
+        assertEq(addresses.length, 1);
+        assertEq(addresses[0], user1);
+    }
+
+    function testMultipleUsersAddedToDirectory() public {
+        // Create items for different users
+        vm.prank(user1);
+        wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        vm.prank(user2);
+        wishlist.createItem(
+            "iPad Pro",
+            "Latest iPad",
+            "https://apple.com/ipad-pro",
+            "",
+            799 ether
+        );
+        
+        vm.prank(purchaser1);
+        wishlist.createItem(
+            "AirPods Pro",
+            "Latest AirPods",
+            "https://apple.com/airpods-pro",
+            "",
+            249 ether
+        );
+        
+        // All three users should be in directory
+        assertEq(wishlist.getWishlistAddressCount(), 3);
+        assertTrue(wishlist.hasWishlist(user1));
+        assertTrue(wishlist.hasWishlist(user2));
+        assertTrue(wishlist.hasWishlist(purchaser1));
+        
+        address[] memory addresses = wishlist.getAllWishlistAddresses();
+        assertEq(addresses.length, 3);
+        assertEq(addresses[0], user1);
+        assertEq(addresses[1], user2);
+        assertEq(addresses[2], purchaser1);
+    }
+
+    function testManagerCreatingItemAddsUserToDirectory() public {
+        // Grant manager role
+        vm.prank(owner);
+        wishlist.grantManagerRole(manager);
+        
+        // Manager creates item for user1
+        vm.prank(manager);
+        wishlist.createItemForUser(
+            user1,
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        // User1 should be in directory
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+        assertTrue(wishlist.hasWishlist(user1));
+        
+        address[] memory addresses = wishlist.getAllWishlistAddresses();
+        assertEq(addresses.length, 1);
+        assertEq(addresses[0], user1);
+    }
+
+    function testGetWishlistAddressesPaginated() public {
+        // Create items for 5 different users
+        address[5] memory users = [user1, user2, purchaser1, purchaser2, manager];
+        
+        for (uint256 i = 0; i < users.length; i++) {
+            vm.prank(users[i]);
+            wishlist.createItem(
+                string(abi.encodePacked("Item ", i)),
+                "Description",
+                string(abi.encodePacked("https://example.com/", i)),
+                "",
+                100 ether
+            );
+        }
+        
+        assertEq(wishlist.getWishlistAddressCount(), 5);
+        
+        // Test first page (2 items)
+        (address[] memory page1, bool hasMore1) = wishlist.getWishlistAddressesPaginated(0, 2);
+        assertEq(page1.length, 2);
+        assertTrue(hasMore1);
+        assertEq(page1[0], user1);
+        assertEq(page1[1], user2);
+        
+        // Test second page (2 items)
+        (address[] memory page2, bool hasMore2) = wishlist.getWishlistAddressesPaginated(2, 2);
+        assertEq(page2.length, 2);
+        assertTrue(hasMore2);
+        assertEq(page2[0], purchaser1);
+        assertEq(page2[1], purchaser2);
+        
+        // Test last page (1 item)
+        (address[] memory page3, bool hasMore3) = wishlist.getWishlistAddressesPaginated(4, 2);
+        assertEq(page3.length, 1);
+        assertFalse(hasMore3);
+        assertEq(page3[0], manager);
+        
+        // Test offset beyond end
+        (address[] memory page4, bool hasMore4) = wishlist.getWishlistAddressesPaginated(10, 2);
+        assertEq(page4.length, 0);
+        assertFalse(hasMore4);
+    }
+
+    function testGetWishlistAddressesPaginatedLargeLimit() public {
+        // Create items for 3 users
+        vm.prank(user1);
+        wishlist.createItem("Item 1", "Description", "https://example.com/1", "", 100 ether);
+        
+        vm.prank(user2);
+        wishlist.createItem("Item 2", "Description", "https://example.com/2", "", 100 ether);
+        
+        vm.prank(purchaser1);
+        wishlist.createItem("Item 3", "Description", "https://example.com/3", "", 100 ether);
+        
+        // Request with limit larger than total
+        (address[] memory addresses, bool hasMore) = wishlist.getWishlistAddressesPaginated(0, 100);
+        assertEq(addresses.length, 3);
+        assertFalse(hasMore);
+    }
+
+    function testUserAddedToWishlistDirectoryEvent() public {
+        // Test event emission
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, false);
+        emit Wishlist.UserAddedToWishlistDirectory(user1);
+        wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+    }
+
+    function testUserAddedToWishlistDirectoryEventOnlyOnFirstItem() public {
+        // First item should emit event
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, false);
+        emit Wishlist.UserAddedToWishlistDirectory(user1);
+        wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        // Second item should NOT emit the directory event
+        // (We can't easily test that an event is NOT emitted, but we can verify the count doesn't change)
+        uint256 countBefore = wishlist.getWishlistAddressCount();
+        
+        vm.prank(user1);
+        wishlist.createItem(
+            "MacBook Pro",
+            "Latest MacBook",
+            "https://apple.com/macbook-pro",
+            "",
+            1999 ether
+        );
+        
+        uint256 countAfter = wishlist.getWishlistAddressCount();
+        assertEq(countBefore, countAfter);
+    }
+
+    function testDeleteItemDoesNotRemoveFromDirectory() public {
+        // Create item
+        vm.prank(user1);
+        uint256 itemId = wishlist.createItem(
+            "iPhone 15 Pro",
+            "Latest iPhone",
+            "https://apple.com/iphone-15-pro",
+            "",
+            999 ether
+        );
+        
+        assertTrue(wishlist.hasWishlist(user1));
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+        
+        // Delete item
+        vm.prank(user1);
+        wishlist.deleteItem(itemId);
+        
+        // User should still be in directory
+        assertTrue(wishlist.hasWishlist(user1));
+        assertEq(wishlist.getWishlistAddressCount(), 1);
+    }
+
+    function testEmptyDirectoryInitially() public {
+        assertEq(wishlist.getWishlistAddressCount(), 0);
+        
+        address[] memory addresses = wishlist.getAllWishlistAddresses();
+        assertEq(addresses.length, 0);
+        
+        (address[] memory paginatedAddresses, bool hasMore) = wishlist.getWishlistAddressesPaginated(0, 10);
+        assertEq(paginatedAddresses.length, 0);
+        assertFalse(hasMore);
+    }
 }

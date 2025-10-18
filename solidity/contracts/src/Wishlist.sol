@@ -60,6 +60,12 @@ contract Wishlist is Permissions {
     // Mapping from item ID to purchaser address to check if already signed up
     mapping(uint256 => mapping(address => bool)) public isPurchaser;
 
+    // Master list of addresses with wishlists
+    address[] public addressesWithWishlists;
+    
+    // Mapping to track if address is already in the master list
+    mapping(address => bool) public hasWishlist;
+
     // Events
     event ItemCreated(
         uint256 indexed itemId,
@@ -89,6 +95,10 @@ contract Wishlist is Permissions {
         uint256 indexed itemId,
         address indexed purchaser,
         address indexed itemOwner
+    );
+
+    event UserAddedToWishlistDirectory(
+        address indexed user
     );
 
     // Constructor
@@ -164,7 +174,15 @@ contract Wishlist is Permissions {
             updatedAt: block.timestamp
         });
 
+        // Add to owner's items array
         itemsByOwner[_owner].push(itemId);
+
+        // Add to master wishlist directory if this is their first item
+        if (!hasWishlist[_owner]) {
+            hasWishlist[_owner] = true;
+            addressesWithWishlists.push(_owner);
+            emit UserAddedToWishlistDirectory(_owner);
+        }
 
         emit ItemCreated(itemId, _owner, _title, _url);
         
@@ -444,6 +462,59 @@ contract Wishlist is Permissions {
         }
         
         return (finalResult, endIndex < totalItems);
+    }
+
+    /**
+     * @dev Get the total count of addresses with wishlists
+     * @return count Number of addresses with wishlists
+     */
+    function getWishlistAddressCount() external view returns (uint256 count) {
+        return addressesWithWishlists.length;
+    }
+
+    /**
+     * @dev Get all addresses that have wishlists
+     * @return addresses Array of addresses with wishlists
+     */
+    function getAllWishlistAddresses() 
+        external 
+        view 
+        returns (address[] memory addresses) 
+    {
+        return addressesWithWishlists;
+    }
+
+    /**
+     * @dev Get addresses with wishlists with pagination
+     * @param _offset Starting index
+     * @param _limit Maximum number of addresses to return
+     * @return addresses Array of addresses
+     * @return hasMore True if there are more addresses
+     */
+    function getWishlistAddressesPaginated(uint256 _offset, uint256 _limit) 
+        external 
+        view 
+        returns (address[] memory addresses, bool hasMore) 
+    {
+        uint256 totalAddresses = addressesWithWishlists.length;
+        
+        if (_offset >= totalAddresses) {
+            return (new address[](0), false);
+        }
+        
+        uint256 endIndex = _offset + _limit;
+        if (endIndex > totalAddresses) {
+            endIndex = totalAddresses;
+        }
+        
+        uint256 resultLength = endIndex - _offset;
+        address[] memory result = new address[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            result[i] = addressesWithWishlists[_offset + i];
+        }
+        
+        return (result, endIndex < totalAddresses);
     }
 
     // Permission Management Functions
