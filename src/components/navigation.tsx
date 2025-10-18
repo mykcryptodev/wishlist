@@ -16,6 +16,8 @@ import {
   useActiveWallet,
 } from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
+import { Search } from "lucide-react";
+import { useState } from "react";
 
 import { appDescription, appName, chain } from "@/constants";
 import { client } from "@/providers/Thirdweb";
@@ -23,10 +25,19 @@ import { client } from "@/providers/Thirdweb";
 import { ModeToggle } from "./mode-toggle";
 import { shortenAddress } from "thirdweb/utils";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 
 export function Navigation() {
   const { resolvedTheme } = useTheme();
   const wallet = useActiveWallet();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const wallets = [
     inAppWallet({
@@ -42,7 +53,7 @@ export function Navigation() {
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-4">
         <div className="flex items-center space-x-8">
           <Link className="flex items-center space-x-2" href="/">
             <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
@@ -63,7 +74,42 @@ export function Navigation() {
           </div>
         </div>
 
+        <div className="hidden md:flex flex-1 max-w-md mx-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Search wishlists..."
+              className="pl-9 w-full"
+            />
+          </div>
+        </div>
+
         <div className="flex items-center space-x-4 gap-2">
+          {/* Mobile Search Button */}
+          <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="outline" className="md:hidden">
+                <Search className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">Search</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Search Wishlists</DialogTitle>
+              </DialogHeader>
+              <div className="relative mt-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="search"
+                  placeholder="Search wishlists..."
+                  className="pl-9 w-full"
+                  autoFocus
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <ConnectButton
             chain={chain}
             client={client}
