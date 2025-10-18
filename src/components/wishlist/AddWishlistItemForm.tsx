@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,6 +25,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
+import {
+  showLoadingToast,
+  showSuccessToast,
+  showErrorToast,
+} from "@/lib/toast";
 
 // Form validation schema
 const addWishlistItemSchema = z.object({
@@ -109,10 +115,45 @@ const parseItemFromUrl = async (
   }
 };
 
-export function AddWishlistItemForm() {
+export function AddWishlistItemForm({ userAddress }: { userAddress: string }) {
   const [isParsing, setIsParsing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [parsedData, setParsedData] =
     useState<Partial<AddWishlistItemFormValues> | null>(null);
+  const [currentTransactionId, setCurrentTransactionId] = useState<
+    string | null
+  >(null);
+  // Use ref instead of state to avoid closure issues
+  const loadingToastIdRef = useRef<string | number | null>(null);
+
+  // Transaction monitoring
+  const { status, isMonitoring } = useTransactionMonitor({
+    transactionId: currentTransactionId,
+    onSuccess: data => {
+      // Dismiss the loading toast first, then show success
+      if (loadingToastIdRef.current) {
+        toast.dismiss(loadingToastIdRef.current);
+        loadingToastIdRef.current = null;
+      }
+      showSuccessToast(
+        "Item added to wishlist!",
+        `${form.getValues("title")} has been successfully added to your wishlist.`,
+      );
+      // Reset form
+      form.reset();
+      setParsedData(null);
+      setCurrentTransactionId(null);
+    },
+    onError: error => {
+      // Dismiss the loading toast first, then show error
+      if (loadingToastIdRef.current) {
+        toast.dismiss(loadingToastIdRef.current);
+        loadingToastIdRef.current = null;
+      }
+      showErrorToast("Transaction failed", error);
+      setCurrentTransactionId(null);
+    },
+  });
 
   const form = useForm<AddWishlistItemFormValues>({
     resolver: zodResolver(addWishlistItemSchema),
@@ -164,15 +205,50 @@ export function AddWishlistItemForm() {
     }
   };
 
-  const onSubmit = (data: AddWishlistItemFormValues) => {
-    console.log("Wishlist item data:", data);
-    toast.success("Item added to wishlist!", {
-      description: `${data.title} has been added to your wishlist.`,
-    });
+  const onSubmit = async (data: AddWishlistItemFormValues) => {
+    if (!userAddress) {
+      toast.error("User address is required");
+      return;
+    }
 
-    // Reset form
-    form.reset();
-    setParsedData(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          userAddress,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Start monitoring the transaction
+        setCurrentTransactionId(result.transactionId);
+        const toastId = showLoadingToast(
+          "Transaction submitted",
+          "Your item is being added to the wishlist. Please wait...",
+        );
+        loadingToastIdRef.current = toastId;
+      } else {
+        showErrorToast(
+          "Failed to add item to wishlist",
+          result.error || "Unknown error occurred",
+        );
+      }
+    } catch (error) {
+      console.error("Error adding item to wishlist:", error);
+      showErrorToast(
+        "Failed to add item to wishlist",
+        "Please try again later",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const url = form.watch("url");
@@ -352,7 +428,13 @@ export function AddWishlistItemForm() {
               >
                 Clear
               </Button>
-              <Button type="submit">Add to Wishlist</Button>
+              <Button type="submit" disabled={isSubmitting || isMonitoring}>
+                {isSubmitting
+                  ? "Submitting..."
+                  : isMonitoring
+                    ? "Processing..."
+                    : "Add to Wishlist"}
+              </Button>
             </div>
           </form>
         </Form>

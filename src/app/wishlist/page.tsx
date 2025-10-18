@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { AddWishlistItemForm } from "@/components/wishlist/AddWishlistItemForm";
+import { WishlistItems } from "@/components/wishlist/WishlistItems";
 import {
   Card,
   CardContent,
@@ -6,8 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useActiveAccount } from "thirdweb/react";
 
 export default function WishlistPage() {
+  const account = useActiveAccount();
+  const address = account?.address || "";
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
@@ -17,33 +28,18 @@ export default function WishlistPage() {
             My Wishlist
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Create your holiday wishlist by adding items from any website. 
-            Just paste a link and we'll help you organize your perfect wishlist!
+            Create your holiday wishlist by adding items from any website. Just
+            paste a link and we'll help you organize your perfect wishlist!
           </p>
         </div>
-
         {/* Add Item Form */}
         <div className="max-w-2xl mx-auto mb-12">
-          <AddWishlistItemForm />
+          <AddWishlistItemForm userAddress={address} />
         </div>
 
-        {/* Wishlist Items Preview */}
+        {/* Wishlist Items */}
         <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Wishlist Items</CardTitle>
-              <CardDescription>
-                Items you've added to your wishlist will appear here
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <div className="text-6xl mb-4">🎁</div>
-                <p className="text-lg">No items in your wishlist yet</p>
-                <p className="text-sm">Add your first item using the form above!</p>
-              </div>
-            </CardContent>
-          </Card>
+          <WishlistItems userAddress={address} />
         </div>
       </main>
     </div>
