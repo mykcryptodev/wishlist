@@ -74,31 +74,42 @@ export function Navigation() {
           </div>
         </div>
 
-        <div className="hidden md:flex flex-1 max-w-md mx-4 items-center">
-          <UserSearch className="w-full" onUserSelect={() => {}} />
-        </div>
+        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+          {/* Desktop Search Bar */}
+          <DialogTrigger asChild>
+            <div className="hidden md:flex flex-1 max-w-md mx-4">
+              <div className="relative w-full cursor-pointer">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <div className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pl-9 text-sm text-muted-foreground shadow-xs flex items-center hover:border-ring transition-colors">
+                  Search users...
+                </div>
+              </div>
+            </div>
+          </DialogTrigger>
+
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Search Users</DialogTitle>
+            </DialogHeader>
+            <UserSearch
+              onUserSelect={() => {
+                setSearchOpen(false);
+              }}
+              showBio={false}
+              className="mt-4"
+            />
+          </DialogContent>
+        </Dialog>
 
         <div className="flex items-center space-x-4 gap-2">
           {/* Mobile Search Button */}
           <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" variant="outline">
+              <Button size="icon" variant="outline" className="md:hidden">
                 <Search className="h-[1.2rem] w-[1.2rem]" />
                 <span className="sr-only">Search Users</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[90vw] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Search Users</DialogTitle>
-              </DialogHeader>
-              <UserSearch
-                onUserSelect={() => {
-                  setSearchOpen(false);
-                }}
-                showBio={false}
-                className="mt-4"
-              />
-            </DialogContent>
           </Dialog>
 
           <ConnectButton
