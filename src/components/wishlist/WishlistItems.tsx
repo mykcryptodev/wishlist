@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -39,16 +39,27 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
   const [deletingTransactionId, setDeletingTransactionId] = useState<
     string | null
   >(null);
+  const loadingToastIdRef = useRef<string | number | null>(null);
 
   // Transaction monitoring for delete operations
   const { isMonitoring: isDeleting } = useTransactionMonitor({
     transactionId: deletingTransactionId,
     onSuccess: () => {
+      // Dismiss the loading toast
+      if (loadingToastIdRef.current) {
+        toast.dismiss(loadingToastIdRef.current);
+        loadingToastIdRef.current = null;
+      }
       showSuccessToast("Item deleted successfully");
       fetchItems(); // Refresh the list
       setDeletingTransactionId(null);
     },
     onError: error => {
+      // Dismiss the loading toast
+      if (loadingToastIdRef.current) {
+        toast.dismiss(loadingToastIdRef.current);
+        loadingToastIdRef.current = null;
+      }
       showErrorToast("Failed to delete item", error);
       setDeletingTransactionId(null);
     },
@@ -84,7 +95,8 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
       if (data.success) {
         // Start monitoring the delete transaction
         setDeletingTransactionId(data.transactionId);
-        showLoadingToast(
+        // Store the loading toast ID so we can dismiss it later
+        loadingToastIdRef.current = showLoadingToast(
           "Deleting item...",
           "Please wait while the item is removed from your wishlist.",
         );
