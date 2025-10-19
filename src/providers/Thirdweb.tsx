@@ -1,3 +1,5 @@
+"use client";
+
 import { createThirdwebClient } from "thirdweb";
 import { ThirdwebProvider as ThirdwebProviderComponent } from "thirdweb/react";
 

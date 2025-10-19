@@ -59,6 +59,9 @@ export default function PublicWishlistPage() {
   const [selectedItemTitle, setSelectedItemTitle] = useState<string>("");
   const [purchasersDialogOpen, setPurchasersDialogOpen] = useState(false);
 
+  // Check if current user is the owner of this wishlist
+  const isOwner = currentUserAddress?.toLowerCase() === address?.toLowerCase();
+
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -84,11 +87,27 @@ export default function PublicWishlistPage() {
   };
 
   const fetchPurchaserData = async (itemsList: WishlistItem[]) => {
+    // If user is the owner, don't fetch purchaser data
+    if (isOwner) {
+      const dataMap: Record<string, ItemPurchaserData> = {};
+      itemsList.forEach(item => {
+        dataMap[item.id] = { count: 0, isUserPurchaser: false };
+      });
+      setPurchaserData(dataMap);
+      return;
+    }
+
     try {
       const purchaserPromises = itemsList.map(async item => {
         try {
+          const headers: HeadersInit = {};
+          if (currentUserAddress) {
+            headers["x-wallet-address"] = currentUserAddress;
+          }
+
           const response = await fetch(
             `/api/wishlist/${item.id}/purchasers?itemId=${item.id}`,
+            { headers },
           );
           const data = await response.json();
 
@@ -341,10 +360,22 @@ export default function PublicWishlistPage() {
           </Card>
         )}
 
+        {/* Owner Notice */}
+        {isOwner && items.length > 0 && (
+          <Card className="max-w-7xl mx-auto bg-muted/50">
+            <CardContent>
+              <p className="text-sm text-muted-foreground text-center">
+                🎁 You're viewing your own wishlist. Purchaser information is
+                hidden from you to keep gifts a surprise!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Wishlist Items Grid */}
         {items.length > 0 && (
           <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
+            <div className="my-6">
               <p className="text-muted-foreground">
                 {items.length} {items.length === 1 ? "item" : "items"} in this
                 wishlist
@@ -358,10 +389,14 @@ export default function PublicWishlistPage() {
                   item={item}
                   viewMode="public"
                   onPurchaseInterest={handlePurchaseInterest}
-                  onViewPurchasers={handleViewPurchasers}
-                  purchaserCount={purchaserData[item.id]?.count || 0}
+                  onViewPurchasers={isOwner ? undefined : handleViewPurchasers}
+                  purchaserCount={
+                    isOwner ? 0 : purchaserData[item.id]?.count || 0
+                  }
                   isUserPurchaser={
-                    purchaserData[item.id]?.isUserPurchaser || false
+                    isOwner
+                      ? false
+                      : purchaserData[item.id]?.isUserPurchaser || false
                   }
                 />
               ))}

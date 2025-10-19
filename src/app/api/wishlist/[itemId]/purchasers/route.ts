@@ -4,6 +4,8 @@ import {
   thirdwebReadContract,
 } from "@/lib/thirdweb-http-api";
 import { chain, wishlist } from "@/constants";
+import { optionalAuth } from "@/lib/auth-utils";
+import { getApprovedPurchasers } from "@/lib/exchange-utils";
 
 /**
  * Sign up purchaser endpoint
@@ -130,6 +132,9 @@ export async function DELETE(request: NextRequest) {
  * GET /api/wishlist/[itemId]/purchasers?itemId=<id>
  *
  * Retrieves all purchasers for a specific wishlist item.
+ * - If requester is the item owner, returns empty array (owners can't see purchasers)
+ * - If requester is authenticated and in an exchange, only shows approved purchasers
+ * - If requester is not authenticated, returns all purchasers
  *
  * @query itemId - The item ID (required)
  *
@@ -151,6 +156,41 @@ export async function GET(request: NextRequest) {
     const itemIdNum = parseInt(itemId);
     if (isNaN(itemIdNum) || itemIdNum < 0) {
       return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
+    }
+
+    // Get the authenticated user's wallet address (if any)
+    const authenticatedAddress = await optionalAuth(request);
+
+    // Get the item owner
+    const itemResult = await thirdwebReadContract(
+      [
+        {
+          contractAddress: wishlist[chain.id],
+          method:
+            "function getItem(uint256) view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
+          params: [itemId],
+        },
+      ],
+      chain.id,
+    );
+
+    const itemData = itemResult.result[0].data || itemResult.result[0].result;
+    const itemOwner = Array.isArray(itemData)
+      ? itemData[1]?.toLowerCase()
+      : itemData?.owner?.toLowerCase();
+
+    // If requester is the item owner, return empty array
+    if (
+      authenticatedAddress &&
+      itemOwner === authenticatedAddress.toLowerCase()
+    ) {
+      return NextResponse.json({
+        success: true,
+        purchasers: [],
+        count: 0,
+        isOwner: true,
+        message: "Item owners cannot view purchaser information",
+      });
     }
 
     // Get purchasers for the item
@@ -182,10 +222,11 @@ export async function GET(request: NextRequest) {
       purchasersRaw,
       countRaw,
       itemId,
+      authenticatedAddress,
     });
 
     // Ensure purchasers is an array and convert BigInt to strings for JSON serialization
-    const purchasers = Array.isArray(purchasersRaw)
+    let purchasers = Array.isArray(purchasersRaw)
       ? purchasersRaw
           .filter((p: any) => p != null) // Filter out null entries
           .map((p: any) => {
@@ -214,12 +255,28 @@ export async function GET(request: NextRequest) {
           })
       : [];
 
-    const count =
-      typeof countRaw === "bigint"
-        ? Number(countRaw)
-        : typeof countRaw === "string"
-          ? parseInt(countRaw, 10)
-          : countRaw || 0;
+    // If user is authenticated and in an exchange, filter to only show approved purchasers
+    if (authenticatedAddress) {
+      const approvedPurchasers =
+        await getApprovedPurchasers(authenticatedAddress);
+
+      if (approvedPurchasers.size > 0) {
+        // Filter purchasers to only include approved ones
+        purchasers = purchasers.filter((p: any) =>
+          approvedPurchasers.has(p.purchaser.toLowerCase()),
+        );
+
+        console.log("[GET Purchasers] Filtered to approved purchasers:", {
+          originalCount: Array.isArray(purchasersRaw)
+            ? purchasersRaw.length
+            : 0,
+          filteredCount: purchasers.length,
+          approvedCount: approvedPurchasers.size,
+        });
+      }
+    }
+
+    const count = purchasers.length;
 
     console.log("[GET Purchasers] Processed:", {
       purchasersCount: purchasers.length,
@@ -230,6 +287,7 @@ export async function GET(request: NextRequest) {
       success: true,
       purchasers,
       count,
+      isOwner: false,
     });
   } catch (error) {
     console.error("Error fetching purchasers:", error);

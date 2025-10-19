@@ -84,8 +84,15 @@ export function PurchasersDialog({
   const fetchPurchasers = async () => {
     try {
       setLoading(true);
+
+      const headers: HeadersInit = {};
+      if (currentUserAddress) {
+        headers["x-wallet-address"] = currentUserAddress;
+      }
+
       const response = await fetch(
         `/api/wishlist/${itemId}/purchasers?itemId=${itemId}`,
+        { headers },
       );
 
       if (!response.ok) {
@@ -95,11 +102,19 @@ export function PurchasersDialog({
       const data = await response.json();
 
       if (data.success) {
-        // Ensure purchasers is an array
-        const purchasersList = Array.isArray(data.purchasers)
-          ? data.purchasers
-          : [];
-        setPurchasers(purchasersList);
+        // If user is owner, purchasers will be empty
+        if (data.isOwner) {
+          setPurchasers([]);
+          toast.info(
+            "As the item owner, you can't see who wants to purchase this item",
+          );
+        } else {
+          // Ensure purchasers is an array
+          const purchasersList = Array.isArray(data.purchasers)
+            ? data.purchasers
+            : [];
+          setPurchasers(purchasersList);
+        }
       }
     } catch (error) {
       console.error("Error fetching purchasers:", error);
@@ -132,7 +147,9 @@ export function PurchasersDialog({
 
       if (data.success) {
         setTransactionId(data.transactionId);
-        toast.info("Signing up as purchaser... Please wait for confirmation.");
+        toast.loading(
+          "Signing up as purchaser... Please wait for confirmation.",
+        );
       } else {
         throw new Error(data.error || "Failed to sign up as purchaser");
       }

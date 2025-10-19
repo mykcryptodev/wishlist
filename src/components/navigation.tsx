@@ -21,6 +21,7 @@ import { useState } from "react";
 
 import { appDescription, appName, chain } from "@/constants";
 import { client } from "@/providers/Thirdweb";
+import { useAuthToken } from "@/hooks/useAuthToken";
 
 import { ModeToggle } from "./mode-toggle";
 import { shortenAddress } from "thirdweb/utils";
@@ -38,6 +39,7 @@ export function Navigation() {
   const { resolvedTheme } = useTheme();
   const wallet = useActiveWallet();
   const [searchOpen, setSearchOpen] = useState(false);
+  const { token, setToken, clearToken } = useAuthToken();
 
   const wallets = [
     inAppWallet({
@@ -76,6 +78,12 @@ export function Navigation() {
               href="/my-purchases"
             >
               My Purchases
+            </Link>
+            <Link
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              href="/exchanges"
+            >
+              Exchanges
             </Link>
             <Link
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -128,6 +136,7 @@ export function Navigation() {
             chain={chain}
             client={client}
             wallets={wallets}
+            autoConnect={true}
             appMetadata={{
               name: appName,
               description: appDescription,
@@ -135,6 +144,10 @@ export function Navigation() {
             connectButton={{
               label: "Login",
               className: "!size-9",
+            }}
+            signInButton={{
+              label: "Sign In",
+              className: "!size-9 !min-h-0",
             }}
             connectModal={{
               title: `Login to ${appName}`,
@@ -166,6 +179,127 @@ export function Navigation() {
                   </Button>
                 </AccountProvider>
               ),
+            }}
+            auth={{
+              isLoggedIn: async (address: string) => {
+                console.log("[isLoggedIn] Checking auth for address:", address);
+
+                // Check localStorage directly for the most up-to-date token
+                const storedToken =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("wishlist_auth_token")
+                    : null;
+
+                console.log("[isLoggedIn] Token found:", !!storedToken);
+
+                if (!storedToken) {
+                  console.log("[isLoggedIn] No token found in localStorage");
+                  return false;
+                }
+
+                try {
+                  const response = await fetch("/api/auth/me", {
+                    headers: {
+                      Authorization: `Bearer ${storedToken}`,
+                    },
+                  });
+
+                  console.log(
+                    "[isLoggedIn] API response status:",
+                    response.status,
+                  );
+
+                  if (!response.ok) {
+                    console.log(
+                      "[isLoggedIn] Auth check failed:",
+                      response.status,
+                    );
+                    return false;
+                  }
+
+                  const data = await response.json();
+                  console.log("[isLoggedIn] Auth response data:", data);
+                  console.log("[isLoggedIn] Comparing addresses:", {
+                    fromJWT: data.address,
+                    expected: address.toLowerCase(),
+                    match: data.address === address.toLowerCase(),
+                  });
+                  const isValid =
+                    data.isLoggedIn && data.address === address.toLowerCase();
+                  console.log(
+                    "[isLoggedIn] Final result:",
+                    isValid,
+                    "for address:",
+                    address,
+                  );
+                  return isValid;
+                } catch (error) {
+                  console.error(
+                    "[isLoggedIn] Error checking login status:",
+                    error,
+                  );
+                  return false;
+                }
+              },
+              doLogin: async params => {
+                try {
+                  console.log("doLogin called with params:", {
+                    payload: params.payload,
+                    signature: params.signature?.slice(0, 20) + "...",
+                  });
+
+                  const response = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      payload: params.payload,
+                      signature: params.signature,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error("Failed to login");
+                  }
+
+                  const data = await response.json();
+                  setToken(data.token);
+                  console.log("Login successful, token saved");
+                } catch (error) {
+                  console.error("Error logging in:", error);
+                  throw error;
+                }
+              },
+              getLoginPayload: async ({ address }) => {
+                try {
+                  const response = await fetch(
+                    `/api/auth/login?address=${address}`,
+                  );
+
+                  if (!response.ok) {
+                    throw new Error("Failed to get login payload");
+                  }
+
+                  const data = await response.json();
+                  return data.payload;
+                } catch (error) {
+                  console.error("Error getting login payload:", error);
+                  throw error;
+                }
+              },
+              doLogout: async () => {
+                console.log("[doLogout] Logout called");
+                try {
+                  await fetch("/api/auth/logout", {
+                    method: "POST",
+                  });
+                  clearToken();
+                  console.log("[doLogout] Token cleared");
+                } catch (error) {
+                  console.error("[doLogout] Error logging out:", error);
+                }
+              },
             }}
             theme={
               resolvedTheme === "dark"
