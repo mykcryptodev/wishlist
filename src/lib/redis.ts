@@ -14,12 +14,15 @@ export const redis = isRedisConfigured
   : null;
 
 // Cache key helpers
-export const getContestCacheKey = (contestId: string, chainId?: number) => {
-  const currentChainId = chainId || chain.id;
-  return `contest:${currentChainId}:${contestId}`;
+
+export const getUserSearchCacheKey = (query: string, cursor?: string) => {
+  const normalizedQuery = query.toLowerCase().trim();
+  return cursor
+    ? `user-search:${normalizedQuery}:${cursor}`
+    : `user-search:${normalizedQuery}`;
 };
 
 // Cache TTL constants
 export const CACHE_TTL = {
-  CONTEST: 3600, // 1 hour in seconds
+  FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
 } as const;

@@ -1,56 +1,36 @@
-import { getContestCacheKey, redis } from "./redis";
+import { getUserSearchCacheKey, redis } from "./redis";
 
 /**
- * Invalidate contest cache by contest ID
- * This should be called when contest data changes (e.g., boxes claimed, rewards paid)
+ * Invalidate user search cache by query
+ * This should be called if you need to force refresh search results
  */
-export async function invalidateContestCache(
-  contestId: string,
-  chainId?: number,
+export async function invalidateUserSearchCache(
+  query: string,
+  cursor?: string,
 ): Promise<void> {
   if (!redis) return;
 
-  const cacheKey = getContestCacheKey(contestId, chainId);
+  const cacheKey = getUserSearchCacheKey(query, cursor);
   await redis.del(cacheKey);
 }
 
 /**
- * Invalidate multiple contest caches
+ * Invalidate all user search caches matching a pattern
+ * Warning: This can be expensive if you have many cached searches
  */
-export async function invalidateMultipleContestCaches(
-  contestIds: string[],
-  chainId?: number,
-): Promise<void> {
+export async function invalidateAllUserSearchCaches(): Promise<void> {
   if (!redis) return;
 
-  const cacheKeys = contestIds.map(id => getContestCacheKey(id, chainId));
-  await redis.del(...cacheKeys);
-}
-
-/**
- * Get contest data from cache without fallback to blockchain
- * Useful for checking if data exists in cache
- */
-export async function getContestFromCache(
-  contestId: string,
-  chainId?: number,
-): Promise<unknown | null> {
-  if (!redis) return null;
-
-  const cacheKey = getContestCacheKey(contestId, chainId);
-  return await redis.get(cacheKey);
-}
-
-/**
- * Set contest data in cache with default TTL
- */
-export async function setContestInCache(
-  contestId: string,
-  data: unknown,
-  chainId?: number,
-): Promise<void> {
-  if (!redis) return;
-
-  const cacheKey = getContestCacheKey(contestId, chainId);
-  await redis.setex(cacheKey, 3600, data); // 1 hour TTL
+  try {
+    // Scan for all user-search keys and delete them
+    const keys = await redis.keys("user-search:*");
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      console.log(
+        `[Cache] Invalidated ${keys.length} user search cache entries`,
+      );
+    }
+  } catch (error) {
+    console.error("Error invalidating user search caches:", error);
+  }
 }

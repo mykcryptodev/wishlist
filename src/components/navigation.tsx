@@ -25,7 +25,6 @@ import { client } from "@/providers/Thirdweb";
 import { ModeToggle } from "./mode-toggle";
 import { shortenAddress } from "thirdweb/utils";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import {
   Dialog,
   DialogContent,
@@ -33,11 +32,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { UserSearch } from "./user-search";
 
 export function Navigation() {
   const { resolvedTheme } = useTheme();
   const wallet = useActiveWallet();
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const wallets = [
     inAppWallet({
@@ -74,39 +74,30 @@ export function Navigation() {
           </div>
         </div>
 
-        <div className="hidden md:flex flex-1 max-w-md mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder="Search wishlists..."
-              className="pl-9 w-full"
-            />
-          </div>
+        <div className="hidden md:flex flex-1 max-w-md mx-4 items-center">
+          <UserSearch className="w-full" onUserSelect={() => {}} />
         </div>
 
         <div className="flex items-center space-x-4 gap-2">
           {/* Mobile Search Button */}
-          <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+          <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" variant="outline" className="md:hidden">
+              <Button size="icon" variant="outline">
                 <Search className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">Search</span>
+                <span className="sr-only">Search Users</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[90vw] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Search Wishlists</DialogTitle>
+                <DialogTitle>Search Users</DialogTitle>
               </DialogHeader>
-              <div className="relative mt-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="search"
-                  placeholder="Search wishlists..."
-                  className="pl-9 w-full"
-                  autoFocus
-                />
-              </div>
+              <UserSearch
+                onUserSelect={() => {
+                  setSearchOpen(false);
+                }}
+                showBio={false}
+                className="mt-4"
+              />
             </DialogContent>
           </Dialog>
 
