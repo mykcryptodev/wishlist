@@ -69,7 +69,19 @@ export function Navigation() {
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               href="/wishlist"
             >
-              Wishlist
+              My Wishlist
+            </Link>
+            <Link
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              href="/my-purchases"
+            >
+              My Purchases
+            </Link>
+            <Link
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              href="/users"
+            >
+              Browse
             </Link>
           </div>
         </div>

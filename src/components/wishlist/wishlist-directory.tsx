@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User } from "lucide-react";
-import { AccountProvider, AccountAvatar, AccountName } from "thirdweb/react";
+import {
+  AccountProvider,
+  AccountAvatar,
+  AccountName,
+  Blobbie,
+} from "thirdweb/react";
 import {
   Card,
   CardContent,
@@ -159,9 +164,10 @@ function WishlistCard({ address }: { address: string }) {
               <AccountAvatar
                 className="h-12 w-12 flex-shrink-0 rounded-full"
                 fallbackComponent={
-                  <div className="h-12 w-12 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
+                  <Blobbie
+                    address={address}
+                    className="h-12 w-12 flex-shrink-0 rounded-full"
+                  />
                 }
               />
               <div className="flex-1 min-w-0">
