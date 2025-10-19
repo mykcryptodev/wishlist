@@ -255,25 +255,23 @@ export async function GET(request: NextRequest) {
           })
       : [];
 
-    // If user is authenticated and in an exchange, filter to only show approved purchasers
-    if (authenticatedAddress) {
-      const approvedPurchasers =
-        await getApprovedPurchasers(authenticatedAddress);
+    // Filter to only show approved purchasers for the ITEM OWNER
+    // This way, if someone from the owner's work exchange signs up,
+    // people from the owner's family exchange will also see it (preventing duplicate purchases)
+    const approvedPurchasers = await getApprovedPurchasers(itemOwner);
 
-      if (approvedPurchasers.size > 0) {
-        // Filter purchasers to only include approved ones
-        purchasers = purchasers.filter((p: any) =>
-          approvedPurchasers.has(p.purchaser.toLowerCase()),
-        );
+    if (approvedPurchasers.size > 0) {
+      // Filter purchasers to only include those in any of the item owner's exchanges
+      purchasers = purchasers.filter((p: any) =>
+        approvedPurchasers.has(p.purchaser.toLowerCase()),
+      );
 
-        console.log("[GET Purchasers] Filtered to approved purchasers:", {
-          originalCount: Array.isArray(purchasersRaw)
-            ? purchasersRaw.length
-            : 0,
-          filteredCount: purchasers.length,
-          approvedCount: approvedPurchasers.size,
-        });
-      }
+      console.log("[GET Purchasers] Filtered to approved purchasers:", {
+        originalCount: Array.isArray(purchasersRaw) ? purchasersRaw.length : 0,
+        filteredCount: purchasers.length,
+        approvedCount: approvedPurchasers.size,
+        itemOwner,
+      });
     }
 
     const count = purchasers.length;

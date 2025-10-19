@@ -52,6 +52,9 @@ export function PurchasersDialog({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [loadingToastId, setLoadingToastId] = useState<string | number | null>(
+    null,
+  );
 
   const isCurrentUserPurchaser = purchasers.some(
     p => p.purchaser.toLowerCase() === currentUserAddress?.toLowerCase(),
@@ -61,6 +64,11 @@ export function PurchasersDialog({
   useTransactionMonitor({
     transactionId,
     onSuccess: () => {
+      // Dismiss the loading toast if it exists
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        setLoadingToastId(null);
+      }
       toast.success(
         isCurrentUserPurchaser
           ? "Removed from purchasers!"
@@ -75,6 +83,11 @@ export function PurchasersDialog({
       }, 1500);
     },
     onError: error => {
+      // Dismiss the loading toast if it exists
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        setLoadingToastId(null);
+      }
       toast.error(`Transaction failed: ${error}`);
       setTransactionId(null);
       setActionLoading(false);
@@ -147,9 +160,10 @@ export function PurchasersDialog({
 
       if (data.success) {
         setTransactionId(data.transactionId);
-        toast.loading(
+        const toastId = toast.loading(
           "Signing up as purchaser... Please wait for confirmation.",
         );
+        setLoadingToastId(toastId);
       } else {
         throw new Error(data.error || "Failed to sign up as purchaser");
       }
@@ -179,7 +193,10 @@ export function PurchasersDialog({
 
       if (data.success) {
         setTransactionId(data.transactionId);
-        toast.info("Removing from purchasers... Please wait for confirmation.");
+        const toastId = toast.info(
+          "Removing from purchasers... Please wait for confirmation.",
+        );
+        setLoadingToastId(toastId);
       } else {
         throw new Error(data.error || "Failed to remove purchaser");
       }
