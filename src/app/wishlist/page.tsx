@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AddWishlistItemForm } from "@/components/wishlist/AddWishlistItemForm";
-import { WishlistItems } from "@/components/wishlist/WishlistItems";
+import {
+  WishlistItems,
+  WishlistItemsRef,
+} from "@/components/wishlist/WishlistItems";
 import { Button } from "@/components/ui/button";
 import { useActiveAccount } from "thirdweb/react";
 import { Share2, Check, Copy } from "lucide-react";
@@ -12,6 +15,12 @@ export default function WishlistPage() {
   const account = useActiveAccount();
   const address = account?.address || "";
   const [copied, setCopied] = useState(false);
+  const wishlistItemsRef = useRef<WishlistItemsRef>(null);
+
+  const handleItemAdded = () => {
+    // Refresh the wishlist items when a new item is added
+    wishlistItemsRef.current?.refreshItems();
+  };
 
   const copyShareLink = async () => {
     if (!address) {
@@ -67,12 +76,15 @@ export default function WishlistPage() {
         </div>
         {/* Add Item Form */}
         <div className="max-w-2xl mx-auto mb-12">
-          <AddWishlistItemForm userAddress={address} />
+          <AddWishlistItemForm
+            userAddress={address}
+            onItemAdded={handleItemAdded}
+          />
         </div>
 
         {/* Wishlist Items */}
         <div className="max-w-7xl mx-auto">
-          <WishlistItems userAddress={address} />
+          <WishlistItems ref={wishlistItemsRef} userAddress={address} />
         </div>
       </main>
     </div>

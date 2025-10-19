@@ -115,7 +115,13 @@ const parseItemFromUrl = async (
   }
 };
 
-export function AddWishlistItemForm({ userAddress }: { userAddress: string }) {
+export function AddWishlistItemForm({
+  userAddress,
+  onItemAdded,
+}: {
+  userAddress: string;
+  onItemAdded?: () => void;
+}) {
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [parsedData, setParsedData] =
@@ -143,6 +149,8 @@ export function AddWishlistItemForm({ userAddress }: { userAddress: string }) {
       form.reset();
       setParsedData(null);
       setCurrentTransactionId(null);
+      // Notify parent component to refresh the wishlist
+      onItemAdded?.();
     },
     onError: error => {
       // Dismiss the loading toast first, then show error
