@@ -1,4 +1,8 @@
-import { getUserSearchCacheKey, redis } from "./redis";
+import {
+  getUserSearchCacheKey,
+  getWishlistAddressesCacheKey,
+  redis,
+} from "./redis";
 
 /**
  * Invalidate user search cache by query
@@ -32,5 +36,32 @@ export async function invalidateAllUserSearchCaches(): Promise<void> {
     }
   } catch (error) {
     console.error("Error invalidating user search caches:", error);
+  }
+}
+
+/**
+ * Invalidate wishlist addresses cache for a specific chain
+ * This should be called when a user creates their first wishlist item
+ * or when the list of addresses with wishlists changes
+ */
+export async function invalidateWishlistAddressesCache(
+  chainId: number,
+): Promise<void> {
+  if (!redis) {
+    console.log("[Cache] Redis not configured, skipping cache invalidation");
+    return;
+  }
+
+  try {
+    const cacheKey = getWishlistAddressesCacheKey(chainId);
+    const deleted = await redis.del(cacheKey);
+    if (deleted > 0) {
+      console.log(
+        `[Cache] Invalidated wishlist addresses cache for chain ${chainId}`,
+      );
+    }
+  } catch (error) {
+    console.error("Error invalidating wishlist addresses cache:", error);
+    // Don't throw - cache invalidation failure shouldn't break the request
   }
 }

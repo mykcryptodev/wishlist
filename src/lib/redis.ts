@@ -22,7 +22,12 @@ export const getUserSearchCacheKey = (query: string, cursor?: string) => {
     : `user-search:${normalizedQuery}`;
 };
 
+export const getWishlistAddressesCacheKey = (chainId: number) => {
+  return `wishlist-addresses:${chainId}`;
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
+  ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently)
 } as const;

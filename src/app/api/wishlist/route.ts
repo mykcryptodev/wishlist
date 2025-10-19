@@ -4,6 +4,7 @@ import {
   thirdwebReadContract,
 } from "@/lib/thirdweb-http-api";
 import { chain, wishlist } from "@/constants";
+import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
 
 /**
  * Create wishlist item endpoint
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest) {
       ],
       chain.id,
     );
+
+    // Invalidate the wishlist addresses cache since a new user may have been added
+    // This ensures search results reflect the new wishlist immediately
+    await invalidateWishlistAddressesCache(chain.id);
 
     return NextResponse.json({
       success: true,

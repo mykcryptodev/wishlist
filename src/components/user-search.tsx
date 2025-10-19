@@ -2,6 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,8 @@ interface User {
   verified_addresses?: {
     eth_addresses: string[];
   };
+  hasWishlist?: boolean;
+  wishlistAddress?: string; // The specific verified address that has a wishlist
 }
 
 interface UserSearchProps {
@@ -48,6 +51,7 @@ export function UserSearch({
   showBio = true,
   className = "",
 }: UserSearchProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -193,7 +197,14 @@ export function UserSearch({
               <Card
                 key={user.fid}
                 className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-                onClick={() => onUserSelect?.(user)}
+                onClick={() => {
+                  // If user has a wishlist, navigate to it using the specific address
+                  if (user.wishlistAddress) {
+                    router.push(`/wishlist/${user.wishlistAddress}`);
+                  }
+                  // Always call the callback if provided
+                  onUserSelect?.(user);
+                }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
@@ -204,13 +215,21 @@ export function UserSearch({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold text-base truncate">
                           {user.display_name}
                         </h3>
                         {user.power_badge && (
                           <Badge variant="secondary" className="text-xs">
                             ⚡
+                          </Badge>
+                        )}
+                        {user.hasWishlist && (
+                          <Badge
+                            variant="default"
+                            className="text-xs bg-primary"
+                          >
+                            🎁 Has Wishlist
                           </Badge>
                         )}
                       </div>
