@@ -9,7 +9,7 @@ import { chain, wishlist } from "@/constants";
  *
  * Updates an existing wishlist item on the blockchain.
  *
- * @body itemId - The item ID to update (required)
+ * @param itemId - The item ID to update (from route params)
  * @body title - The item title (required)
  * @body url - The item URL (required)
  * @body description - Optional item description
@@ -18,10 +18,14 @@ import { chain, wishlist } from "@/constants";
  *
  * @returns Transaction ID for monitoring
  */
-export async function PUT(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { itemId: string } },
+) {
   try {
+    const { itemId } = params;
     const body = await request.json();
-    const { itemId, title, description, url, imageUrl, price } = body;
+    const { title, description, url, imageUrl, price } = body;
 
     // Validate required fields
     if (!itemId || !title || !url) {
@@ -89,18 +93,20 @@ export async function PUT(request: NextRequest) {
 /**
  * Delete wishlist item endpoint
  *
- * DELETE /api/wishlist/[itemId]?itemId=<id>
+ * DELETE /api/wishlist/[itemId]
  *
  * Deletes a wishlist item from the blockchain.
  *
- * @query itemId - The item ID to delete (required)
+ * @param itemId - The item ID to delete (from route params)
  *
  * @returns Transaction ID for monitoring
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { itemId: string } },
+) {
   try {
-    const { searchParams } = new URL(request.url);
-    const itemId = searchParams.get("itemId");
+    const { itemId } = params;
 
     if (!itemId) {
       return NextResponse.json(
