@@ -140,7 +140,7 @@ export function Navigation() {
                       fallbackComponent={
                         <Blobbie
                           address={wallet?.getAccount()?.address ?? ""}
-                          className="!size-9"
+                          className="!size-6 rounded-full"
                         />
                       }
                     />
