@@ -8,6 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
 import {
@@ -39,6 +49,7 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
   const [deletingTransactionId, setDeletingTransactionId] = useState<
     string | null
   >(null);
+  const [itemToDelete, setItemToDelete] = useState<WishlistItem | null>(null);
   const loadingToastIdRef = useRef<string | number | null>(null);
 
   // Transaction monitoring for delete operations
@@ -85,9 +96,18 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
     }
   };
 
-  const deleteItem = async (itemId: string) => {
+  const handleDeleteClick = (itemId: string) => {
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      setItemToDelete(item);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
     try {
-      const response = await fetch(`/api/wishlist/${itemId}`, {
+      const response = await fetch(`/api/wishlist/${itemToDelete.id}`, {
         method: "DELETE",
       });
       const data = await response.json();
@@ -100,6 +120,8 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
           "Deleting item...",
           "Please wait while the item is removed from your wishlist.",
         );
+        // Close the dialog
+        setItemToDelete(null);
       } else {
         showErrorToast(
           "Failed to delete item",
@@ -167,28 +189,56 @@ export function WishlistItems({ userAddress }: WishlistItemsProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          Your Wishlist ({items.length})
-        </h2>
-        <p className="text-muted-foreground mt-2">
-          Manage your wishlist items and see who's interested in purchasing them
-        </p>
+    <>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Your Wishlist ({items.length})
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            Manage your wishlist items and see who's interested in purchasing
+            them
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map(item => (
+            <WishlistItemCard
+              key={item.id}
+              item={item}
+              onDelete={handleDeleteClick}
+              onEdit={handleEdit}
+              onViewPurchasers={handleViewPurchasers}
+              isDeleting={isDeleting}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map(item => (
-          <WishlistItemCard
-            key={item.id}
-            item={item}
-            onDelete={deleteItem}
-            onEdit={handleEdit}
-            onViewPurchasers={handleViewPurchasers}
-            isDeleting={isDeleting}
-          />
-        ))}
-      </div>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!itemToDelete}
+        onOpenChange={(open: boolean) => !open && setItemToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &quot;{itemToDelete?.title}&quot;
+              from your wishlist. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
