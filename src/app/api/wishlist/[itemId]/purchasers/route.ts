@@ -154,18 +154,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Get purchasers for the item
+    // Note: Inline the Purchaser struct as a tuple since Thirdweb doesn't know custom types
+    // The struct has: address purchaser, uint256 signedUpAt, bool exists
+    // Tuple syntax: (type1,type2,type3)[] without field names
     const result = await thirdwebReadContract(
       [
         {
           contractAddress: wishlist[chain.id],
           method:
-            "function getPurchasers(uint256 _itemId) external view returns (Purchaser[] memory)",
+            "function getPurchasers(uint256) view returns ((address,uint256,bool)[])",
           params: [itemId],
         },
         {
           contractAddress: wishlist[chain.id],
-          method:
-            "function getPurchaserCount(uint256 _itemId) external view returns (uint256)",
+          method: "function getPurchaserCount(uint256) view returns (uint256)",
           params: [itemId],
         },
       ],
@@ -173,8 +175,56 @@ export async function GET(request: NextRequest) {
     );
 
     // Extract data from thirdweb API response (handles both .data and .result formats)
-    const purchasers = result.result[0].data || result.result[0].result;
-    const count = result.result[1].data || result.result[1].result;
+    const purchasersRaw = result.result[0].data || result.result[0].result;
+    const countRaw = result.result[1].data || result.result[1].result;
+
+    console.log("[GET Purchasers] Raw response:", {
+      purchasersRaw,
+      countRaw,
+      itemId,
+    });
+
+    // Ensure purchasers is an array and convert BigInt to strings for JSON serialization
+    const purchasers = Array.isArray(purchasersRaw)
+      ? purchasersRaw
+          .filter((p: any) => p != null) // Filter out null entries
+          .map((p: any) => {
+            // Handle tuple format: [address, uint256, bool]
+            if (Array.isArray(p)) {
+              return {
+                purchaser: p[0],
+                signedUpAt:
+                  typeof p[1] === "bigint"
+                    ? p[1].toString()
+                    : p[1]?.toString() || "0",
+                exists: p[2] ?? true,
+              };
+            }
+            // Handle object format: {0: address, 1: uint256, 2: bool} or {purchaser, signedUpAt, exists}
+            return {
+              purchaser: p.purchaser || p[0],
+              signedUpAt:
+                typeof p.signedUpAt === "bigint"
+                  ? p.signedUpAt.toString()
+                  : typeof p[1] === "bigint"
+                    ? p[1].toString()
+                    : (p.signedUpAt || p[1] || "0").toString(),
+              exists: p.exists ?? p[2] ?? true,
+            };
+          })
+      : [];
+
+    const count =
+      typeof countRaw === "bigint"
+        ? Number(countRaw)
+        : typeof countRaw === "string"
+          ? parseInt(countRaw, 10)
+          : countRaw || 0;
+
+    console.log("[GET Purchasers] Processed:", {
+      purchasersCount: purchasers.length,
+      count,
+    });
 
     return NextResponse.json({
       success: true,

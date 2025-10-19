@@ -11,7 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserPlus, UserMinus, Users as UsersIcon } from "lucide-react";
+import {
+  UserPlus,
+  UserMinus,
+  Users as UsersIcon,
+  RefreshCw,
+} from "lucide-react";
 import { AccountProvider, AccountAvatar, AccountName } from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
 import { toast } from "sonner";
@@ -63,8 +68,11 @@ export function PurchasersDialog({
       );
       setTransactionId(null);
       setActionLoading(false);
-      fetchPurchasers();
-      onPurchaserChange?.();
+      // Add a small delay to allow blockchain state to update
+      setTimeout(() => {
+        fetchPurchasers();
+        onPurchaserChange?.();
+      }, 1500);
     },
     onError: error => {
       toast.error(`Transaction failed: ${error}`);
@@ -85,8 +93,13 @@ export function PurchasersDialog({
       }
 
       const data = await response.json();
+
       if (data.success) {
-        setPurchasers(data.purchasers || []);
+        // Ensure purchasers is an array
+        const purchasersList = Array.isArray(data.purchasers)
+          ? data.purchasers
+          : [];
+        setPurchasers(purchasersList);
       }
     } catch (error) {
       console.error("Error fetching purchasers:", error);
@@ -227,6 +240,18 @@ export function PurchasersDialog({
                 {purchasers.length}{" "}
                 {purchasers.length === 1 ? "person" : "people"} interested
               </h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchPurchasers}
+                disabled={loading}
+                className="h-8 w-8 p-0"
+                title="Refresh purchasers"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
+              </Button>
             </div>
 
             {loading ? (
