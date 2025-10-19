@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { BadgeCheck, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { sdk } from "@farcaster/miniapp-sdk";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getBaseUrl } from "@/lib/farcaster-metadata";
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 interface User {
   fid: number;
@@ -52,6 +55,7 @@ export function UserSearch({
   className = "",
 }: UserSearchProps) {
   const router = useRouter();
+  const { isInMiniApp } = useIsInMiniApp();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -129,6 +133,41 @@ export function UserSearch({
     setUsers([]);
     setNextCursor(null);
     setError(null);
+  };
+
+  const handleRequestWishlist = async (user: User, event: React.MouseEvent) => {
+    // Stop event propagation to prevent card click
+    event.stopPropagation();
+
+    try {
+      const baseUrl = getBaseUrl();
+      const text = `Hey @${user.username}, what should I get you for the holidays? Put your wishlist onchain!`;
+
+      if (isInMiniApp) {
+        // Use Farcaster SDK in miniapp context
+        const embeds: [string] = [baseUrl];
+        await sdk.actions.composeCast({
+          text,
+          embeds,
+        });
+      } else {
+        // Use Web Share API as fallback
+        if (navigator.share) {
+          await navigator.share({
+            title: "Request Wishlist",
+            text: text,
+            url: baseUrl,
+          });
+        } else {
+          // Fallback: copy to clipboard if share isn't supported
+          await navigator.clipboard.writeText(`${text}\n\n${baseUrl}`);
+          // You could show a toast notification here
+          console.log("Link copied to clipboard!");
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing wishlist request:", error);
+    }
   };
 
   return (
@@ -220,21 +259,27 @@ export function UserSearch({
                           {user.display_name}
                         </h3>
                         {user.power_badge && (
-                          <Badge variant="secondary" className="text-xs">
-                            ⚡
-                          </Badge>
+                          <BadgeCheck className="size-4 text-primary" />
                         )}
-                        {user.hasWishlist && (
+                        {user.hasWishlist ? (
                           <Badge
                             variant="default"
                             className="text-xs bg-primary"
                           >
                             🎁 Has Wishlist
                           </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-xs cursor-pointer hover:bg-muted transition-colors"
+                            onClick={e => handleRequestWishlist(user, e)}
+                          >
+                            💌 Request Wishlist
+                          </Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        @{user.username} · FID: {user.fid}
+                        @{user.username}
                       </p>
                       {showBio && user.profile?.bio?.text && (
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
@@ -254,15 +299,6 @@ export function UserSearch({
                           </span>{" "}
                           following
                         </span>
-                        {user.verified_addresses?.eth_addresses?.length ? (
-                          <Badge variant="outline" className="text-xs">
-                            {user.verified_addresses.eth_addresses.length}{" "}
-                            verified address
-                            {user.verified_addresses.eth_addresses.length > 1
-                              ? "es"
-                              : ""}
-                          </Badge>
-                        ) : null}
                       </div>
                     </div>
                   </div>

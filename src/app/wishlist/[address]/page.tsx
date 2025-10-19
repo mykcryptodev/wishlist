@@ -96,14 +96,53 @@ export default function PublicWishlistPage() {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
+          {/* Header Section with Profile (Skeletons) */}
+          <div className="text-center py-8 space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              {/* Avatar skeleton */}
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-muted animate-pulse ring-4 ring-primary/20" />
+              </div>
+              {/* Wishlist Title skeleton */}
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <div className="h-10 w-48 bg-muted rounded-lg animate-pulse" />
+              </div>
+              {/* Share Button skeleton */}
+              <div>
+                <div
+                  className="inline-flex gap-2 px-4 py-2 h-9 rounded-md border border-input bg-muted animate-pulse"
+                  style={{ width: 85 }}
+                />
+              </div>
+            </div>
+          </div>
+          {/* Loading Card for wishlist items */}
           <Card>
             <CardHeader>
-              <CardTitle>Loading Wishlist...</CardTitle>
-              <CardDescription>Please wait</CardDescription>
+              <CardTitle>
+                <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+              </CardTitle>
+              <CardDescription>
+                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-6"></div>
+                <div className="flex flex-col items-center gap-4">
+                  {[...Array(2)].map((_, idx) => (
+                    <div key={idx} className="w-full max-w-2xl">
+                      <div className="flex gap-4 items-center mb-2">
+                        <div className="w-12 h-12 bg-muted rounded-lg animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                          <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-4" />
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
