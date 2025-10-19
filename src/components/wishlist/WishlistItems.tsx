@@ -32,6 +32,7 @@ import {
   showErrorToast,
 } from "@/lib/toast";
 import { WishlistItemCard } from "./WishlistItemCard";
+import { PurchasersDialog } from "./PurchasersDialog";
 
 interface WishlistItem {
   id: string;
@@ -61,6 +62,12 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
       string | null
     >(null);
     const [itemToDelete, setItemToDelete] = useState<WishlistItem | null>(null);
+    const [purchaserCounts, setPurchaserCounts] = useState<
+      Record<string, number>
+    >({});
+    const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+    const [selectedItemTitle, setSelectedItemTitle] = useState<string>("");
+    const [purchasersDialogOpen, setPurchasersDialogOpen] = useState(false);
     const loadingToastIdRef = useRef<string | number | null>(null);
 
     // Expose refresh function to parent component
@@ -102,6 +109,8 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
 
         if (data.success) {
           setItems(data.items);
+          // Fetch purchaser counts for each item
+          await fetchPurchaserCounts(data.items);
         } else {
           toast.error(
             `Failed to fetch wishlist items: ${data.error || "Unknown error"}`,
@@ -111,6 +120,38 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
         toast.error("Failed to fetch wishlist items");
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchPurchaserCounts = async (itemsList: WishlistItem[]) => {
+      try {
+        const countPromises = itemsList.map(async item => {
+          try {
+            const response = await fetch(
+              `/api/wishlist/${item.id}/purchasers?itemId=${item.id}`,
+            );
+            const data = await response.json();
+
+            if (data.success) {
+              return { itemId: item.id, count: data.count || 0 };
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching purchaser count for item ${item.id}:`,
+              error,
+            );
+          }
+          return { itemId: item.id, count: 0 };
+        });
+
+        const results = await Promise.all(countPromises);
+        const countsMap: Record<string, number> = {};
+        results.forEach(result => {
+          countsMap[result.itemId] = result.count;
+        });
+        setPurchaserCounts(countsMap);
+      } catch (error) {
+        console.error("Error fetching purchaser counts:", error);
       }
     };
 
@@ -204,8 +245,19 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
     };
 
     const handleViewPurchasers = (itemId: string) => {
-      // TODO: Show purchasers modal
-      toast.info("Purchasers view coming soon!");
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+
+      setSelectedItemId(itemId);
+      setSelectedItemTitle(item.title);
+      setPurchasersDialogOpen(true);
+    };
+
+    const handlePurchaserChange = () => {
+      // Refresh purchaser counts when they change
+      if (items.length > 0) {
+        fetchPurchaserCounts(items);
+      }
     };
 
     return (
@@ -230,6 +282,7 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
                 onEdit={handleEdit}
                 onViewPurchasers={handleViewPurchasers}
                 isDeleting={isDeleting}
+                purchaserCount={purchaserCounts[item.id] || 0}
               />
             ))}
           </div>
@@ -259,6 +312,19 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Purchasers Dialog */}
+        {selectedItemId && (
+          <PurchasersDialog
+            open={purchasersDialogOpen}
+            onOpenChange={setPurchasersDialogOpen}
+            itemId={selectedItemId}
+            itemTitle={selectedItemTitle}
+            currentUserAddress={userAddress}
+            isOwner={true}
+            onPurchaserChange={handlePurchaserChange}
+          />
+        )}
       </>
     );
   },

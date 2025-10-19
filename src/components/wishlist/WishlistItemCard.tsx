@@ -23,6 +23,8 @@ interface WishlistItemCardProps {
   onPurchaseInterest?: (itemId: string) => void;
   isDeleting?: boolean;
   viewMode?: "owner" | "public";
+  purchaserCount?: number;
+  isUserPurchaser?: boolean;
 }
 
 export function WishlistItemCard({
@@ -33,6 +35,8 @@ export function WishlistItemCard({
   onPurchaseInterest,
   isDeleting = false,
   viewMode = "owner",
+  purchaserCount = 0,
+  isUserPurchaser = false,
 }: WishlistItemCardProps) {
   const formatPrice = (priceInWei: string) => {
     const price = parseFloat(priceInWei) / 1e18;
@@ -63,14 +67,27 @@ export function WishlistItemCard({
             <ShoppingCart className="h-16 w-16 text-muted-foreground/50" />
           </div>
         )}
-        {/* Price Badge */}
-        <div className="absolute top-4 right-4">
+        {/* Badges */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
           <Badge
             variant="secondary"
             className="backdrop-blur-sm bg-background/80"
           >
             {formatPrice(item.price)}
           </Badge>
+          {purchaserCount > 0 && (
+            <Badge
+              variant="default"
+              className="backdrop-blur-sm bg-primary/90 cursor-pointer hover:bg-primary"
+              onClick={e => {
+                e.stopPropagation();
+                onViewPurchasers?.(item.id);
+              }}
+            >
+              <Users className="w-3 h-3 mr-1" />
+              {purchaserCount}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -154,13 +171,22 @@ export function WishlistItemCard({
               View Item
             </Button>
             <Button
-              variant="outline"
+              variant={isUserPurchaser ? "secondary" : "outline"}
               size="sm"
               className="w-full"
               onClick={() => onPurchaseInterest?.(item.id)}
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              I'll Get This
+              {isUserPurchaser ? (
+                <>
+                  <Users className="w-4 h-4 mr-2" />
+                  You're Getting This
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  I'll Get This
+                </>
+              )}
             </Button>
           </>
         )}

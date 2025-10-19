@@ -13,12 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Share2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
+import { PurchasersDialog } from "@/components/wishlist/PurchasersDialog";
 import {
   AccountAddress,
   AccountAvatar,
   AccountName,
   AccountProvider,
   Blobbie,
+  useActiveAccount,
+  ConnectButton,
 } from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
 import { shortenAddress } from "thirdweb/utils";
@@ -35,12 +38,26 @@ interface WishlistItem {
   updatedAt: string;
 }
 
+interface ItemPurchaserData {
+  count: number;
+  isUserPurchaser: boolean;
+}
+
 export default function PublicWishlistPage() {
   const params = useParams();
   const address = params.address as string;
+  const account = useActiveAccount();
+  const currentUserAddress = account?.address;
+
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [purchaserData, setPurchaserData] = useState<
+    Record<string, ItemPurchaserData>
+  >({});
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemTitle, setSelectedItemTitle] = useState<string>("");
+  const [purchasersDialogOpen, setPurchasersDialogOpen] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -50,6 +67,8 @@ export default function PublicWishlistPage() {
 
       if (data.success) {
         setItems(data.items);
+        // Fetch purchaser data for each item
+        await fetchPurchaserData(data.items);
       } else {
         console.error("API returned error:", data);
         toast.error(
@@ -61,6 +80,55 @@ export default function PublicWishlistPage() {
       toast.error("Failed to fetch wishlist");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPurchaserData = async (itemsList: WishlistItem[]) => {
+    try {
+      const purchaserPromises = itemsList.map(async item => {
+        try {
+          const response = await fetch(
+            `/api/wishlist/${item.id}/purchasers?itemId=${item.id}`,
+          );
+          const data = await response.json();
+
+          if (data.success) {
+            const isUserPurchaser =
+              currentUserAddress &&
+              data.purchasers?.some(
+                (p: { purchaser: string }) =>
+                  p.purchaser.toLowerCase() ===
+                  currentUserAddress.toLowerCase(),
+              );
+
+            return {
+              itemId: item.id,
+              data: {
+                count: data.count || 0,
+                isUserPurchaser: isUserPurchaser || false,
+              },
+            };
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching purchasers for item ${item.id}:`,
+            error,
+          );
+        }
+        return {
+          itemId: item.id,
+          data: { count: 0, isUserPurchaser: false },
+        };
+      });
+
+      const results = await Promise.all(purchaserPromises);
+      const dataMap: Record<string, ItemPurchaserData> = {};
+      results.forEach(result => {
+        dataMap[result.itemId] = result.data;
+      });
+      setPurchaserData(dataMap);
+    } catch (error) {
+      console.error("Error fetching purchaser data:", error);
     }
   };
 
@@ -82,8 +150,33 @@ export default function PublicWishlistPage() {
   };
 
   const handlePurchaseInterest = (itemId: string) => {
-    // TODO: Implement purchaser signup
-    toast.info("Purchaser signup coming soon!");
+    if (!currentUserAddress) {
+      toast.error("Please connect your wallet to sign up as a purchaser");
+      return;
+    }
+
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    setSelectedItemId(itemId);
+    setSelectedItemTitle(item.title);
+    setPurchasersDialogOpen(true);
+  };
+
+  const handleViewPurchasers = (itemId: string) => {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    setSelectedItemId(itemId);
+    setSelectedItemTitle(item.title);
+    setPurchasersDialogOpen(true);
+  };
+
+  const handlePurchaserChange = () => {
+    // Refresh purchaser data when it changes
+    if (items.length > 0) {
+      fetchPurchaserData(items);
+    }
   };
 
   useEffect(() => {
@@ -91,6 +184,13 @@ export default function PublicWishlistPage() {
       fetchItems();
     }
   }, [address]);
+
+  // Refetch purchaser data when user connects/disconnects wallet
+  useEffect(() => {
+    if (items.length > 0) {
+      fetchPurchaserData(items);
+    }
+  }, [currentUserAddress]);
 
   if (loading) {
     return (
@@ -209,6 +309,23 @@ export default function PublicWishlistPage() {
           </AccountProvider>
         </div>
 
+        {/* Connect Wallet Banner for Non-Connected Users */}
+        {!currentUserAddress && (
+          <Card className="max-w-2xl mx-auto mb-6">
+            <CardContent className="pt-6 pb-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold mb-1">Want to help out?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Connect your wallet to sign up as a purchaser for items
+                  </p>
+                </div>
+                <ConnectButton client={client} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Empty State */}
         {items.length === 0 && (
           <Card className="max-w-2xl mx-auto">
@@ -241,10 +358,28 @@ export default function PublicWishlistPage() {
                   item={item}
                   viewMode="public"
                   onPurchaseInterest={handlePurchaseInterest}
+                  onViewPurchasers={handleViewPurchasers}
+                  purchaserCount={purchaserData[item.id]?.count || 0}
+                  isUserPurchaser={
+                    purchaserData[item.id]?.isUserPurchaser || false
+                  }
                 />
               ))}
             </div>
           </div>
+        )}
+
+        {/* Purchasers Dialog */}
+        {selectedItemId && (
+          <PurchasersDialog
+            open={purchasersDialogOpen}
+            onOpenChange={setPurchasersDialogOpen}
+            itemId={selectedItemId}
+            itemTitle={selectedItemTitle}
+            currentUserAddress={currentUserAddress}
+            isOwner={false}
+            onPurchaserChange={handlePurchaserChange}
+          />
         )}
       </main>
     </div>
