@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { thirdwebAuth } from "@/lib/thirdweb-server";
+import { base } from "thirdweb/chains";
 
 /**
  * GET /api/auth/login
@@ -19,9 +20,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Use Thirdweb's generatePayload to create a SIWE-compliant payload
+    // IMPORTANT: Specify chain_id for Base to enable smart account verification
     const payload = await thirdwebAuth.generatePayload({
       address,
+      chainId: base.id, // Base mainnet chain ID (8453)
     });
+
+    console.log("Generated payload with chain ID:", payload.chain_id);
 
     return NextResponse.json({ payload });
   } catch (error) {
@@ -58,19 +63,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use Thirdweb's verifyPayload to verify the signature
+    // Verify the payload and signature
+    // With the correct chain_id (8453 for Base), thirdweb's verifyPayload
+    // will automatically use verifySignature with chain support,
+    // enabling ERC-1271 (smart contract) and ERC-6492 (undeployed contract) verification
     const verifiedPayload = await thirdwebAuth.verifyPayload({
       payload,
       signature,
     });
 
     if (!verifiedPayload.valid) {
-      console.error("Signature verification failed");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      console.error("Signature verification failed:", verifiedPayload.error);
+      return NextResponse.json(
+        { error: "Invalid signature", details: verifiedPayload.error },
+        { status: 401 },
+      );
     }
 
     console.log(
-      "Signature verified successfully:",
+      "Signature verified successfully for:",
       verifiedPayload.payload.address,
     );
     console.log("Verified payload:", verifiedPayload.payload);

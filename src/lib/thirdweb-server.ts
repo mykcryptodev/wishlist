@@ -8,6 +8,7 @@
 import { createThirdwebClient } from "thirdweb";
 import { createAuth } from "thirdweb/auth";
 import { privateKeyToAccount } from "thirdweb/wallets";
+import { base } from "thirdweb/chains";
 
 if (!process.env.THIRDWEB_SECRET_KEY) {
   throw new Error("THIRDWEB_SECRET_KEY is required for server-side operations");
