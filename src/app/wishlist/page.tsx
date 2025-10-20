@@ -44,7 +44,7 @@ export default function WishlistPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="text-center py-8 space-y-6">
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+          <div className="flex flex-col items-center justify-center gap-4 flex-wrap">
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               My Wishlist
             </h1>

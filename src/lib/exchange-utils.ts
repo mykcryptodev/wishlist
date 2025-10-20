@@ -15,9 +15,14 @@ import { supabaseAdmin } from "./supabase";
  * @returns Set of wallet addresses that are approved purchasers
  */
 export async function getApprovedPurchasers(
-  walletAddress: string,
+  walletAddress: string | undefined | null,
 ): Promise<Set<string>> {
   try {
+    // Handle undefined/null wallet address
+    if (!walletAddress) {
+      return new Set();
+    }
+
     // Normalize the wallet address to lowercase
     const normalizedAddress = walletAddress.toLowerCase();
 
