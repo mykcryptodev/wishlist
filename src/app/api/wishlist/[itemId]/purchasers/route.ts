@@ -181,12 +181,6 @@ export async function GET(request: NextRequest) {
       ? itemData[1]?.toLowerCase()
       : undefined;
 
-    console.log("[GET Purchasers] Item owner:", {
-      itemId,
-      itemOwner,
-      rawData: itemData,
-    });
-
     // If requester is the item owner, return empty array
     if (
       authenticatedAddress &&
@@ -226,13 +220,6 @@ export async function GET(request: NextRequest) {
     const purchasersRaw = result.result[0].data || result.result[0].result;
     const countRaw = result.result[1].data || result.result[1].result;
 
-    console.log("[GET Purchasers] Raw response:", {
-      purchasersRaw,
-      countRaw,
-      itemId,
-      authenticatedAddress,
-    });
-
     // Ensure purchasers is an array and convert BigInt to strings for JSON serialization
     let purchasers = Array.isArray(purchasersRaw)
       ? purchasersRaw
@@ -268,9 +255,6 @@ export async function GET(request: NextRequest) {
 
     // If no authenticated user, they shouldn't see any purchasers
     if (!authenticatedAddress) {
-      console.log(
-        "[GET Purchasers] No authenticated user, returning empty list",
-      );
       return NextResponse.json({
         success: true,
         purchasers: [],
@@ -282,30 +266,13 @@ export async function GET(request: NextRequest) {
     // Get approved purchasers for the item owner (all members of owner's exchanges)
     const approvedPurchasers = await getApprovedPurchasers(itemOwner);
 
-    console.log("[GET Purchasers] Before filtering:", {
-      itemOwner,
-      authenticatedAddress,
-      originalPurchaserCount: purchasers.length,
-      approvedPurchasersCount: approvedPurchasers.size,
-      purchasers: purchasers.map((p: any) => p.purchaser.toLowerCase()),
-      approvedPurchasersList: Array.from(approvedPurchasers),
-    });
-
     // Check if the authenticated user is in the approved purchasers list (same exchange as owner)
     const isViewerInExchange = approvedPurchasers.has(
       authenticatedAddress.toLowerCase(),
     );
 
-    console.log("[GET Purchasers] Viewer exchange check:", {
-      authenticatedAddress,
-      isViewerInExchange,
-    });
-
     // If viewer is not in any of the owner's exchanges, they can't see purchasers
     if (!isViewerInExchange) {
-      console.log(
-        "[GET Purchasers] Viewer not in owner's exchanges, returning empty list",
-      );
       return NextResponse.json({
         success: true,
         purchasers: [],
@@ -321,17 +288,7 @@ export async function GET(request: NextRequest) {
       approvedPurchasers.has(p.purchaser.toLowerCase()),
     );
 
-    console.log("[GET Purchasers] After filtering:", {
-      filteredCount: purchasers.length,
-      filteredPurchasers: purchasers.map((p: any) => p.purchaser.toLowerCase()),
-    });
-
     const count = purchasers.length;
-
-    console.log("[GET Purchasers] Processed:", {
-      purchasersCount: purchasers.length,
-      count,
-    });
 
     return NextResponse.json({
       success: true,

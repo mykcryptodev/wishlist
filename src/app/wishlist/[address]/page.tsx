@@ -99,34 +99,16 @@ export default function PublicWishlistPage() {
       return;
     }
 
-    console.log("[fetchPurchaserData] Starting fetch with:", {
-      hasToken: !!token,
-      isTokenLoading,
-      currentUserAddress,
-      tokenPreview: token ? token.substring(0, 20) + "..." : "none",
-    });
-
     try {
       const purchaserPromises = itemsList.map(async item => {
         try {
           const headers: HeadersInit = {};
           // Send JWT token if available (more secure)
           if (token) {
-            console.log(
-              `[fetchPurchaserData] Sending JWT token for item ${item.id}`,
-            );
             headers["Authorization"] = `Bearer ${token}`;
           } else if (currentUserAddress) {
             // Fallback to wallet address header
-            console.log(
-              `[fetchPurchaserData] No token, using wallet address for item ${item.id}:`,
-              currentUserAddress,
-            );
             headers["x-wallet-address"] = currentUserAddress;
-          } else {
-            console.log(
-              `[fetchPurchaserData] No auth available for item ${item.id}`,
-            );
           }
 
           const response = await fetch(
@@ -231,10 +213,6 @@ export default function PublicWishlistPage() {
   // Refetch purchaser data when user connects/disconnects wallet or token changes
   useEffect(() => {
     if (items.length > 0) {
-      console.log("[useEffect] Refetching purchaser data due to auth change:", {
-        hasToken: !!token,
-        hasAddress: !!currentUserAddress,
-      });
       fetchPurchaserData(items);
     }
   }, [currentUserAddress, token, items.length]);
@@ -242,9 +220,6 @@ export default function PublicWishlistPage() {
   // Additional effect to refetch after token finishes loading
   useEffect(() => {
     if (!isTokenLoading && items.length > 0 && (token || currentUserAddress)) {
-      console.log(
-        "[useEffect] Token finished loading, refetching purchaser data",
-      );
       fetchPurchaserData(items);
     }
   }, [isTokenLoading]);

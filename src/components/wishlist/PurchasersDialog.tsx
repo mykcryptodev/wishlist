@@ -103,17 +103,10 @@ export function PurchasersDialog({
       const headers: HeadersInit = {};
       // Send JWT token if available (more secure)
       if (token) {
-        console.log(`[PurchasersDialog] Sending JWT token for item ${itemId}`);
         headers["Authorization"] = `Bearer ${token}`;
       } else if (currentUserAddress) {
         // Fallback to wallet address header
-        console.log(
-          `[PurchasersDialog] No token, using wallet address for item ${itemId}:`,
-          currentUserAddress,
-        );
         headers["x-wallet-address"] = currentUserAddress;
-      } else {
-        console.log(`[PurchasersDialog] No auth available for item ${itemId}`);
       }
 
       const response = await fetch(
