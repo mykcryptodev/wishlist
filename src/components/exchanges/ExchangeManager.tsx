@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -24,7 +25,12 @@ import {
 import { toast } from "sonner";
 import { CreateExchangeDialog } from "./CreateExchangeDialog";
 import { JoinExchangeDialog } from "./JoinExchangeDialog";
-import { AccountProvider, AccountAvatar, AccountName } from "thirdweb/react";
+import {
+  AccountProvider,
+  AccountAvatar,
+  AccountName,
+  Blobbie,
+} from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
 import { shortenAddress } from "thirdweb/utils";
 import {
@@ -355,33 +361,42 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                       ) : members && members.length > 0 ? (
                         <div className="space-y-2">
                           {members.map(member => (
-                            <div
+                            <AccountProvider
                               key={member.wallet_address}
-                              className="flex items-center gap-3 p-2 rounded-lg border bg-card"
+                              address={member.wallet_address}
+                              client={client}
                             >
-                              <AccountProvider
-                                address={member.wallet_address}
-                                client={client}
+                              <Link
+                                href={`/wishlist/${member.wallet_address}`}
+                                className="block transition-transform hover:scale-[1.02]"
                               >
-                                <AccountAvatar className="h-10 w-10 rounded-full" />
-                                <div className="flex-1">
-                                  <AccountName
-                                    className="font-medium text-sm"
-                                    fallbackComponent={
-                                      <span className="font-medium text-sm text-muted-foreground">
-                                        {shortenAddress(member.wallet_address)}
-                                      </span>
-                                    }
-                                  />
-                                  <p className="text-xs text-muted-foreground">
-                                    Joined{" "}
-                                    {new Date(
-                                      member.joined_at,
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </AccountProvider>
-                            </div>
+                                <Card className="py-1 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center gap-4">
+                                      <AccountAvatar
+                                        className="size-6 flex-shrink-0 rounded-full"
+                                        fallbackComponent={
+                                          <Blobbie
+                                            address={member.wallet_address}
+                                            className="size-6 flex-shrink-0 rounded-full"
+                                          />
+                                        }
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <AccountName
+                                          className="font-semibold text-base mb-1 truncate block"
+                                          fallbackComponent={
+                                            <span className="font-semibold text-base mb-1 truncate block text-muted-foreground">
+                                              {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
+                                            </span>
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </Link>
+                            </AccountProvider>
                           ))}
                         </div>
                       ) : (
