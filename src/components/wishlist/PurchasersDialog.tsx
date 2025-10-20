@@ -229,10 +229,10 @@ export function PurchasersDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UsersIcon className="w-5 h-5" />
-            Interested Purchasers
+            Purchasers
           </DialogTitle>
           <DialogDescription>
-            People who want to get "{itemTitle}" for you
+            People who want to get "{itemTitle}"
           </DialogDescription>
         </DialogHeader>
 
@@ -272,7 +272,7 @@ export function PurchasersDialog({
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium">
                 {purchasers.length}{" "}
-                {purchasers.length === 1 ? "person" : "people"} interested
+                {purchasers.length === 1 ? "person" : "people"} purchasing
               </h4>
               <Button
                 variant="ghost"

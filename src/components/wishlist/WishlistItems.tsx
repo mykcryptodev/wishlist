@@ -268,8 +268,7 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
               Your Wishlist ({items.length})
             </h2>
             <p className="text-muted-foreground mt-2">
-              Manage your wishlist items and see who's interested in purchasing
-              them
+              Manage your wishlist items
             </p>
           </div>
 
