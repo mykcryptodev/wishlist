@@ -71,6 +71,41 @@ export async function getApprovedPurchasers(
 }
 
 /**
+ * Check if a user is a member of any exchanges
+ *
+ * @param walletAddress - The user's wallet address
+ * @returns True if the user is in at least one exchange
+ */
+export async function isInAnyExchange(
+  walletAddress: string | undefined | null,
+): Promise<boolean> {
+  try {
+    if (!walletAddress) {
+      return false;
+    }
+
+    const normalizedAddress = walletAddress.toLowerCase();
+
+    const { data: userMemberships, error: membershipError } =
+      await supabaseAdmin
+        .from("exchange_memberships")
+        .select("exchange_id")
+        .eq("wallet_address", normalizedAddress)
+        .limit(1); // Only need to check if at least one exists
+
+    if (membershipError) {
+      console.error("Error checking exchange membership:", membershipError);
+      return false;
+    }
+
+    return userMemberships && userMemberships.length > 0;
+  } catch (error) {
+    console.error("Error in isInAnyExchange:", error);
+    return false;
+  }
+}
+
+/**
  * Check if two users are in the same exchange (approved purchasers for each other)
  *
  * @param walletAddress1 - First user's wallet address

@@ -5,7 +5,7 @@ import {
 } from "@/lib/thirdweb-http-api";
 import { chain, wishlist } from "@/constants";
 import { optionalAuth } from "@/lib/auth-utils";
-import { getApprovedPurchasers } from "@/lib/exchange-utils";
+import { getApprovedPurchasers, isInAnyExchange } from "@/lib/exchange-utils";
 
 /**
  * Sign up purchaser endpoint
@@ -250,10 +250,27 @@ export async function GET(request: NextRequest) {
           })
       : [];
 
-    // IMPORTANT: Only show purchaser information to users who are in the same exchange as the item owner
-    // This ensures privacy - only exchange members can see who's purchasing items
+    // Privacy rules for purchaser information:
+    // 1. If owner is in exchanges: only exchange members can see purchasers (who are also in exchanges)
+    // 2. If owner is NOT in exchanges: everyone can see all purchasers
+    // 3. Owner never sees their own purchaser info (handled earlier)
 
-    // If no authenticated user, they shouldn't see any purchasers
+    // Check if the owner is in any exchanges
+    const ownerHasExchanges = await isInAnyExchange(itemOwner);
+
+    // If owner is NOT in any exchanges, show all purchasers to everyone
+    if (!ownerHasExchanges) {
+      const count = purchasers.length;
+      return NextResponse.json({
+        success: true,
+        purchasers,
+        count,
+        isOwner: false,
+      });
+    }
+
+    // Owner IS in exchanges - apply privacy restrictions
+    // Only authenticated users in the same exchanges can see purchasers
     if (!authenticatedAddress) {
       return NextResponse.json({
         success: true,
@@ -266,7 +283,7 @@ export async function GET(request: NextRequest) {
     // Get approved purchasers for the item owner (all members of owner's exchanges)
     const approvedPurchasers = await getApprovedPurchasers(itemOwner);
 
-    // Check if the authenticated user is in the approved purchasers list (same exchange as owner)
+    // Check if the authenticated user is in any of the owner's exchanges
     const isViewerInExchange = approvedPurchasers.has(
       authenticatedAddress.toLowerCase(),
     );
