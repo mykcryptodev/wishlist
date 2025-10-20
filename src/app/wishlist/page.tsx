@@ -84,7 +84,11 @@ export default function WishlistPage() {
 
         {/* Wishlist Items */}
         <div className="max-w-7xl mx-auto">
-          <WishlistItems ref={wishlistItemsRef} userAddress={address} />
+          <WishlistItems
+            ref={wishlistItemsRef}
+            userAddress={address}
+            showPurchaserInfo={false}
+          />
         </div>
       </main>
     </div>

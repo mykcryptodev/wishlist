@@ -161,13 +161,13 @@ export async function GET(request: NextRequest) {
     // Get the authenticated user's wallet address (if any)
     const authenticatedAddress = await optionalAuth(request);
 
-    // Get the item owner
+    // Get the item owner using the public items mapping
     const itemResult = await thirdwebReadContract(
       [
         {
           contractAddress: wishlist[chain.id],
           method:
-            "function getItem(uint256) view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
+            "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
           params: [itemId],
         },
       ],
@@ -175,9 +175,17 @@ export async function GET(request: NextRequest) {
     );
 
     const itemData = itemResult.result[0].data || itemResult.result[0].result;
+
+    // Data is an array: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
     const itemOwner = Array.isArray(itemData)
       ? itemData[1]?.toLowerCase()
-      : itemData?.owner?.toLowerCase();
+      : undefined;
+
+    console.log("[GET Purchasers] Item owner:", {
+      itemId,
+      itemOwner,
+      rawData: itemData,
+    });
 
     // If requester is the item owner, return empty array
     if (
@@ -255,24 +263,68 @@ export async function GET(request: NextRequest) {
           })
       : [];
 
-    // Filter to only show approved purchasers for the ITEM OWNER
-    // This way, if someone from the owner's work exchange signs up,
-    // people from the owner's family exchange will also see it (preventing duplicate purchases)
-    const approvedPurchasers = await getApprovedPurchasers(itemOwner);
+    // IMPORTANT: Only show purchaser information to users who are in the same exchange as the item owner
+    // This ensures privacy - only exchange members can see who's purchasing items
 
-    if (approvedPurchasers.size > 0) {
-      // Filter purchasers to only include those in any of the item owner's exchanges
-      purchasers = purchasers.filter((p: any) =>
-        approvedPurchasers.has(p.purchaser.toLowerCase()),
+    // If no authenticated user, they shouldn't see any purchasers
+    if (!authenticatedAddress) {
+      console.log(
+        "[GET Purchasers] No authenticated user, returning empty list",
       );
-
-      console.log("[GET Purchasers] Filtered to approved purchasers:", {
-        originalCount: Array.isArray(purchasersRaw) ? purchasersRaw.length : 0,
-        filteredCount: purchasers.length,
-        approvedCount: approvedPurchasers.size,
-        itemOwner,
+      return NextResponse.json({
+        success: true,
+        purchasers: [],
+        count: 0,
+        isOwner: false,
       });
     }
+
+    // Get approved purchasers for the item owner (all members of owner's exchanges)
+    const approvedPurchasers = await getApprovedPurchasers(itemOwner);
+
+    console.log("[GET Purchasers] Before filtering:", {
+      itemOwner,
+      authenticatedAddress,
+      originalPurchaserCount: purchasers.length,
+      approvedPurchasersCount: approvedPurchasers.size,
+      purchasers: purchasers.map((p: any) => p.purchaser.toLowerCase()),
+      approvedPurchasersList: Array.from(approvedPurchasers),
+    });
+
+    // Check if the authenticated user is in the approved purchasers list (same exchange as owner)
+    const isViewerInExchange = approvedPurchasers.has(
+      authenticatedAddress.toLowerCase(),
+    );
+
+    console.log("[GET Purchasers] Viewer exchange check:", {
+      authenticatedAddress,
+      isViewerInExchange,
+    });
+
+    // If viewer is not in any of the owner's exchanges, they can't see purchasers
+    if (!isViewerInExchange) {
+      console.log(
+        "[GET Purchasers] Viewer not in owner's exchanges, returning empty list",
+      );
+      return NextResponse.json({
+        success: true,
+        purchasers: [],
+        count: 0,
+        isOwner: false,
+      });
+    }
+
+    // Filter purchasers to only include those in the item owner's exchanges
+    // This way, if someone from the owner's work exchange signs up,
+    // people from the owner's family exchange will also see it (preventing duplicate purchases)
+    purchasers = purchasers.filter((p: any) =>
+      approvedPurchasers.has(p.purchaser.toLowerCase()),
+    );
+
+    console.log("[GET Purchasers] After filtering:", {
+      filteredCount: purchasers.length,
+      filteredPurchasers: purchasers.map((p: any) => p.purchaser.toLowerCase()),
+    });
 
     const count = purchasers.length;
 

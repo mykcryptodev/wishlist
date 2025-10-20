@@ -25,6 +25,7 @@ import {
 } from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
 import { shortenAddress } from "thirdweb/utils";
+import { useAuthToken } from "@/hooks/useAuthToken";
 
 interface WishlistItem {
   id: string;
@@ -48,6 +49,7 @@ export default function PublicWishlistPage() {
   const address = params.address as string;
   const account = useActiveAccount();
   const currentUserAddress = account?.address;
+  const { token, isLoading: isTokenLoading } = useAuthToken();
 
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,12 +99,34 @@ export default function PublicWishlistPage() {
       return;
     }
 
+    console.log("[fetchPurchaserData] Starting fetch with:", {
+      hasToken: !!token,
+      isTokenLoading,
+      currentUserAddress,
+      tokenPreview: token ? token.substring(0, 20) + "..." : "none",
+    });
+
     try {
       const purchaserPromises = itemsList.map(async item => {
         try {
           const headers: HeadersInit = {};
-          if (currentUserAddress) {
+          // Send JWT token if available (more secure)
+          if (token) {
+            console.log(
+              `[fetchPurchaserData] Sending JWT token for item ${item.id}`,
+            );
+            headers["Authorization"] = `Bearer ${token}`;
+          } else if (currentUserAddress) {
+            // Fallback to wallet address header
+            console.log(
+              `[fetchPurchaserData] No token, using wallet address for item ${item.id}:`,
+              currentUserAddress,
+            );
             headers["x-wallet-address"] = currentUserAddress;
+          } else {
+            console.log(
+              `[fetchPurchaserData] No auth available for item ${item.id}`,
+            );
           }
 
           const response = await fetch(
@@ -204,12 +228,26 @@ export default function PublicWishlistPage() {
     }
   }, [address]);
 
-  // Refetch purchaser data when user connects/disconnects wallet
+  // Refetch purchaser data when user connects/disconnects wallet or token changes
   useEffect(() => {
     if (items.length > 0) {
+      console.log("[useEffect] Refetching purchaser data due to auth change:", {
+        hasToken: !!token,
+        hasAddress: !!currentUserAddress,
+      });
       fetchPurchaserData(items);
     }
-  }, [currentUserAddress]);
+  }, [currentUserAddress, token, items.length]);
+
+  // Additional effect to refetch after token finishes loading
+  useEffect(() => {
+    if (!isTokenLoading && items.length > 0 && (token || currentUserAddress)) {
+      console.log(
+        "[useEffect] Token finished loading, refetching purchaser data",
+      );
+      fetchPurchaserData(items);
+    }
+  }, [isTokenLoading]);
 
   if (loading) {
     return (

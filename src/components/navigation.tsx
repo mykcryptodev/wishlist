@@ -55,7 +55,7 @@ export function Navigation() {
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-4">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-2">
         <div className="flex items-center space-x-8">
           <Link className="flex items-center space-x-2" href="/">
             <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
@@ -121,7 +121,7 @@ export function Navigation() {
           </DialogContent>
         </Dialog>
 
-        <div className="flex items-center space-x-4 gap-2">
+        <div className="flex items-center space-x-2">
           {/* Mobile Search Button */}
           <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
             <DialogTrigger asChild>

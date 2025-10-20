@@ -75,7 +75,7 @@ export function WishlistItemCard({
           >
             {formatPrice(item.price)}
           </Badge>
-          {purchaserCount > 0 && (
+          {purchaserCount > 0 && onViewPurchasers && (
             <Badge
               variant="default"
               className="backdrop-blur-sm bg-primary/90 cursor-pointer hover:bg-primary"
@@ -126,13 +126,15 @@ export function WishlistItemCard({
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Item
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onViewPurchasers?.(item.id)}
-              >
-                <Users className="w-4 h-4" />
-              </Button>
+              {onViewPurchasers && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewPurchasers?.(item.id)}
+                >
+                  <Users className="w-4 h-4" />
+                </Button>
+              )}
             </div>
 
             {/* Owner View - Secondary Actions */}

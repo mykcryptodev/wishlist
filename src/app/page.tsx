@@ -28,9 +28,12 @@ export default function Home() {
                 Create Wishlist
               </Button>
             </Link>
-            <Button className="text-lg px-8" size="lg" variant="outline">
-              Learn More
-            </Button>
+            <Link href="/exchanges">
+              {" "}
+              <Button className="text-lg px-8" size="lg" variant="outline">
+                Create or Join an Exchange
+              </Button>
+            </Link>
           </div>
         </div>
 

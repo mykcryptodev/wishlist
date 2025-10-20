@@ -48,6 +48,7 @@ interface WishlistItem {
 
 interface WishlistItemsProps {
   userAddress: string;
+  showPurchaserInfo?: boolean; // Whether to show purchaser information (default: true)
 }
 
 export interface WishlistItemsRef {
@@ -55,7 +56,7 @@ export interface WishlistItemsRef {
 }
 
 export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
-  ({ userAddress }, ref) => {
+  ({ userAddress, showPurchaserInfo = true }, ref) => {
     const [items, setItems] = useState<WishlistItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingTransactionId, setDeletingTransactionId] = useState<
@@ -109,8 +110,10 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
 
         if (data.success) {
           setItems(data.items);
-          // Fetch purchaser counts for each item
-          await fetchPurchaserCounts(data.items);
+          // Fetch purchaser counts for each item (only if we should show purchaser info)
+          if (showPurchaserInfo) {
+            await fetchPurchaserCounts(data.items);
+          }
         } else {
           toast.error(
             `Failed to fetch wishlist items: ${data.error || "Unknown error"}`,
@@ -245,6 +248,9 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
     };
 
     const handleViewPurchasers = (itemId: string) => {
+      // Don't allow viewing purchasers if showPurchaserInfo is false
+      if (!showPurchaserInfo) return;
+
       const item = items.find(i => i.id === itemId);
       if (!item) return;
 
@@ -279,9 +285,13 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
                 item={item}
                 onDelete={handleDeleteClick}
                 onEdit={handleEdit}
-                onViewPurchasers={handleViewPurchasers}
+                onViewPurchasers={
+                  showPurchaserInfo ? handleViewPurchasers : undefined
+                }
                 isDeleting={isDeleting}
-                purchaserCount={purchaserCounts[item.id] || 0}
+                purchaserCount={
+                  showPurchaserInfo ? purchaserCounts[item.id] || 0 : 0
+                }
               />
             ))}
           </div>
@@ -313,7 +323,7 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
         </AlertDialog>
 
         {/* Purchasers Dialog */}
-        {selectedItemId && (
+        {showPurchaserInfo && selectedItemId && (
           <PurchasersDialog
             open={purchasersDialogOpen}
             onOpenChange={setPurchasersDialogOpen}

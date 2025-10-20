@@ -22,6 +22,7 @@ import { client } from "@/providers/Thirdweb";
 import { toast } from "sonner";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
 import { shortenAddress } from "thirdweb/utils";
+import { useAuthToken } from "@/hooks/useAuthToken";
 
 interface Purchaser {
   purchaser: string;
@@ -48,6 +49,7 @@ export function PurchasersDialog({
   isOwner = false,
   onPurchaserChange,
 }: PurchasersDialogProps) {
+  const { token } = useAuthToken();
   const [purchasers, setPurchasers] = useState<Purchaser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -99,8 +101,19 @@ export function PurchasersDialog({
       setLoading(true);
 
       const headers: HeadersInit = {};
-      if (currentUserAddress) {
+      // Send JWT token if available (more secure)
+      if (token) {
+        console.log(`[PurchasersDialog] Sending JWT token for item ${itemId}`);
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (currentUserAddress) {
+        // Fallback to wallet address header
+        console.log(
+          `[PurchasersDialog] No token, using wallet address for item ${itemId}:`,
+          currentUserAddress,
+        );
         headers["x-wallet-address"] = currentUserAddress;
+      } else {
+        console.log(`[PurchasersDialog] No auth available for item ${itemId}`);
       }
 
       const response = await fetch(

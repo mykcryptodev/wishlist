@@ -20,6 +20,7 @@ export async function getApprovedPurchasers(
   try {
     // Handle undefined/null wallet address
     if (!walletAddress) {
+      console.log("[getApprovedPurchasers] No wallet address provided");
       return new Set();
     }
 
@@ -40,11 +41,18 @@ export async function getApprovedPurchasers(
 
     if (!userMemberships || userMemberships.length === 0) {
       // User is not in any exchanges
+      console.log("[getApprovedPurchasers] User not in any exchanges:", {
+        walletAddress: normalizedAddress,
+      });
       return new Set();
     }
 
     // Extract exchange IDs
     const exchangeIds = userMemberships.map(m => m.exchange_id);
+    console.log("[getApprovedPurchasers] User exchanges:", {
+      walletAddress: normalizedAddress,
+      exchangeIds,
+    });
 
     // Step 2: Get all members from these exchanges (excluding the user themselves)
     const { data: allMembers, error: allMembersError } = await supabaseAdmin
@@ -62,6 +70,12 @@ export async function getApprovedPurchasers(
     const approvedAddresses = new Set(
       allMembers?.map(m => m.wallet_address.toLowerCase()) || [],
     );
+
+    console.log("[getApprovedPurchasers] Approved purchasers:", {
+      walletAddress: normalizedAddress,
+      count: approvedAddresses.size,
+      addresses: Array.from(approvedAddresses),
+    });
 
     return approvedAddresses;
   } catch (error) {
