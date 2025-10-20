@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { thirdwebWriteContract } from "@/lib/thirdweb-http-api";
+
 import { chain, wishlist } from "@/constants";
+import { thirdwebWriteContract } from "@/lib/thirdweb-http-api";
 
 /**
  * Update wishlist item endpoint
@@ -20,10 +21,10 @@ import { chain, wishlist } from "@/constants";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { itemId: string } },
+  { params }: { params: Promise<{ itemId: string }> },
 ) {
   try {
-    const { itemId } = params;
+    const { itemId } = await params;
     const body = await request.json();
     const { title, description, url, imageUrl, price } = body;
 
@@ -103,10 +104,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { itemId: string } },
+  { params }: { params: Promise<{ itemId: string }> },
 ) {
   try {
-    const { itemId } = params;
+    const { itemId } = await params;
 
     if (!itemId) {
       return NextResponse.json(

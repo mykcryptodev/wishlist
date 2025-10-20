@@ -25,7 +25,7 @@ if (!PROJECT_WALLET) {
 export interface ContractCall {
   contractAddress: string;
   method: string;
-  params: any[];
+  params: unknown[];
   value?: string; // Optional value in wei for payable functions
 }
 
@@ -35,7 +35,7 @@ export interface ContractCall {
 export interface ReadContractResult {
   data?: string;
   success: boolean;
-  result?: any;
+  result?: unknown;
 }
 
 /**
@@ -69,7 +69,7 @@ export interface TransactionStatusResponse {
     status: "CONFIRMED" | string;
     onchainStatus?: "SUCCESS" | "FAILED";
     transactionHash?: string;
-    receipt?: any;
+    receipt?: unknown;
   };
   createdAt?: string;
   cancelledAt?: string | null;

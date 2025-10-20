@@ -2,9 +2,9 @@
  * Shared utilities for fetching wishlist data
  */
 
-import { chain, wishlist as wishlistAddress } from "@/constants";
-import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
+import { wishlist as wishlistAddress } from "@/constants";
 import { CACHE_TTL, getWishlistAddressesCacheKey, redis } from "@/lib/redis";
+import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 /**
  * Fetch all wishlist addresses from the contract with caching

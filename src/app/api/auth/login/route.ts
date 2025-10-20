@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { thirdwebAuth } from "@/lib/thirdweb-server";
 import { base } from "thirdweb/chains";
+
+import { thirdwebAuth } from "@/lib/thirdweb-server";
 
 /**
  * GET /api/auth/login

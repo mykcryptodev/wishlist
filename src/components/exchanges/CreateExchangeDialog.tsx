@@ -1,20 +1,21 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 import { useAuthToken } from "@/hooks/useAuthToken";
 
 interface CreateExchangeDialogProps {
@@ -96,37 +97,37 @@ export function CreateExchangeDialog({
           <div className="space-y-2">
             <Label htmlFor="name">Exchange Name *</Label>
             <Input
+              disabled={loading}
               id="name"
+              maxLength={100}
               placeholder="e.g., Smith Family, Work Secret Santa"
               value={name}
               onChange={e => setName(e.target.value)}
-              disabled={loading}
-              maxLength={100}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
+              disabled={loading}
               id="description"
               placeholder="What's this exchange for?"
+              rows={3}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              disabled={loading}
-              rows={3}
             />
           </div>
         </div>
 
         <DialogFooter>
           <Button
+            disabled={loading}
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={loading}
           >
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={loading || !name.trim()}>
+          <Button disabled={loading || !name.trim()} onClick={handleCreate}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Exchange
           </Button>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
+
 import { chain, wishlist } from "@/constants";
+import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 /**
  * Get all items that the user is signed up to purchase
@@ -97,7 +98,8 @@ export async function GET(request: NextRequest) {
         ],
         chain.id,
       ).then(result => {
-        const itemData = result.result[0].data || result.result[0].result;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const itemData: any = result.result[0].data || result.result[0].result;
 
         // Handle both array and object formats
         if (Array.isArray(itemData)) {

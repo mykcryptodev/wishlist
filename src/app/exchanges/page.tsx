@@ -1,5 +1,8 @@
 "use client";
 
+import { ConnectButton, useActiveAccount } from "thirdweb/react";
+
+import { ExchangeManager } from "@/components/exchanges/ExchangeManager";
 import {
   Card,
   CardContent,
@@ -7,8 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ExchangeManager } from "@/components/exchanges/ExchangeManager";
-import { ConnectButton, useActiveAccount } from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
 
 export default function ExchangesPage() {
@@ -48,7 +49,8 @@ export default function ExchangesPage() {
                   <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
                     <li>
                       <strong>
-                        Wishlist owners never see who's purchasing their items
+                        Wishlist owners never see who&apos;s purchasing their
+                        items
                       </strong>{" "}
                       - keeps gifts a surprise!
                     </li>
@@ -71,25 +73,26 @@ export default function ExchangesPage() {
                     Example: Shopping for Someone in Your Exchange
                   </h3>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Say you're in Alice's "Family" exchange, and Alice is also
-                    in a "Work" exchange with her coworkers:
+                    Say you&apos;re in Alice&apos;s &quot;Family&quot; exchange,
+                    and Alice is also in a &quot;Work&quot; exchange with her
+                    coworkers:
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                     <li>
-                      You can see purchaser information because you're in at
-                      least one of Alice's exchanges
+                      You can see purchaser information because you&apos;re in
+                      at least one of Alice&apos;s exchanges
                     </li>
                     <li>
-                      You'll see ALL purchasers from ANY of Alice's exchanges -
-                      including her coworkers from the Work exchange
+                      You&apos;ll see ALL purchasers from ANY of Alice&apos;s
+                      exchanges - including her coworkers from the Work exchange
                     </li>
                     <li>
-                      This prevents duplicate gifts across all of Alice's
+                      This prevents duplicate gifts across all of Alice&apos;s
                       exchanges
                     </li>
                     <li>
-                      Alice won't see any of this information - only people in
-                      her exchanges can
+                      Alice won&apos;t see any of this information - only people
+                      in her exchanges can
                     </li>
                   </ul>
                 </div>

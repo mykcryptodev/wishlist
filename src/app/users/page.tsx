@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSearch } from "@/components/user-search";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface User {
   fid: number;
@@ -33,18 +34,18 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs className="w-full" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
             <TabsTrigger value="search">Search Users</TabsTrigger>
             <TabsTrigger value="all">All Wishlists</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="search" className="max-w-4xl mx-auto">
+          <TabsContent className="max-w-4xl mx-auto" value="search">
             <UserSearch onUserSelect={handleUserSelect} />
           </TabsContent>
 
           <TabsContent value="all">
-            <WishlistDirectory title="" description="" showAll={true} />
+            <WishlistDirectory description="" showAll={true} title="" />
           </TabsContent>
         </Tabs>
       </main>

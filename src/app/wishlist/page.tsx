@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { Check, Share2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { useActiveAccount } from "thirdweb/react";
+
+import { Button } from "@/components/ui/button";
 import { AddWishlistItemForm } from "@/components/wishlist/AddWishlistItemForm";
 import {
   WishlistItems,
   WishlistItemsRef,
 } from "@/components/wishlist/WishlistItems";
-import { Button } from "@/components/ui/button";
-import { useActiveAccount } from "thirdweb/react";
-import { Share2, Check, Copy } from "lucide-react";
-import { toast } from "sonner";
 
 export default function WishlistPage() {
   const account = useActiveAccount();
@@ -34,7 +35,7 @@ export default function WishlistPage() {
       setCopied(true);
       toast.success("Share link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to copy link");
     }
   };
@@ -50,10 +51,10 @@ export default function WishlistPage() {
             </h1>
             {address && (
               <Button
-                variant="outline"
-                size="lg"
-                onClick={copyShareLink}
                 className="gap-2"
+                size="lg"
+                variant="outline"
+                onClick={copyShareLink}
               >
                 {copied ? (
                   <>
@@ -71,7 +72,7 @@ export default function WishlistPage() {
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
             Create your holiday wishlist by adding items from any website. Just
-            paste a link and we'll help you organize your perfect wishlist!
+            paste a link and we&apos;ll help you organize your perfect wishlist!
           </p>
         </div>
         {/* Add Item Form */}
@@ -86,8 +87,8 @@ export default function WishlistPage() {
         <div className="max-w-7xl mx-auto">
           <WishlistItems
             ref={wishlistItemsRef}
-            userAddress={address}
             showPurchaserInfo={false}
+            userAddress={address}
           />
         </div>
       </main>

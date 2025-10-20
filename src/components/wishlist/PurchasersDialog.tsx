@@ -1,6 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  RefreshCw,
+  UserMinus,
+  UserPlus,
+  Users as UsersIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { AccountAvatar, AccountName, AccountProvider } from "thirdweb/react";
+import { shortenAddress } from "thirdweb/utils";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,21 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  UserPlus,
-  UserMinus,
-  Users as UsersIcon,
-  RefreshCw,
-} from "lucide-react";
-import { AccountProvider, AccountAvatar, AccountName } from "thirdweb/react";
-import { client } from "@/providers/Thirdweb";
-import { toast } from "sonner";
-import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
-import { shortenAddress } from "thirdweb/utils";
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
+import { client } from "@/providers/Thirdweb";
 
 interface Purchaser {
   purchaser: string;
@@ -238,7 +239,7 @@ export function PurchasersDialog({
             Purchasers
           </DialogTitle>
           <DialogDescription>
-            People who want to get "{itemTitle}"
+            People who want to get &quot;{itemTitle}&quot;
           </DialogDescription>
         </DialogHeader>
 
@@ -248,10 +249,10 @@ export function PurchasersDialog({
             <div className="pb-2 border-b">
               {isCurrentUserPurchaser ? (
                 <Button
-                  onClick={handleRemove}
+                  className="w-full"
                   disabled={actionLoading || !!transactionId}
                   variant="outline"
-                  className="w-full"
+                  onClick={handleRemove}
                 >
                   <UserMinus className="w-4 h-4 mr-2" />
                   {actionLoading || transactionId
@@ -260,9 +261,9 @@ export function PurchasersDialog({
                 </Button>
               ) : (
                 <Button
-                  onClick={handleSignUp}
-                  disabled={actionLoading || !!transactionId}
                   className="w-full"
+                  disabled={actionLoading || !!transactionId}
+                  onClick={handleSignUp}
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   {actionLoading || transactionId
@@ -281,12 +282,12 @@ export function PurchasersDialog({
                 {purchasers.length === 1 ? "person" : "people"} purchasing
               </h4>
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchPurchasers}
-                disabled={loading}
                 className="h-8 w-8 p-0"
+                disabled={loading}
+                size="sm"
                 title="Refresh purchasers"
+                variant="ghost"
+                onClick={fetchPurchasers}
               >
                 <RefreshCw
                   className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -338,7 +339,7 @@ export function PurchasersDialog({
                           />
                           {purchaser.purchaser.toLowerCase() ===
                             currentUserAddress?.toLowerCase() && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className="text-xs" variant="secondary">
                               You
                             </Badge>
                           )}

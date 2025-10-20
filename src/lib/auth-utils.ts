@@ -6,6 +6,7 @@
  */
 
 import { isAddress } from "thirdweb";
+
 import { thirdwebAuth } from "@/lib/thirdweb-server";
 
 /**

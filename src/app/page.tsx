@@ -1,12 +1,6 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
 export default function Home() {
@@ -40,9 +34,9 @@ export default function Home() {
         {/* Wishlist Directory Section */}
         <div className="py-16">
           <WishlistDirectory
-            title="Explore Wishlists"
             description="Browse wishlists from our community and find the perfect gift ideas"
             maxItems={6}
+            title="Explore Wishlists"
           />
         </div>
       </main>

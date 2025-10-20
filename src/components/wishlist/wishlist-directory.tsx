@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import { User } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
-  AccountProvider,
   AccountAvatar,
   AccountName,
+  AccountProvider,
   Blobbie,
 } from "thirdweb/react";
+
 import {
   Card,
   CardContent,
@@ -137,8 +138,8 @@ export function WishlistDirectory({
       {!showAll && maxItems && addresses.length > maxItems && (
         <div className="text-center pt-4">
           <Link
-            href="/users"
             className="text-primary hover:underline font-medium"
+            href="/users"
           >
             View all {addresses.length} wishlists →
           </Link>
@@ -155,8 +156,8 @@ function WishlistCard({ address }: { address: string }) {
   return (
     <AccountProvider address={address} client={client}>
       <Link
-        href={`/wishlist/${address}`}
         className="block transition-transform hover:scale-[1.02]"
+        href={`/wishlist/${address}`}
       >
         <Card className="h-full cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
           <CardContent className="p-6">

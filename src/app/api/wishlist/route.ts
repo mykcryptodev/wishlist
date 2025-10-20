@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  thirdwebWriteContract,
-  thirdwebReadContract,
-} from "@/lib/thirdweb-http-api";
+
 import { chain, wishlist } from "@/constants";
 import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
+import {
+  thirdwebReadContract,
+  thirdwebWriteContract,
+} from "@/lib/thirdweb-http-api";
 
 /**
  * Create wishlist item endpoint
@@ -134,7 +135,8 @@ export async function GET(request: NextRequest) {
     );
 
     // Extract data from thirdweb API response (handles both .data and .result formats)
-    const itemIds = result.result[0].data || result.result[0].result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemIds: any = result.result[0].data || result.result[0].result;
     const totalItems = result.result[1].data || result.result[1].result;
 
     // Return early if no items
@@ -150,7 +152,8 @@ export async function GET(request: NextRequest) {
 
     // Get details for each item using the public items mapping
     // This returns: (id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt)
-    const itemDetailsCalls = itemIds.map((itemId: string) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemDetailsCalls = itemIds.map((itemId: any) => ({
       contractAddress: wishlist[chain.id],
       method:
         "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
@@ -165,6 +168,7 @@ export async function GET(request: NextRequest) {
     // The thirdweb API returns the public mapping data as an array
     // Array format: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
     const items = itemDetailsResult.result
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((item: any) => {
         const data = item.data || item.result;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,9 +27,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
 import {
+  showErrorToast,
   showLoadingToast,
   showSuccessToast,
-  showErrorToast,
 } from "@/lib/toast";
 
 // Form validation schema
@@ -266,8 +266,9 @@ export function AddWishlistItemForm({
       <CardHeader>
         <CardTitle>Add Item to Wishlist</CardTitle>
         <CardDescription>
-          Paste a link to any product and we'll help you extract the details.
-          You can always edit the information before adding to your wishlist.
+          Paste a link to any product and we&apos;ll help you extract the
+          details. You can always edit the information before adding to your
+          wishlist.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -288,10 +289,10 @@ export function AddWishlistItemForm({
                       />
                     </FormControl>
                     <Button
+                      disabled={!url || isParsing}
                       type="button"
                       variant="outline"
                       onClick={handleParseUrl}
-                      disabled={!url || isParsing}
                     >
                       {isParsing ? "Parsing..." : "Parse"}
                     </Button>
@@ -372,10 +373,10 @@ export function AddWishlistItemForm({
                     <FormLabel>Price (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="0.00"
-                        type="number"
-                        step="0.01"
                         min="0"
+                        placeholder="0.00"
+                        step="0.01"
+                        type="number"
                         {...field}
                       />
                     </FormControl>
@@ -413,9 +414,9 @@ export function AddWishlistItemForm({
                 <FormLabel>Image Preview</FormLabel>
                 <div className="border rounded-lg p-4 bg-muted/20">
                   <img
-                    src={form.watch("imageUrl")}
                     alt="Product preview"
                     className="max-w-xs max-h-48 object-contain mx-auto rounded"
+                    src={form.watch("imageUrl")}
                     onError={e => {
                       e.currentTarget.style.display = "none";
                     }}
@@ -436,7 +437,7 @@ export function AddWishlistItemForm({
               >
                 Clear
               </Button>
-              <Button type="submit" disabled={isSubmitting || isMonitoring}>
+              <Button disabled={isSubmitting || isMonitoring} type="submit">
                 {isSubmitting
                   ? "Submitting..."
                   : isMonitoring

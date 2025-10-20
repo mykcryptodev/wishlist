@@ -1,19 +1,14 @@
 "use client";
 
 import {
-  useState,
-  useEffect,
-  useRef,
   forwardRef,
+  useEffect,
   useImperativeHandle,
+  useRef,
+  useState,
 } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { toast } from "sonner";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,15 +19,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
 import {
+  showErrorToast,
   showLoadingToast,
   showSuccessToast,
-  showErrorToast,
 } from "@/lib/toast";
-import { WishlistItemCard } from "./WishlistItemCard";
+
 import { PurchasersDialog } from "./PurchasersDialog";
+import { WishlistItemCard } from "./WishlistItemCard";
 
 interface WishlistItem {
   id: string;
@@ -226,7 +228,7 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
           <CardHeader>
             <CardTitle>Your Wishlist Items</CardTitle>
             <CardDescription>
-              Items you've added to your wishlist will appear here
+              Items you&apos;ve added to your wishlist will appear here
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -282,15 +284,15 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
             {items.map(item => (
               <WishlistItemCard
                 key={item.id}
+                isDeleting={isDeleting}
                 item={item}
+                purchaserCount={
+                  showPurchaserInfo ? purchaserCounts[item.id] || 0 : 0
+                }
                 onDelete={handleDeleteClick}
                 onEdit={handleEdit}
                 onViewPurchasers={
                   showPurchaserInfo ? handleViewPurchasers : undefined
-                }
-                isDeleting={isDeleting}
-                purchaserCount={
-                  showPurchaserInfo ? purchaserCounts[item.id] || 0 : 0
                 }
               />
             ))}
@@ -313,8 +315,8 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={confirmDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={confirmDelete}
               >
                 Delete
               </AlertDialogAction>
@@ -325,12 +327,12 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
         {/* Purchasers Dialog */}
         {showPurchaserInfo && selectedItemId && (
           <PurchasersDialog
-            open={purchasersDialogOpen}
-            onOpenChange={setPurchasersDialogOpen}
-            itemId={selectedItemId}
-            itemTitle={selectedItemTitle}
             currentUserAddress={userAddress}
             isOwner={true}
+            itemId={selectedItemId}
+            itemTitle={selectedItemTitle}
+            open={purchasersDialogOpen}
+            onOpenChange={setPurchasersDialogOpen}
             onPurchaserChange={handlePurchaserChange}
           />
         )}

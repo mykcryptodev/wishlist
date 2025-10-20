@@ -1,9 +1,9 @@
 import {
-  prepareEvent,
-  prepareContractCall,
-  readContract,
-  type BaseTransactionOptions,
   type AbiParameterToPrimitiveType,
+  type BaseTransactionOptions,
+  prepareContractCall,
+  prepareEvent,
+  readContract,
 } from "thirdweb";
 
 /**
@@ -361,7 +361,7 @@ export function userAddedToWishlistDirectoryEvent(filters: UserAddedToWishlistDi
  * ```
  */
 export async function ADMIN_ROLE(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -372,11 +372,11 @@ export async function ADMIN_ROLE(
     {
       "internalType": "bytes32",
       "name": "",
-      "type": "bytes32"
-    }
-  ]
+      "type": "bytes32",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -396,7 +396,7 @@ export async function ADMIN_ROLE(
  * ```
  */
 export async function DEFAULT_ADMIN_ROLE(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -407,11 +407,11 @@ export async function DEFAULT_ADMIN_ROLE(
     {
       "internalType": "bytes32",
       "name": "",
-      "type": "bytes32"
-    }
-  ]
+      "type": "bytes32",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -431,7 +431,7 @@ export async function DEFAULT_ADMIN_ROLE(
  * ```
  */
 export async function MANAGER_ROLE(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -442,11 +442,11 @@ export async function MANAGER_ROLE(
     {
       "internalType": "bytes32",
       "name": "",
-      "type": "bytes32"
-    }
-  ]
+      "type": "bytes32",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -473,7 +473,7 @@ export type AddressesWithWishlistsParams = {
  * ```
  */
 export async function addressesWithWishlists(
-  options: BaseTransactionOptions<AddressesWithWishlistsParams>
+  options: BaseTransactionOptions<AddressesWithWishlistsParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -483,18 +483,18 @@ export async function addressesWithWishlists(
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "address",
       "name": "",
-      "type": "address"
-    }
-  ]
+      "type": "address",
+    },
+  ],
 ],
-    params: [options.arg_0]
+    params: [options.arg_0],
   });
 };
 
@@ -523,7 +523,7 @@ purchaser: AbiParameterToPrimitiveType<{"internalType":"address","name":"_purcha
  * ```
  */
 export async function checkIsPurchaser(
-  options: BaseTransactionOptions<CheckIsPurchaserParams>
+  options: BaseTransactionOptions<CheckIsPurchaserParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -533,23 +533,23 @@ export async function checkIsPurchaser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "address",
       "name": "_purchaser",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "isPurchaser_",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.itemId, options.purchaser]
+    params: [options.itemId, options.purchaser],
   });
 };
 
@@ -569,7 +569,7 @@ export async function checkIsPurchaser(
  * ```
  */
 export async function getAllWishlistAddresses(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -580,11 +580,11 @@ export async function getAllWishlistAddresses(
     {
       "internalType": "address[]",
       "name": "addresses",
-      "type": "address[]"
-    }
-  ]
+      "type": "address[]",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -611,7 +611,7 @@ export type GetItemParams = {
  * ```
  */
 export async function getItem(
-  options: BaseTransactionOptions<GetItemParams>
+  options: BaseTransactionOptions<GetItemParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -621,8 +621,8 @@ export async function getItem(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
@@ -630,61 +630,61 @@ export async function getItem(
         {
           "internalType": "uint256",
           "name": "id",
-          "type": "uint256"
+          "type": "uint256",
         },
         {
           "internalType": "address",
           "name": "owner",
-          "type": "address"
+          "type": "address",
         },
         {
           "internalType": "string",
           "name": "title",
-          "type": "string"
+          "type": "string",
         },
         {
           "internalType": "string",
           "name": "description",
-          "type": "string"
+          "type": "string",
         },
         {
           "internalType": "string",
           "name": "url",
-          "type": "string"
+          "type": "string",
         },
         {
           "internalType": "string",
           "name": "imageUrl",
-          "type": "string"
+          "type": "string",
         },
         {
           "internalType": "uint256",
           "name": "price",
-          "type": "uint256"
+          "type": "uint256",
         },
         {
           "internalType": "bool",
           "name": "exists",
-          "type": "bool"
+          "type": "bool",
         },
         {
           "internalType": "uint256",
           "name": "createdAt",
-          "type": "uint256"
+          "type": "uint256",
         },
         {
           "internalType": "uint256",
           "name": "updatedAt",
-          "type": "uint256"
-        }
+          "type": "uint256",
+        },
       ],
       "internalType": "struct Wishlist.WishlistItem",
       "name": "item",
-      "type": "tuple"
-    }
-  ]
+      "type": "tuple",
+    },
+  ],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -711,7 +711,7 @@ export type GetItemsByOwnerParams = {
  * ```
  */
 export async function getItemsByOwner(
-  options: BaseTransactionOptions<GetItemsByOwnerParams>
+  options: BaseTransactionOptions<GetItemsByOwnerParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -721,18 +721,18 @@ export async function getItemsByOwner(
     {
       "internalType": "address",
       "name": "_owner",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "uint256[]",
       "name": "itemIds",
-      "type": "uint256[]"
-    }
-  ]
+      "type": "uint256[]",
+    },
+  ],
 ],
-    params: [options.owner]
+    params: [options.owner],
   });
 };
 
@@ -761,7 +761,7 @@ limit: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_limit","ty
  * ```
  */
 export async function getItemsPaginated(
-  options: BaseTransactionOptions<GetItemsPaginatedParams>
+  options: BaseTransactionOptions<GetItemsPaginatedParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -771,28 +771,28 @@ export async function getItemsPaginated(
     {
       "internalType": "uint256",
       "name": "_offset",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "uint256",
       "name": "_limit",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256[]",
       "name": "itemIds",
-      "type": "uint256[]"
+      "type": "uint256[]",
     },
     {
       "internalType": "bool",
       "name": "hasMore",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.offset, options.limit]
+    params: [options.offset, options.limit],
   });
 };
 
@@ -819,7 +819,7 @@ export type GetPurchaserCountParams = {
  * ```
  */
 export async function getPurchaserCount(
-  options: BaseTransactionOptions<GetPurchaserCountParams>
+  options: BaseTransactionOptions<GetPurchaserCountParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -829,18 +829,18 @@ export async function getPurchaserCount(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256",
       "name": "count",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -867,7 +867,7 @@ export type GetPurchasersParams = {
  * ```
  */
 export async function getPurchasers(
-  options: BaseTransactionOptions<GetPurchasersParams>
+  options: BaseTransactionOptions<GetPurchasersParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -877,8 +877,8 @@ export async function getPurchasers(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
@@ -886,26 +886,26 @@ export async function getPurchasers(
         {
           "internalType": "address",
           "name": "purchaser",
-          "type": "address"
+          "type": "address",
         },
         {
           "internalType": "uint256",
           "name": "signedUpAt",
-          "type": "uint256"
+          "type": "uint256",
         },
         {
           "internalType": "bool",
           "name": "exists",
-          "type": "bool"
-        }
+          "type": "bool",
+        },
       ],
       "internalType": "struct Wishlist.Purchaser[]",
       "name": "purchasers",
-      "type": "tuple[]"
-    }
-  ]
+      "type": "tuple[]",
+    },
+  ],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -932,7 +932,7 @@ export type GetRoleAdminParams = {
  * ```
  */
 export async function getRoleAdmin(
-  options: BaseTransactionOptions<GetRoleAdminParams>
+  options: BaseTransactionOptions<GetRoleAdminParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -942,18 +942,18 @@ export async function getRoleAdmin(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
-    }
+      "type": "bytes32",
+    },
   ],
   [
     {
       "internalType": "bytes32",
       "name": "",
-      "type": "bytes32"
-    }
-  ]
+      "type": "bytes32",
+    },
+  ],
 ],
-    params: [options.role]
+    params: [options.role],
   });
 };
 
@@ -973,7 +973,7 @@ export async function getRoleAdmin(
  * ```
  */
 export async function getTotalItems(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -984,11 +984,11 @@ export async function getTotalItems(
     {
       "internalType": "uint256",
       "name": "totalItems",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -1008,7 +1008,7 @@ export async function getTotalItems(
  * ```
  */
 export async function getWishlistAddressCount(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -1019,11 +1019,11 @@ export async function getWishlistAddressCount(
     {
       "internalType": "uint256",
       "name": "count",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -1052,7 +1052,7 @@ limit: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_limit","ty
  * ```
  */
 export async function getWishlistAddressesPaginated(
-  options: BaseTransactionOptions<GetWishlistAddressesPaginatedParams>
+  options: BaseTransactionOptions<GetWishlistAddressesPaginatedParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1062,28 +1062,28 @@ export async function getWishlistAddressesPaginated(
     {
       "internalType": "uint256",
       "name": "_offset",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "uint256",
       "name": "_limit",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "address[]",
       "name": "addresses",
-      "type": "address[]"
+      "type": "address[]",
     },
     {
       "internalType": "bool",
       "name": "hasMore",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.offset, options.limit]
+    params: [options.offset, options.limit],
   });
 };
 
@@ -1110,7 +1110,7 @@ export type HasManagerRoleParams = {
  * ```
  */
 export async function hasManagerRole(
-  options: BaseTransactionOptions<HasManagerRoleParams>
+  options: BaseTransactionOptions<HasManagerRoleParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1120,18 +1120,18 @@ export async function hasManagerRole(
     {
       "internalType": "address",
       "name": "_manager",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "hasRole_",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.manager]
+    params: [options.manager],
   });
 };
 
@@ -1160,7 +1160,7 @@ account: AbiParameterToPrimitiveType<{"internalType":"address","name":"account",
  * ```
  */
 export async function hasRole(
-  options: BaseTransactionOptions<HasRoleParams>
+  options: BaseTransactionOptions<HasRoleParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1170,23 +1170,23 @@ export async function hasRole(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
+      "type": "bytes32",
     },
     {
       "internalType": "address",
       "name": "account",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.role, options.account]
+    params: [options.role, options.account],
   });
 };
 
@@ -1215,7 +1215,7 @@ account: AbiParameterToPrimitiveType<{"internalType":"address","name":"account",
  * ```
  */
 export async function hasRoleWithSwitch(
-  options: BaseTransactionOptions<HasRoleWithSwitchParams>
+  options: BaseTransactionOptions<HasRoleWithSwitchParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1225,23 +1225,23 @@ export async function hasRoleWithSwitch(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
+      "type": "bytes32",
     },
     {
       "internalType": "address",
       "name": "account",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.role, options.account]
+    params: [options.role, options.account],
   });
 };
 
@@ -1268,7 +1268,7 @@ export type HasWishlistParams = {
  * ```
  */
 export async function hasWishlist(
-  options: BaseTransactionOptions<HasWishlistParams>
+  options: BaseTransactionOptions<HasWishlistParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1278,18 +1278,18 @@ export async function hasWishlist(
     {
       "internalType": "address",
       "name": "",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.arg_0]
+    params: [options.arg_0],
   });
 };
 
@@ -1318,7 +1318,7 @@ arg_1: AbiParameterToPrimitiveType<{"internalType":"address","name":"","type":"a
  * ```
  */
 export async function isPurchaser(
-  options: BaseTransactionOptions<IsPurchaserParams>
+  options: BaseTransactionOptions<IsPurchaserParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1328,23 +1328,23 @@ export async function isPurchaser(
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "address",
       "name": "",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
   [
     {
       "internalType": "bool",
       "name": "",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.arg_0, options.arg_1]
+    params: [options.arg_0, options.arg_1],
   });
 };
 
@@ -1371,7 +1371,7 @@ export type ItemsParams = {
  * ```
  */
 export async function items(
-  options: BaseTransactionOptions<ItemsParams>
+  options: BaseTransactionOptions<ItemsParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1381,63 +1381,63 @@ export async function items(
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256",
       "name": "id",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "address",
       "name": "owner",
-      "type": "address"
+      "type": "address",
     },
     {
       "internalType": "string",
       "name": "title",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "description",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "url",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "imageUrl",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "uint256",
       "name": "price",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "bool",
       "name": "exists",
-      "type": "bool"
+      "type": "bool",
     },
     {
       "internalType": "uint256",
       "name": "createdAt",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "uint256",
       "name": "updatedAt",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: [options.arg_0]
+    params: [options.arg_0],
   });
 };
 
@@ -1466,7 +1466,7 @@ arg_1: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"","type":"u
  * ```
  */
 export async function itemsByOwner(
-  options: BaseTransactionOptions<ItemsByOwnerParams>
+  options: BaseTransactionOptions<ItemsByOwnerParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1476,23 +1476,23 @@ export async function itemsByOwner(
     {
       "internalType": "address",
       "name": "",
-      "type": "address"
+      "type": "address",
     },
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: [options.arg_0, options.arg_1]
+    params: [options.arg_0, options.arg_1],
   });
 };
 
@@ -1512,7 +1512,7 @@ export async function itemsByOwner(
  * ```
  */
 export async function nextItemId(
-  options: BaseTransactionOptions
+  options: BaseTransactionOptions,
 ) {
   return readContract({
     contract: options.contract,
@@ -1523,11 +1523,11 @@ export async function nextItemId(
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: []
+    params: [],
   });
 };
 
@@ -1556,7 +1556,7 @@ arg_1: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"","type":"u
  * ```
  */
 export async function purchasersByItem(
-  options: BaseTransactionOptions<PurchasersByItemParams>
+  options: BaseTransactionOptions<PurchasersByItemParams>,
 ) {
   return readContract({
     contract: options.contract,
@@ -1566,33 +1566,33 @@ export async function purchasersByItem(
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "uint256",
       "name": "",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "address",
       "name": "purchaser",
-      "type": "address"
+      "type": "address",
     },
     {
       "internalType": "uint256",
       "name": "signedUpAt",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "bool",
       "name": "exists",
-      "type": "bool"
-    }
-  ]
+      "type": "bool",
+    },
+  ],
 ],
-    params: [options.arg_0, options.arg_1]
+    params: [options.arg_0, options.arg_1],
   });
 };
 
@@ -1634,7 +1634,7 @@ price: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_price","ty
  * ```
  */
 export function createItem(
-  options: BaseTransactionOptions<CreateItemParams>
+  options: BaseTransactionOptions<CreateItemParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1644,38 +1644,38 @@ export function createItem(
     {
       "internalType": "string",
       "name": "_title",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_description",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_url",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_imageUrl",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "uint256",
       "name": "_price",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256",
       "name": "itemId",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: [options.title, options.description, options.url, options.imageUrl, options.price]
+    params: [options.title, options.description, options.url, options.imageUrl, options.price],
   });
 };
 
@@ -1715,7 +1715,7 @@ price: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_price","ty
  * ```
  */
 export function createItemForUser(
-  options: BaseTransactionOptions<CreateItemForUserParams>
+  options: BaseTransactionOptions<CreateItemForUserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1725,43 +1725,43 @@ export function createItemForUser(
     {
       "internalType": "address",
       "name": "_owner",
-      "type": "address"
+      "type": "address",
     },
     {
       "internalType": "string",
       "name": "_title",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_description",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_url",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_imageUrl",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "uint256",
       "name": "_price",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
   [
     {
       "internalType": "uint256",
       "name": "itemId",
-      "type": "uint256"
-    }
-  ]
+      "type": "uint256",
+    },
+  ],
 ],
-    params: [options.owner, options.title, options.description, options.url, options.imageUrl, options.price]
+    params: [options.owner, options.title, options.description, options.url, options.imageUrl, options.price],
   });
 };
 
@@ -1791,7 +1791,7 @@ export type DeleteItemParams = {
  * ```
  */
 export function deleteItem(
-  options: BaseTransactionOptions<DeleteItemParams>
+  options: BaseTransactionOptions<DeleteItemParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1801,12 +1801,12 @@ export function deleteItem(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -1836,7 +1836,7 @@ export type DeleteItemForUserParams = {
  * ```
  */
 export function deleteItemForUser(
-  options: BaseTransactionOptions<DeleteItemForUserParams>
+  options: BaseTransactionOptions<DeleteItemForUserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1846,12 +1846,12 @@ export function deleteItemForUser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -1881,7 +1881,7 @@ export type GrantManagerRoleParams = {
  * ```
  */
 export function grantManagerRole(
-  options: BaseTransactionOptions<GrantManagerRoleParams>
+  options: BaseTransactionOptions<GrantManagerRoleParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1891,12 +1891,12 @@ export function grantManagerRole(
     {
       "internalType": "address",
       "name": "_manager",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.manager]
+    params: [options.manager],
   });
 };
 
@@ -1928,7 +1928,7 @@ account: AbiParameterToPrimitiveType<{"internalType":"address","name":"account",
  * ```
  */
 export function grantRole(
-  options: BaseTransactionOptions<GrantRoleParams>
+  options: BaseTransactionOptions<GrantRoleParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1938,17 +1938,17 @@ export function grantRole(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
+      "type": "bytes32",
     },
     {
       "internalType": "address",
       "name": "account",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.role, options.account]
+    params: [options.role, options.account],
   });
 };
 
@@ -1978,7 +1978,7 @@ export type RemoveAsPurchaserParams = {
  * ```
  */
 export function removeAsPurchaser(
-  options: BaseTransactionOptions<RemoveAsPurchaserParams>
+  options: BaseTransactionOptions<RemoveAsPurchaserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -1988,12 +1988,12 @@ export function removeAsPurchaser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -2025,7 +2025,7 @@ purchaser: AbiParameterToPrimitiveType<{"internalType":"address","name":"_purcha
  * ```
  */
 export function removePurchaserForUser(
-  options: BaseTransactionOptions<RemovePurchaserForUserParams>
+  options: BaseTransactionOptions<RemovePurchaserForUserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2035,17 +2035,17 @@ export function removePurchaserForUser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "address",
       "name": "_purchaser",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId, options.purchaser]
+    params: [options.itemId, options.purchaser],
   });
 };
 
@@ -2077,7 +2077,7 @@ account: AbiParameterToPrimitiveType<{"internalType":"address","name":"account",
  * ```
  */
 export function renounceRole(
-  options: BaseTransactionOptions<RenounceRoleParams>
+  options: BaseTransactionOptions<RenounceRoleParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2087,17 +2087,17 @@ export function renounceRole(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
+      "type": "bytes32",
     },
     {
       "internalType": "address",
       "name": "account",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.role, options.account]
+    params: [options.role, options.account],
   });
 };
 
@@ -2127,7 +2127,7 @@ export type RevokeManagerRoleParams = {
  * ```
  */
 export function revokeManagerRole(
-  options: BaseTransactionOptions<RevokeManagerRoleParams>
+  options: BaseTransactionOptions<RevokeManagerRoleParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2137,12 +2137,12 @@ export function revokeManagerRole(
     {
       "internalType": "address",
       "name": "_manager",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.manager]
+    params: [options.manager],
   });
 };
 
@@ -2174,7 +2174,7 @@ account: AbiParameterToPrimitiveType<{"internalType":"address","name":"account",
  * ```
  */
 export function revokeRole(
-  options: BaseTransactionOptions<RevokeRoleParams>
+  options: BaseTransactionOptions<RevokeRoleParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2184,17 +2184,17 @@ export function revokeRole(
     {
       "internalType": "bytes32",
       "name": "role",
-      "type": "bytes32"
+      "type": "bytes32",
     },
     {
       "internalType": "address",
       "name": "account",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.role, options.account]
+    params: [options.role, options.account],
   });
 };
 
@@ -2224,7 +2224,7 @@ export type SignUpAsPurchaserParams = {
  * ```
  */
 export function signUpAsPurchaser(
-  options: BaseTransactionOptions<SignUpAsPurchaserParams>
+  options: BaseTransactionOptions<SignUpAsPurchaserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2234,12 +2234,12 @@ export function signUpAsPurchaser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId]
+    params: [options.itemId],
   });
 };
 
@@ -2271,7 +2271,7 @@ purchaser: AbiParameterToPrimitiveType<{"internalType":"address","name":"_purcha
  * ```
  */
 export function signUpPurchaserForUser(
-  options: BaseTransactionOptions<SignUpPurchaserForUserParams>
+  options: BaseTransactionOptions<SignUpPurchaserForUserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2281,17 +2281,17 @@ export function signUpPurchaserForUser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "address",
       "name": "_purchaser",
-      "type": "address"
-    }
+      "type": "address",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId, options.purchaser]
+    params: [options.itemId, options.purchaser],
   });
 };
 
@@ -2331,7 +2331,7 @@ price: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_price","ty
  * ```
  */
 export function updateItem(
-  options: BaseTransactionOptions<UpdateItemParams>
+  options: BaseTransactionOptions<UpdateItemParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2341,37 +2341,37 @@ export function updateItem(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "string",
       "name": "_title",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_description",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_url",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_imageUrl",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "uint256",
       "name": "_price",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId, options.title, options.description, options.url, options.imageUrl, options.price]
+    params: [options.itemId, options.title, options.description, options.url, options.imageUrl, options.price],
   });
 };
 
@@ -2411,7 +2411,7 @@ price: AbiParameterToPrimitiveType<{"internalType":"uint256","name":"_price","ty
  * ```
  */
 export function updateItemForUser(
-  options: BaseTransactionOptions<UpdateItemForUserParams>
+  options: BaseTransactionOptions<UpdateItemForUserParams>,
 ) {
   return prepareContractCall({
     contract: options.contract,
@@ -2421,37 +2421,37 @@ export function updateItemForUser(
     {
       "internalType": "uint256",
       "name": "_itemId",
-      "type": "uint256"
+      "type": "uint256",
     },
     {
       "internalType": "string",
       "name": "_title",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_description",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_url",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "string",
       "name": "_imageUrl",
-      "type": "string"
+      "type": "string",
     },
     {
       "internalType": "uint256",
       "name": "_price",
-      "type": "uint256"
-    }
+      "type": "uint256",
+    },
   ],
-  []
+  [],
 ],
-    params: [options.itemId, options.title, options.description, options.url, options.imageUrl, options.price]
+    params: [options.itemId, options.title, options.description, options.url, options.imageUrl, options.price],
   });
 };
 

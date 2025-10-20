@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  thirdwebWriteContract,
-  thirdwebReadContract,
-} from "@/lib/thirdweb-http-api";
+
 import { chain, wishlist } from "@/constants";
 import { optionalAuth } from "@/lib/auth-utils";
 import { getApprovedPurchasers, isInAnyExchange } from "@/lib/exchange-utils";
+import {
+  thirdwebReadContract,
+  thirdwebWriteContract,
+} from "@/lib/thirdweb-http-api";
 
 /**
  * Sign up purchaser endpoint
@@ -218,12 +219,13 @@ export async function GET(request: NextRequest) {
 
     // Extract data from thirdweb API response (handles both .data and .result formats)
     const purchasersRaw = result.result[0].data || result.result[0].result;
-    const countRaw = result.result[1].data || result.result[1].result;
 
     // Ensure purchasers is an array and convert BigInt to strings for JSON serialization
     let purchasers = Array.isArray(purchasersRaw)
       ? purchasersRaw
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((p: any) => p != null) // Filter out null entries
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((p: any) => {
             // Handle tuple format: [address, uint256, bool]
             if (Array.isArray(p)) {
@@ -301,8 +303,9 @@ export async function GET(request: NextRequest) {
     // Filter purchasers to only include those in the item owner's exchanges
     // This way, if someone from the owner's work exchange signs up,
     // people from the owner's family exchange will also see it (preventing duplicate purchases)
-    purchasers = purchasers.filter((p: any) =>
-      approvedPurchasers.has(p.purchaser.toLowerCase()),
+    purchasers = purchasers.filter(
+      (p: { purchaser: string; signedUpAt: string; exists: boolean }) =>
+        approvedPurchasers.has(p.purchaser.toLowerCase()),
     );
 
     const count = purchasers.length;

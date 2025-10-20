@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface TransactionStatus {
   transactionId: string;
   status: "pending" | "success" | "failed" | "cancelled";
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface UseTransactionMonitorOptions {
   transactionId: string | null;
   pollInterval?: number; // in milliseconds
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: string) => void;
   onStatusChange?: (status: TransactionStatus) => void;
 }

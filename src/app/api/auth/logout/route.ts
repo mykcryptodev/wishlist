@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  *
  * Clear the user's session
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // In a more robust implementation, you would invalidate the token in a database
     // For now, we just return success and let the client clear the token

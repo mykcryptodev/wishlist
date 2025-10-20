@@ -1,19 +1,20 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 import { useAuthToken } from "@/hooks/useAuthToken";
 
 interface JoinExchangeDialogProps {
@@ -94,13 +95,13 @@ export function JoinExchangeDialog({
           <div className="space-y-2">
             <Label htmlFor="inviteCode">Invite Code *</Label>
             <Input
+              className="font-mono text-lg tracking-wider"
+              disabled={loading}
               id="inviteCode"
+              maxLength={6}
               placeholder="e.g., ABC123"
               value={inviteCode}
               onChange={e => setInviteCode(e.target.value.toUpperCase())}
-              disabled={loading}
-              maxLength={6}
-              className="font-mono text-lg tracking-wider"
             />
             <p className="text-sm text-muted-foreground">
               Ask the exchange creator for the 6-character invite code
@@ -110,13 +111,13 @@ export function JoinExchangeDialog({
 
         <DialogFooter>
           <Button
+            disabled={loading}
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={loading}
           >
             Cancel
           </Button>
-          <Button onClick={handleJoin} disabled={loading || !inviteCode.trim()}>
+          <Button disabled={loading || !inviteCode.trim()} onClick={handleJoin}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Join Exchange
           </Button>

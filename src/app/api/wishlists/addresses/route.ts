@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { chain } from "@/constants";
 import { getWishlistAddresses } from "@/lib/wishlist-utils";
 

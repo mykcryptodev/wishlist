@@ -1,7 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Check, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  AccountAddress,
+  AccountAvatar,
+  AccountName,
+  AccountProvider,
+  Blobbie,
+  ConnectButton,
+  useActiveAccount,
+} from "thirdweb/react";
+import { shortenAddress } from "thirdweb/utils";
+
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,23 +23,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Share2, Check } from "lucide-react";
-import { toast } from "sonner";
-import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { PurchasersDialog } from "@/components/wishlist/PurchasersDialog";
-import {
-  AccountAddress,
-  AccountAvatar,
-  AccountName,
-  AccountProvider,
-  Blobbie,
-  useActiveAccount,
-  ConnectButton,
-} from "thirdweb/react";
-import { client } from "@/providers/Thirdweb";
-import { shortenAddress } from "thirdweb/utils";
+import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { client } from "@/providers/Thirdweb";
 
 interface WishlistItem {
   id: string;
@@ -134,10 +135,10 @@ export default function PublicWishlistPage() {
               },
             };
           }
-        } catch (error) {
+        } catch (_error) {
           console.error(
             `Error fetching purchasers for item ${item.id}:`,
-            error,
+            _error,
           );
         }
         return {
@@ -157,7 +158,7 @@ export default function PublicWishlistPage() {
     }
   };
 
-  const formatAddress = (addr: string) => {
+  const _formatAddress = (addr: string) => {
     if (!addr) return "";
     return shortenAddress(addr);
   };
@@ -312,14 +313,14 @@ export default function PublicWishlistPage() {
                       <AccountAddress formatFn={addr => shortenAddress(addr)} />
                     }
                   />
-                  's wishlist
+                  &apos;s wishlist
                 </h1>
               </div>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={copyShareLink}
                 className="gap-2"
+                size="sm"
+                variant="outline"
+                onClick={copyShareLink}
               >
                 {copied ? (
                   <>
@@ -335,7 +336,7 @@ export default function PublicWishlistPage() {
               </Button>
 
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Browse this wishlist and mark items you'd like to purchase
+                Browse this wishlist and mark items you&apos;d like to purchase
               </p>
             </div>
           </AccountProvider>
@@ -378,8 +379,8 @@ export default function PublicWishlistPage() {
           <Card className="max-w-7xl mx-auto bg-muted/50">
             <CardContent>
               <p className="text-sm text-muted-foreground text-center">
-                🎁 You're viewing your own wishlist. Purchaser information is
-                hidden from you to keep gifts a surprise!
+                🎁 You&apos;re viewing your own wishlist. Purchaser information
+                is hidden from you to keep gifts a surprise!
               </p>
             </CardContent>
           </Card>
@@ -401,16 +402,16 @@ export default function PublicWishlistPage() {
                   key={item.id}
                   item={item}
                   viewMode="public"
-                  onPurchaseInterest={handlePurchaseInterest}
-                  onViewPurchasers={isOwner ? undefined : handleViewPurchasers}
-                  purchaserCount={
-                    isOwner ? 0 : purchaserData[item.id]?.count || 0
-                  }
                   isUserPurchaser={
                     isOwner
                       ? false
                       : purchaserData[item.id]?.isUserPurchaser || false
                   }
+                  purchaserCount={
+                    isOwner ? 0 : purchaserData[item.id]?.count || 0
+                  }
+                  onPurchaseInterest={handlePurchaseInterest}
+                  onViewPurchasers={isOwner ? undefined : handleViewPurchasers}
                 />
               ))}
             </div>
@@ -420,12 +421,12 @@ export default function PublicWishlistPage() {
         {/* Purchasers Dialog */}
         {selectedItemId && (
           <PurchasersDialog
-            open={purchasersDialogOpen}
-            onOpenChange={setPurchasersDialogOpen}
-            itemId={selectedItemId}
-            itemTitle={selectedItemTitle}
             currentUserAddress={currentUserAddress}
             isOwner={false}
+            itemId={selectedItemId}
+            itemTitle={selectedItemTitle}
+            open={purchasersDialogOpen}
+            onOpenChange={setPurchasersDialogOpen}
             onPurchaserChange={handlePurchaserChange}
           />
         )}

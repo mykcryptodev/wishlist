@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useActiveAccount } from "thirdweb/react";
-import { toast } from "sonner";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useActiveAccount } from "thirdweb/react";
+
+import { Button } from "@/components/ui/button";
 import { useAuthToken } from "@/hooks/useAuthToken";
 
 /**
@@ -15,7 +16,7 @@ import { useAuthToken } from "@/hooks/useAuthToken";
  */
 export function SignInButton() {
   const account = useActiveAccount();
-  const { token, saveToken, clearToken } = useAuthToken();
+  const { token, setToken, clearToken } = useAuthToken();
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
@@ -81,7 +82,7 @@ export function SignInButton() {
       const authToken = completeData.token;
 
       // Save the token
-      saveToken(authToken);
+      setToken(authToken);
       toast.success("Signed in successfully!");
     } catch (error) {
       console.error("Error signing in:", error);
@@ -103,10 +104,10 @@ export function SignInButton() {
   if (token) {
     return (
       <Button
-        variant="outline"
-        size="sm"
-        onClick={handleSignOut}
         className="gap-2"
+        size="sm"
+        variant="outline"
+        onClick={handleSignOut}
       >
         <ShieldCheck className="h-4 w-4" />
         Sign Out
@@ -116,11 +117,11 @@ export function SignInButton() {
 
   return (
     <Button
-      variant="default"
-      size="sm"
-      onClick={handleSignIn}
-      disabled={loading}
       className="gap-2"
+      disabled={loading}
+      size="sm"
+      variant="default"
+      onClick={handleSignIn}
     >
       {loading ? (
         <>

@@ -1,9 +1,9 @@
 "use client";
 
-import { BadgeCheck, Search, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { BadgeCheck, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getBaseUrl } from "@/lib/farcaster-metadata";
 import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
+import { getBaseUrl } from "@/lib/farcaster-metadata";
 
 interface User {
   fid: number;
@@ -175,17 +175,17 @@ export function UserSearch({
       <div className="relative mb-4 flex items-center gap-2 rounded-md border border-input bg-transparent shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
         <Search className="ml-3 h-4 w-4 text-muted-foreground" />
         <Input
-          type="text"
+          className="flex-1 border-0 shadow-none focus-visible:ring-0"
           placeholder={placeholder}
+          type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          className="flex-1 border-0 shadow-none focus-visible:ring-0"
         />
         {query && (
           <button
-            onClick={clearSearch}
-            className="mr-3 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Clear search"
+            className="mr-3 text-muted-foreground hover:text-foreground transition-colors"
+            onClick={clearSearch}
           >
             <X className="h-4 w-4" />
           </button>
@@ -248,7 +248,7 @@ export function UserSearch({
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.pfp_url} alt={user.display_name} />
+                      <AvatarImage alt={user.display_name} src={user.pfp_url} />
                       <AvatarFallback>
                         {user.display_name?.charAt(0)?.toUpperCase() || "?"}
                       </AvatarFallback>
@@ -263,15 +263,15 @@ export function UserSearch({
                         )}
                         {user.hasWishlist ? (
                           <Badge
-                            variant="default"
                             className="text-xs bg-primary"
+                            variant="default"
                           >
                             🎁 Has Wishlist
                           </Badge>
                         ) : (
                           <Badge
-                            variant="outline"
                             className="text-xs cursor-pointer hover:bg-muted transition-colors"
+                            variant="outline"
                             onClick={e => handleRequestWishlist(user, e)}
                           >
                             💌 Request Wishlist
@@ -309,9 +309,9 @@ export function UserSearch({
             {nextCursor && (
               <div className="flex justify-center pt-4">
                 <Button
-                  onClick={loadMore}
                   disabled={isLoading}
                   variant="outline"
+                  onClick={loadMore}
                 >
                   {isLoading ? "Loading..." : "Load More"}
                 </Button>

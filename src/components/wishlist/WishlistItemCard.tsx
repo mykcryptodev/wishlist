@@ -1,9 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Edit, ExternalLink, ShoppingCart, Trash2, Users } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, ExternalLink, Users, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 interface WishlistItemCardProps {
   item: {
@@ -58,9 +59,9 @@ export function WishlistItemCard({
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {item.imageUrl ? (
           <img
-            src={item.imageUrl}
             alt={item.title}
             className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            src={item.imageUrl}
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -70,15 +71,15 @@ export function WishlistItemCard({
         {/* Badges */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <Badge
-            variant="secondary"
             className="backdrop-blur-sm bg-background/80"
+            variant="secondary"
           >
             {formatPrice(item.price)}
           </Badge>
           {purchaserCount > 0 && onViewPurchasers && (
             <Badge
-              variant="default"
               className="backdrop-blur-sm bg-primary/90 cursor-pointer hover:bg-primary"
+              variant="default"
               onClick={e => {
                 e.stopPropagation();
                 onViewPurchasers?.(item.id);
@@ -118,9 +119,9 @@ export function WishlistItemCard({
             {/* Owner View - Primary Actions */}
             <div className="flex gap-2 w-full">
               <Button
-                variant="default"
-                size="sm"
                 className="flex-1"
+                size="sm"
+                variant="default"
                 onClick={() => window.open(item.url, "_blank")}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
@@ -128,8 +129,8 @@ export function WishlistItemCard({
               </Button>
               {onViewPurchasers && (
                 <Button
-                  variant="outline"
                   size="sm"
+                  variant="outline"
                   onClick={() => onViewPurchasers?.(item.id)}
                 >
                   <Users className="w-4 h-4" />
@@ -140,20 +141,20 @@ export function WishlistItemCard({
             {/* Owner View - Secondary Actions */}
             <div className="flex gap-2 w-full">
               <Button
-                variant="outline"
-                size="sm"
                 className="flex-1"
+                size="sm"
+                variant="outline"
                 onClick={() => onEdit?.(item.id)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
               <Button
-                variant="destructive"
-                size="sm"
                 className="flex-1"
-                onClick={() => onDelete?.(item.id)}
                 disabled={isDeleting}
+                size="sm"
+                variant="destructive"
+                onClick={() => onDelete?.(item.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? "Deleting..." : "Delete"}
@@ -164,29 +165,29 @@ export function WishlistItemCard({
           <>
             {/* Public View - Actions */}
             <Button
-              variant="default"
-              size="sm"
               className="w-full"
+              size="sm"
+              variant="default"
               onClick={() => window.open(item.url, "_blank")}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               View Item
             </Button>
             <Button
-              variant={isUserPurchaser ? "secondary" : "outline"}
-              size="sm"
               className="w-full"
+              size="sm"
+              variant={isUserPurchaser ? "secondary" : "outline"}
               onClick={() => onPurchaseInterest?.(item.id)}
             >
               {isUserPurchaser ? (
                 <>
                   <Users className="w-4 h-4 mr-2" />
-                  You're Getting This
+                  You&apos;re Getting This
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  I'll Get This
+                  I&apos;ll Get This
                 </>
               )}
             </Button>

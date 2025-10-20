@@ -112,11 +112,11 @@ export function Navigation() {
               <DialogTitle>Search Users</DialogTitle>
             </DialogHeader>
             <UserSearch
+              className="mt-4"
+              showBio={false}
               onUserSelect={() => {
                 setSearchOpen(false);
               }}
-              showBio={false}
-              className="mt-4"
             />
           </DialogContent>
         </Dialog>
@@ -125,7 +125,7 @@ export function Navigation() {
           {/* Mobile Search Button */}
           <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" variant="outline" className="md:hidden">
+              <Button className="md:hidden" size="icon" variant="outline">
                 <Search className="h-[1.2rem] w-[1.2rem]" />
                 <span className="sr-only">Search Users</span>
               </Button>
@@ -133,52 +133,13 @@ export function Navigation() {
           </Dialog>
 
           <ConnectButton
+            autoConnect={true}
             chain={chain}
             client={client}
             wallets={wallets}
-            autoConnect={true}
             appMetadata={{
               name: appName,
               description: appDescription,
-            }}
-            connectButton={{
-              label: "Login",
-              className: "!size-9",
-            }}
-            signInButton={{
-              label: "Sign In",
-              className: "!size-9 !min-h-0",
-            }}
-            connectModal={{
-              title: `Login to ${appName}`,
-              showThirdwebBranding: false,
-            }}
-            detailsButton={{
-              render: () => (
-                <AccountProvider
-                  address={wallet?.getAccount()?.address ?? ""}
-                  client={client}
-                >
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <AccountAvatar
-                      className="!size-6 rounded-full"
-                      fallbackComponent={
-                        <Blobbie
-                          address={wallet?.getAccount()?.address ?? ""}
-                          className="!size-6 rounded-full"
-                        />
-                      }
-                    />
-                    <AccountName
-                      fallbackComponent={
-                        <AccountAddress
-                          formatFn={addr => shortenAddress(addr)}
-                        />
-                      }
-                    />
-                  </Button>
-                </AccountProvider>
-              ),
             }}
             auth={{
               isLoggedIn: async (address: string) => {
@@ -300,6 +261,45 @@ export function Navigation() {
                   console.error("[doLogout] Error logging out:", error);
                 }
               },
+            }}
+            connectButton={{
+              label: "Login",
+              className: "!size-9",
+            }}
+            connectModal={{
+              title: `Login to ${appName}`,
+              showThirdwebBranding: false,
+            }}
+            detailsButton={{
+              render: () => (
+                <AccountProvider
+                  address={wallet?.getAccount()?.address ?? ""}
+                  client={client}
+                >
+                  <Button className="flex items-center gap-2" variant="outline">
+                    <AccountAvatar
+                      className="!size-6 rounded-full"
+                      fallbackComponent={
+                        <Blobbie
+                          address={wallet?.getAccount()?.address ?? ""}
+                          className="!size-6 rounded-full"
+                        />
+                      }
+                    />
+                    <AccountName
+                      fallbackComponent={
+                        <AccountAddress
+                          formatFn={addr => shortenAddress(addr)}
+                        />
+                      }
+                    />
+                  </Button>
+                </AccountProvider>
+              ),
+            }}
+            signInButton={{
+              label: "Sign In",
+              className: "!size-9 !min-h-0",
             }}
             theme={
               resolvedTheme === "dark"

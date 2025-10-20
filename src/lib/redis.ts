@@ -1,6 +1,5 @@
 import { Redis } from "@upstash/redis";
 
-import { chain } from "@/constants";
 
 // Check if Redis environment variables are available
 const isRedisConfigured =

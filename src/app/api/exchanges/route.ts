@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { requireAuth } from "@/lib/auth-utils";
-import { supabaseAdmin } from "@/lib/supabase";
 import { generateUniqueInviteCode } from "@/lib/exchange-utils";
+import { supabaseAdmin } from "@/lib/supabase";
 
 /**
  * GET /api/exchanges

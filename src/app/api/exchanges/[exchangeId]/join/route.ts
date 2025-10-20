@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { requireAuth } from "@/lib/auth-utils";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -12,7 +13,7 @@ import { supabaseAdmin } from "@/lib/supabase";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ exchangeId: string }> },
+  { params: _params }: { params: Promise<{ exchangeId: string }> },
 ) {
   try {
     // Authenticate the user

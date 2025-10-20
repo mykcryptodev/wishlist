@@ -1,38 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Users,
-  Plus,
-  LogIn,
-  Copy,
   Check,
-  LogOut,
   ChevronDown,
   ChevronUp,
+  Copy,
+  LogIn,
+  LogOut,
+  Plus,
+  Users,
 } from "lucide-react";
+import Link from "next/link";
+import { useEffect,useState } from "react";
 import { toast } from "sonner";
-import { CreateExchangeDialog } from "./CreateExchangeDialog";
-import { JoinExchangeDialog } from "./JoinExchangeDialog";
 import {
-  AccountProvider,
   AccountAvatar,
   AccountName,
+  AccountProvider,
   Blobbie,
 } from "thirdweb/react";
-import { client } from "@/providers/Thirdweb";
-import { shortenAddress } from "thirdweb/utils";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +30,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { client } from "@/providers/Thirdweb";
+
+import { CreateExchangeDialog } from "./CreateExchangeDialog";
+import { JoinExchangeDialog } from "./JoinExchangeDialog";
 
 interface Exchange {
   id: string;
@@ -294,8 +295,8 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                       </code>
                     </div>
                     <Button
-                      variant="outline"
                       size="sm"
+                      variant="outline"
                       onClick={() => copyInviteCode(exchange.invite_code)}
                     >
                       {copiedCode === exchange.invite_code ? (
@@ -316,10 +317,10 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleExpanded(exchange.id)}
                       className="flex-1"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleExpanded(exchange.id)}
                     >
                       {isExpanded ? (
                         <>
@@ -334,8 +335,8 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                       )}
                     </Button>
                     <Button
-                      variant="destructive"
                       size="sm"
+                      variant="destructive"
                       onClick={() => {
                         setExchangeToLeave(exchange);
                         setLeaveDialogOpen(true);
@@ -367,8 +368,8 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                               client={client}
                             >
                               <Link
-                                href={`/wishlist/${member.wallet_address}`}
                                 className="block transition-transform hover:scale-[1.02]"
+                                href={`/wishlist/${member.wallet_address}`}
                               >
                                 <Card className="py-1 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
                                   <CardContent className="p-4">
@@ -415,16 +416,16 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
 
       <CreateExchangeDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onExchangeCreated={fetchExchanges}
         walletAddress={walletAddress}
+        onExchangeCreated={fetchExchanges}
+        onOpenChange={setCreateDialogOpen}
       />
 
       <JoinExchangeDialog
         open={joinDialogOpen}
-        onOpenChange={setJoinDialogOpen}
-        onExchangeJoined={fetchExchanges}
         walletAddress={walletAddress}
+        onExchangeJoined={fetchExchanges}
+        onOpenChange={setJoinDialogOpen}
       />
 
       <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
@@ -432,7 +433,7 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Leave Exchange?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to leave "{exchangeToLeave?.name}"? You'll
+              Are you sure you want to leave &quot;{exchangeToLeave?.name}&quot;? You&apos;ll
               need an invite code to rejoin.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -441,8 +442,8 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleLeaveExchange}
               disabled={leavingExchange}
+              onClick={handleLeaveExchange}
             >
               {leavingExchange ? "Leaving..." : "Leave Exchange"}
             </AlertDialogAction>

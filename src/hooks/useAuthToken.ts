@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect,useState } from "react";
 
 const AUTH_TOKEN_KEY = "wishlist_auth_token";
 

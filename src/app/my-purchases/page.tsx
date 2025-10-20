@@ -1,7 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Blobbie, useActiveAccount } from "thirdweb/react";
+import { ExternalLink, ShoppingBag, User } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  AccountAvatar,
+  AccountName,
+  AccountProvider,
+  Blobbie,
+  useActiveAccount,
+} from "thirdweb/react";
+import { shortenAddress } from "thirdweb/utils";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,15 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShoppingBag, ExternalLink, User } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { AccountProvider, AccountAvatar, AccountName } from "thirdweb/react";
 import { client } from "@/providers/Thirdweb";
-import { shortenAddress } from "thirdweb/utils";
 
 interface PurchaseItem {
   id: string;
@@ -92,7 +98,7 @@ export default function MyPurchasesPage() {
                   My Purchases
                 </CardTitle>
                 <CardDescription>
-                  Items you're planning to purchase for others
+                  Items you&apos;re planning to purchase for others
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center py-12">
@@ -101,7 +107,7 @@ export default function MyPurchasesPage() {
                   Connect Your Wallet
                 </h3>
                 <p className="text-muted-foreground">
-                  Please connect your wallet to see items you're purchasing
+                  Please connect your wallet to see items you&apos;re purchasing
                 </p>
               </CardContent>
             </Card>
@@ -120,7 +126,7 @@ export default function MyPurchasesPage() {
               My Purchases
             </h1>
             <p className="text-xl text-muted-foreground">
-              Loading items you're purchasing...
+              Loading items you&apos;re purchasing...
             </p>
           </div>
 
@@ -149,7 +155,7 @@ export default function MyPurchasesPage() {
             My Purchases
           </h1>
           <p className="text-xl text-muted-foreground">
-            Items you're planning to purchase for others
+            Items you&apos;re planning to purchase for others
           </p>
         </div>
 
@@ -199,9 +205,9 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {item.imageUrl ? (
           <img
-            src={item.imageUrl}
             alt={item.title}
             className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            src={item.imageUrl}
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -211,8 +217,8 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
         {/* Price Badge */}
         <div className="absolute top-4 right-4">
           <Badge
-            variant="secondary"
             className="backdrop-blur-sm bg-background/80"
+            variant="secondary"
           >
             {formatPrice(item.price)}
           </Badge>
@@ -264,16 +270,16 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
       {/* Footer Section */}
       <div className="p-6 pt-0 flex gap-2">
         <Button
-          variant="default"
-          size="sm"
           className="flex-1"
+          size="sm"
+          variant="default"
           onClick={() => window.open(item.url, "_blank")}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
           View Item
         </Button>
-        <Link href={`/wishlist/${item.owner}`} className="flex-1">
-          <Button variant="outline" size="sm" className="w-full">
+        <Link className="flex-1" href={`/wishlist/${item.owner}`}>
+          <Button className="w-full" size="sm" variant="outline">
             <User className="w-4 h-4 mr-2" />
             Wishlist
           </Button>
