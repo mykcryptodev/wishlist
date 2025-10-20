@@ -44,30 +44,52 @@ export default function ExchangesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2">For Wishlist Owners:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  <h3 className="font-semibold mb-2">Privacy Rules:</h3>
+                  <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
                     <li>
-                      You cannot see who has signed up to purchase your items
+                      <strong>
+                        Wishlist owners never see who's purchasing their items
+                      </strong>{" "}
+                      - keeps gifts a surprise!
                     </li>
-                    <li>This keeps gifts a surprise!</li>
+                    <li>
+                      <strong>Help your purchasers coordinate:</strong> Joining
+                      an exchange restricts viewability of purchaser information
+                      to only those in the same exchanges. This helps your
+                      purchasers coordinate without interference from random
+                      people.
+                    </li>
+                    <li>
+                      <strong>Free for all:</strong> If you do not join an
+                      exchange, anyone can sign up to purchase items on your
+                      list for you.
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">
-                    For Purchasers in Your Exchange:
+                    Example: Shopping for Someone in Your Exchange
                   </h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Say you're in Alice's "Family" exchange, and Alice is also
+                    in a "Work" exchange with her coworkers:
+                  </p>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                     <li>
-                      When viewing someone else's wishlist, you only see other
-                      people from your exchange
+                      You can see purchaser information because you're in at
+                      least one of Alice's exchanges
                     </li>
                     <li>
-                      Random people on the internet won't interfere with your
-                      gift coordination
+                      You'll see ALL purchasers from ANY of Alice's exchanges -
+                      including her coworkers from the Work exchange
                     </li>
                     <li>
-                      If no one from your exchange has signed up, you'll know
-                      it's safe to purchase
+                      This prevents duplicate gifts across all of Alice's
+                      exchanges
+                    </li>
+                    <li>
+                      Alice won't see any of this information - only people in
+                      her exchanges can
                     </li>
                   </ul>
                 </div>
