@@ -72,31 +72,6 @@ export function Navigation() {
             <span className="font-bold text-xl">{appName}</span>
           </Link>
 
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="outline">
-                  <Menu className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Open navigation menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/wishlist">My Wishlist</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/my-purchases">My Purchases</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/exchanges">Exchanges</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/users">Browse</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
           <div className="hidden md:flex items-center space-x-6">
             <Link
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -162,6 +137,31 @@ export function Navigation() {
               </Button>
             </DialogTrigger>
           </Dialog>
+
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="outline">
+                  <Menu className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Open navigation menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/wishlist">My Wishlist</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-purchases">My Purchases</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/exchanges">Exchanges</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/users">Browse</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <ConnectButton
             autoConnect={true}
