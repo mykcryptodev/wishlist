@@ -16,7 +16,7 @@ import {
   useActiveWallet,
 } from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
-import { Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useState } from "react";
 
 import { appDescription, appName, chain } from "@/constants";
@@ -26,6 +26,12 @@ import { useAuthToken } from "@/hooks/useAuthToken";
 import { ModeToggle } from "./mode-toggle";
 import { shortenAddress } from "thirdweb/utils";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -131,6 +137,31 @@ export function Navigation() {
               </Button>
             </DialogTrigger>
           </Dialog>
+
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="outline">
+                  <Menu className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Open navigation menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/wishlist">My Wishlist</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-purchases">My Purchases</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/exchanges">Exchanges</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/users">Browse</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <ConnectButton
             autoConnect={true}
