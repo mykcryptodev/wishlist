@@ -41,12 +41,13 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { UserSearch } from "./user-search";
+import Image from "next/image";
 
 export function Navigation() {
   const { resolvedTheme } = useTheme();
   const wallet = useActiveWallet();
   const [searchOpen, setSearchOpen] = useState(false);
-  const { token, setToken, clearToken } = useAuthToken();
+  const { setToken, clearToken } = useAuthToken();
 
   const wallets = [
     inAppWallet({
@@ -66,14 +67,15 @@ export function Navigation() {
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm relative z-10">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-2">
           <div className="flex items-center space-x-8">
-            <Link className="flex items-center space-x-2 group" href="/">
-              <div className="h-8 w-8 rounded-md bg-christmas-gradient flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                <span className="text-primary-foreground font-bold text-lg">
-                  🎁
-                </span>
-              </div>
+            <Link className="flex items-center group" href="/">
+              <Image
+                src="/images/logo.png"
+                alt={appName}
+                width={32}
+                height={32}
+              />
               <span className="font-bold text-xl text-christmas-gradient">
-                {appName} 🎄
+                {appName}
               </span>
             </Link>
 

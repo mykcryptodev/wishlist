@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     ...generateFarcasterMetadata({
       appName,
       imageUrl: `${getBaseUrl()}/api/wishlist/og`,
-      splashImageUrl: `${getBaseUrl()}/images/logo-no-bg.png`,
+      splashImageUrl: `${getBaseUrl()}/images/logo.png`,
       splashBackgroundColor: "#000000",
       url: `${getBaseUrl()}/wishlist`,
     }),

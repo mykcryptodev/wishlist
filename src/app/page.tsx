@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -24,24 +25,43 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center py-16">
           <div className="mb-4 flex justify-center items-center gap-4">
-            <span className="text-5xl animate-bounce">🎄</span>
+            <span
+              className="text-5xl"
+              style={{
+                display: "inline-block",
+                animation:
+                  "subtle-bounce 1.5s infinite alternate cubic-bezier(.4,0,.2,1)",
+              }}
+            >
+              🎄
+            </span>
             <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
               Holiday Wishlist
             </h1>
             <span
-              className="text-5xl animate-bounce"
-              style={{ animationDelay: "0.2s" }}
+              className="text-5xl"
+              style={{
+                display: "inline-block",
+                animation:
+                  "subtle-bounce 1.5s infinite alternate cubic-bezier(.4,0,.2,1)",
+                animationDelay: "0.75s",
+              }}
             >
               🎁
             </span>
+            <style>
+              {`
+                @keyframes subtle-bounce {
+                  0% { transform: translateY(0); }
+                  100% { transform: translateY(-0.18em); }
+                }
+              `}
+            </style>
           </div>
 
           <p className="text-xl md:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto">
-            ✨ Create your magical holiday wishlist this Christmas! ✨
-          </p>
-          <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Add items from any website, organize your favorites, and share with
-            family and friends to make gift-giving merry and bright!
+            ✨ Create and share your magical holiday wishlist this holiday
+            season! ✨
           </p>
 
           <div className="flex gap-4 justify-center flex-col sm:flex-row">
@@ -59,15 +79,21 @@ export default function Home() {
                 size="lg"
                 variant="outline"
               >
-                🎄 Secret Santa Exchange
+                🎄 Join a Gift Exchange
               </Button>
             </Link>
           </div>
+        </div>
 
-          {/* Festive tagline */}
-          <div className="mt-8 text-sm text-muted-foreground italic">
-            🌟 Making spirits bright, one wish at a time 🌟
-          </div>
+        <div className="relative">
+          <Image
+            src="/images/monster.png"
+            alt="Monster"
+            width={148}
+            height={148}
+            className="absolute -top-20 -left-10 -z-10"
+            style={{ transform: "rotate(5deg)" }}
+          />
         </div>
 
         {/* Wishlist Directory Section */}
@@ -82,19 +108,6 @@ export default function Home() {
             </p>
           </div>
           <WishlistDirectory description="" maxItems={6} title="" />
-        </div>
-
-        {/* Christmas message */}
-        <div className="text-center py-8 mb-8">
-          <div className="max-w-2xl mx-auto p-6 rounded-lg bg-card/50 backdrop-blur-sm border-2 border-accent/30 shadow-xl">
-            <p className="text-lg font-medium text-christmas-gradient mb-2">
-              🎅 Ho Ho Ho! Merry Christmas! 🎄
-            </p>
-            <p className="text-sm text-muted-foreground">
-              May your holidays be filled with joy, laughter, and all the gifts
-              on your wishlist!
-            </p>
-          </div>
         </div>
       </main>
     </div>

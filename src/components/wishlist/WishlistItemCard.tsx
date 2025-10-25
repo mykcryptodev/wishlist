@@ -54,7 +54,7 @@ export function WishlistItemCard({
   };
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg">
+    <Card className="group overflow-hidden transition-all hover:shadow-lg z-10">
       {/* Image Section */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {item.imageUrl ? (

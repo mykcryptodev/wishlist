@@ -79,7 +79,7 @@ export async function generateMetadata({
       ...generateFarcasterMetadata({
         appName,
         imageUrl: ogImageUrl,
-        splashImageUrl: `${baseUrl}/images/logo-no-bg.png`,
+        splashImageUrl: `${baseUrl}/images/logo.png`,
         splashBackgroundColor: "#000000",
         url: wishlistUrl,
       }),

@@ -27,6 +27,7 @@ import { PurchasersDialog } from "@/components/wishlist/PurchasersDialog";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { client } from "@/providers/Thirdweb";
+import Image from "next/image";
 
 interface WishlistItem {
   id: string;
@@ -156,11 +157,6 @@ export default function PublicWishlistPage() {
     } catch (error) {
       console.error("Error fetching purchaser data:", error);
     }
-  };
-
-  const _formatAddress = (addr: string) => {
-    if (!addr) return "";
-    return shortenAddress(addr);
   };
 
   const copyShareLink = async () => {
@@ -340,6 +336,16 @@ export default function PublicWishlistPage() {
               </p>
             </div>
           </AccountProvider>
+          <div className="relative">
+            <Image
+              src="/images/monster-reading.png"
+              alt="Monster"
+              width={148}
+              height={148}
+              className="absolute -top-10 -right-10"
+              style={{ transform: "rotate(-5deg) scaleX(-1)" }}
+            />
+          </div>
         </div>
 
         {/* Connect Wallet Banner for Non-Connected Users */}
