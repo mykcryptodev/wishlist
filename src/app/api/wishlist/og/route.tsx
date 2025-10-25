@@ -265,9 +265,9 @@ export async function GET(request: NextRequest) {
         const wishlistData = await wishlistResponse.json();
 
         if (wishlistData.success && wishlistData.items) {
-          // Get up to 2 product images
+          // Get up to 4 product images
           productImages = wishlistData.items
-            .slice(0, 2)
+            .slice(0, 4)
             .map((item: WishlistItem) => item.imageUrl)
             .filter((url: string) => url && url.trim() !== "");
         }
@@ -338,127 +338,126 @@ export async function GET(request: NextRequest) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
               flex: 1,
-              gap: 25,
+              paddingTop: 10,
+              paddingBottom: 5,
             }}
           >
-            {/* Header with avatar and name */}
+            {/* Top section with avatar, name, and items */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 20,
+                gap: 14,
               }}
             >
-              {socialAvatar && (
-                <img
-                  alt="Avatar"
-                  height={100}
-                  src={socialAvatar}
-                  width={100}
-                  style={{
-                    borderRadius: "50%",
-                    border: `4px solid ${forestGreen}`,
-                    boxShadow: `0 4px 16px ${forestGreen}44`,
-                  }}
-                />
-              )}
-
-              {/* Owner name */}
+              {/* Header with avatar and name */}
               <div
                 style={{
                   display: "flex",
-                  fontSize: 62,
-                  fontWeight: 700,
-                  color: textDark,
-                  textAlign: "center",
-                  letterSpacing: "-1.5px",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 12,
                 }}
               >
-                {displayName}&apos;s Wishlist
-              </div>
+                {socialAvatar && (
+                  <img
+                    alt="Avatar"
+                    height={90}
+                    src={socialAvatar}
+                    width={90}
+                    style={{
+                      borderRadius: "50%",
+                      border: `4px solid ${forestGreen}`,
+                      boxShadow: `0 4px 16px ${forestGreen}44`,
+                    }}
+                  />
+                )}
 
-              {/* Item count badge */}
-              {itemCount && Number(itemCount) > 0 && (
+                {/* Owner name */}
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    backgroundColor: forestGreen,
-                    borderRadius: 50,
-                    padding: "16px 40px",
-                    boxShadow: `0 4px 20px ${forestGreen}55`,
+                    fontSize: 56,
+                    fontWeight: 700,
+                    color: textDark,
+                    textAlign: "center",
+                    letterSpacing: "-1.5px",
                   }}
                 >
-                  <span style={{ fontSize: 32 }}>🎁</span>
+                  {displayName}&apos;s wishlist
+                </div>
+
+                {/* Item count badge */}
+                {itemCount && Number(itemCount) > 0 && (
                   <div
                     style={{
                       display: "flex",
-                      fontSize: 36,
-                      color: "#fff",
-                      fontWeight: 700,
+                      alignItems: "center",
+                      gap: 10,
+                      backgroundColor: forestGreen,
+                      borderRadius: 50,
+                      padding: "14px 36px",
+                      boxShadow: `0 4px 20px ${forestGreen}55`,
                     }}
                   >
-                    {itemCount} {Number(itemCount) === 1 ? "item" : "items"}
+                    <span style={{ fontSize: 28 }}>🎁</span>
+                    <div
+                      style={{
+                        display: "flex",
+                        fontSize: 32,
+                        color: "#fff",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {itemCount} {Number(itemCount) === 1 ? "item" : "items"}
+                    </div>
                   </div>
+                )}
+              </div>
+
+              {/* Product images showcase */}
+              {productImages.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 18,
+                    marginTop: 8,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {productImages.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        backgroundColor: cardBg,
+                        borderRadius: 14,
+                        padding: 10,
+                        boxShadow: `0 4px 16px ${forestGreen}22`,
+                        border: `2px solid ${forestGreen}33`,
+                      }}
+                    >
+                      <img
+                        alt={`Product ${idx + 1}`}
+                        height={130}
+                        src={imgUrl}
+                        width={130}
+                        style={{
+                          borderRadius: 10,
+                          objectFit: "cover",
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Product images showcase */}
-            {productImages.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 20,
-                  marginTop: 20,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {productImages.map((imgUrl, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      backgroundColor: cardBg,
-                      borderRadius: 16,
-                      padding: 12,
-                      boxShadow: `0 4px 16px ${forestGreen}22`,
-                      border: `2px solid ${forestGreen}33`,
-                    }}
-                  >
-                    <img
-                      alt={`Product ${idx + 1}`}
-                      height={140}
-                      src={imgUrl}
-                      width={140}
-                      style={{
-                        borderRadius: 12,
-                        objectFit: "cover",
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Call to action */}
-            <div
-              style={{
-                display: "flex",
-                fontSize: 28,
-                color: gold,
-                marginTop: 15,
-                fontWeight: 500,
-                textAlign: "center",
-              }}
-            >
-              ✨ Browse & mark items you&apos;d like to gift ✨
-            </div>
+            {/* Call to action - bottom section */}
           </div>
 
           {/* Footer */}
@@ -467,15 +466,15 @@ export async function GET(request: NextRequest) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginTop: 20,
               paddingTop: 20,
+              paddingBottom: 10,
               borderTop: `2px solid ${forestGreen}22`,
             }}
           >
             <div
               style={{
                 display: "flex",
-                fontSize: 22,
+                fontSize: 20,
                 color: forestGreen,
                 fontWeight: 700,
               }}
