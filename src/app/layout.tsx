@@ -54,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const pathname = headersList.get("x-pathname") || "/";
   const baseUrl = getBaseUrl();
   const fullUrl = `${baseUrl}${pathname}`;
-  const ogImageUrl = `${baseUrl}/api/og`;
+  const ogImageUrl = `${baseUrl}/images/hero.png`;
 
   const title = "Wishlist - Create Your Perfect Holiday Wishlist";
   const description =
@@ -70,7 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
         {
           url: ogImageUrl,
           width: 1200,
-          height: 800,
+          height: 630,
           alt: title,
         },
       ],
@@ -86,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
     other: generateFarcasterMetadata({
       appName,
       imageUrl: ogImageUrl,
-      splashImageUrl: `${baseUrl}/splash-image.png`,
+      splashImageUrl: `${baseUrl}/images/logo.png`,
       splashBackgroundColor: "#000000",
       url: fullUrl,
     }),

@@ -69,14 +69,11 @@ export function Navigation() {
           <div className="flex items-center space-x-8">
             <Link className="flex items-center group" href="/">
               <Image
-                alt={appName}
-                height={32}
                 src="/images/logo.png"
+                alt={appName}
                 width={32}
+                height={32}
               />
-              <span className="font-bold text-xl text-christmas-gradient">
-                {appName}
-              </span>
             </Link>
 
             <div className="hidden md:flex items-center space-x-6">
