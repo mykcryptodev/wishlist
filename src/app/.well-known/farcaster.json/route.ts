@@ -23,7 +23,11 @@ export async function GET() {
       webhookUrl: `${URL}/api/webhook`,
       subtitle: "Gift coordination made easy",
       description: appDescription,
-      screenshotUrls: [],
+      screenshotUrls: [
+        `${URL}/images/screenshot-1.png`,
+        `${URL}/images/screenshot-2.png`,
+        `${URL}/images/screenshot-3.png`,
+      ],
       primaryCategory: "shopping",
       tags: ["holidays", "gift", "christmas", "exchange", "secret santa"],
       heroImageUrl: `${URL}/images/hero.png`,
