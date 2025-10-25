@@ -12,8 +12,8 @@ export function ChristmasLights() {
   }, []);
 
   return (
-    <div className="absolute sm:top-14 top-10 left-0 right-0 h-16 pointer-events-none z-40 overflow-hidden">
-      <svg className="w-full h-full" viewBox="0 0 1000 50">
+    <div className="absolute sm:top-14 top-10 left-0 right-0 h-16 pointer-events-none z-40 overflow-hidden bg-transparent">
+      <svg className="w-full h-full bg-transparent" viewBox="0 0 1000 50">
         {/* Lights */}
         {lights.map((_, i) => {
           const x = (i / lights.length) * 1000;
