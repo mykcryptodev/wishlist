@@ -21,7 +21,7 @@ export async function GET() {
       splashImageUrl: `${URL}/images/logo.png`,
       splashBackgroundColor: "#000000",
       webhookUrl: `${URL}/api/webhook`,
-      subtitle: "Gift coordination made easy",
+      subtitle: "Holiday shopping coordination",
       description: appDescription,
       screenshotUrls: [
         `${URL}/images/screenshot-1.png`,
@@ -31,7 +31,7 @@ export async function GET() {
       primaryCategory: "shopping",
       tags: ["holidays", "gift", "christmas", "exchange", "secret santa"],
       heroImageUrl: `${URL}/images/hero.png`,
-      tagline: "Gift coordination made easy",
+      tagline: "Holiday shopping coordination",
       ogTitle: appName,
       ogDescription: appDescription,
       ogImageUrl: `${URL}/images/hero.png`,
