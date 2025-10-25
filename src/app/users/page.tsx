@@ -28,7 +28,7 @@ export default function UsersPage() {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className="text-4xl">🎁</span>
-            <h1 className="text-4xl font-bold text-christmas-gradient">
+            <h1 className="text-4xl font-bold text-outlined">
               Discover Wishlists
             </h1>
             <span className="text-4xl">🎄</span>
