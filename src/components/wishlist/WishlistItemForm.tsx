@@ -276,8 +276,7 @@ export function WishlistItemForm({
       if (result.success) {
         // Start monitoring the transaction
         setCurrentTransactionId(result.transactionId);
-        const message =
-          mode === "add" ? "Transaction submitted" : "Update submitted";
+        const message = mode === "add" ? "Adding..." : "Updating...";
         const description =
           mode === "add"
             ? "Your item is being added to the wishlist. Please wait..."
@@ -344,21 +343,6 @@ export function WishlistItemForm({
             </FormItem>
           )}
         />
-
-        {/* Parsed Data Indicator */}
-        {parsedData && mode === "add" && (
-          <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <span className="text-lg">✓</span>
-              <span className="font-medium">
-                Item details extracted successfully!
-              </span>
-            </div>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              Review and edit the details below before adding to your wishlist.
-            </p>
-          </div>
-        )}
 
         {/* Title */}
         <FormField
