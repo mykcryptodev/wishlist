@@ -26,7 +26,7 @@ export function ChristmasSnowfall() {
         animationDuration: 10 + Math.random() * 20,
         animationDelay: Math.random() * 10,
         fontSize: 0.5 + Math.random() * 1,
-        opacity: 0.05 + Math.random() * 0.1,
+        opacity: 0.35 + Math.random() * 0.2,
       });
     }
 

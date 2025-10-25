@@ -202,17 +202,9 @@
 @keyframes snowfall {
   0% {
     transform: translateY(-10vh) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
   }
   100% {
     transform: translateY(100vh) translateX(100px);
-    opacity: 0;
   }
 }
 
@@ -229,9 +221,7 @@
 .snowflake {
   position: fixed;
   top: -10vh;
-  color: oklch(
-    0.75 0.08 240 / 0.7
-  ); /* Light blue for visibility in light mode */
+  color: oklch(0.75 0.08 240); /* Light blue for visibility in light mode */
   font-size: 1em;
   pointer-events: none;
   z-index: 9999;
@@ -240,7 +230,7 @@
 }
 
 .dark .snowflake {
-  color: oklch(0.9 0.01 70 / 0.6); /* Subtle white for dark mode */
+  color: oklch(0.9 0.01 70); /* Subtle white for dark mode */
 }
 
 /* Christmas Sparkle Animation */
