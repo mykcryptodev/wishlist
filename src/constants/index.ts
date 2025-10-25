@@ -3,7 +3,7 @@ import { base, baseSepolia } from "thirdweb/chains";
 // APP INFO
 export const appName = "Wishlist";
 export const appDescription =
-  "Create your perfect holiday wishlist. Add items from any website, organize your favorites, and share with family and friends!";
+  "Create your perfect holiday wishlist. Collaborate with family and friends!";
 
 // CHAINS
 export const chain = base;
