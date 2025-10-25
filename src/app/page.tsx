@@ -81,7 +81,7 @@ export default function Home() {
               ideas
             </p>
           </div>
-          <WishlistDirectory maxItems={6} title="" description="" />
+          <WishlistDirectory description="" maxItems={6} title="" />
         </div>
 
         {/* Christmas message */}

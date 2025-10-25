@@ -32,39 +32,39 @@ export function ChristmasLights() {
             <g key={i}>
               {/* Wire connection */}
               <line
-                x1={x}
-                y1={y}
-                x2={x}
-                y2={y + 8}
+                opacity="0.3"
                 stroke="oklch(0.3 0.01 145)"
                 strokeWidth="1"
-                opacity="0.3"
+                x1={x}
+                x2={x}
+                y1={y}
+                y2={y + 8}
               />
               {/* Light bulb */}
-              <circle cx={x} cy={y + 12} r="4" fill={color} opacity="0.9">
+              <circle cx={x} cy={y + 12} fill={color} opacity="0.9" r="4">
                 <animate
                   attributeName="opacity"
-                  values="0.5;1;0.5"
-                  dur="2s"
                   begin={`${delay}s`}
+                  dur="2s"
                   repeatCount="indefinite"
+                  values="0.5;1;0.5"
                 />
               </circle>
               {/* Light glow */}
-              <circle cx={x} cy={y + 12} r="6" fill={color} opacity="0.3">
+              <circle cx={x} cy={y + 12} fill={color} opacity="0.3" r="6">
                 <animate
                   attributeName="opacity"
-                  values="0.1;0.4;0.1"
-                  dur="2s"
                   begin={`${delay}s`}
+                  dur="2s"
                   repeatCount="indefinite"
+                  values="0.1;0.4;0.1"
                 />
                 <animate
                   attributeName="r"
-                  values="6;8;6"
-                  dur="2s"
                   begin={`${delay}s`}
+                  dur="2s"
                   repeatCount="indefinite"
+                  values="6;8;6"
                 />
               </circle>
             </g>
