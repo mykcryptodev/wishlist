@@ -35,9 +35,12 @@ export default function Home() {
             >
               🎄
             </span>
-            <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
-              Holiday Wishlist
-            </h1>
+            <Image
+              src="/images/lockup.png"
+              alt="Holiday Wishlist"
+              width={350}
+              height={100}
+            />
             <span
               className="text-5xl"
               style={{
@@ -99,10 +102,10 @@ export default function Home() {
         {/* Wishlist Directory Section */}
         <div className="py-16">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-christmas-gradient">
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-outlined">
               🎁 Explore Wishlists 🎁
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-lg">
               Browse wishlists from our community and find the perfect gift
               ideas
             </p>

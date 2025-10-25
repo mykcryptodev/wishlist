@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Lexend_Deca } from "next/font/google";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 
 import { ChristmasSnowfall } from "@/components/christmas-snowfall";
@@ -17,15 +17,35 @@ import ThirdwebProvider from "@/providers/Thirdweb";
 
 import "./globals.css";
 
-const lexendDeca = Lexend_Deca({
-  variable: "--font-lexend-deca",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const fredoka = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Fredoka/Fredoka-Light.ttf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Fredoka/Fredoka-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Fredoka/Fredoka-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Fredoka/Fredoka-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Fredoka/Fredoka-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-fredoka",
   display: "swap",
 });
 
@@ -80,9 +100,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning lang="en">
-      <body
-        className={`${lexendDeca.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${fredoka.variable} antialiased`}>
         <ThemeProvider
           disableTransitionOnChange
           enableSystem

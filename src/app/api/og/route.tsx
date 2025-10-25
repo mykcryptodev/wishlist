@@ -9,11 +9,11 @@ export async function GET() {
   try {
     // Load custom fonts from public folder
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const [fontMedium, fontBold] = await Promise.all([
-      fetch(`${baseUrl}/fonts/Segment/Segment-Medium.otf`).then(res =>
+    const [fontRegular, fontBold] = await Promise.all([
+      fetch(`${baseUrl}/fonts/Fredoka/Fredoka-Medium.ttf`).then(res =>
         res.arrayBuffer(),
       ),
-      fetch(`${baseUrl}/fonts/Segment/Segment-Bold.otf`).then(res =>
+      fetch(`${baseUrl}/fonts/Fredoka/Fredoka-Bold.ttf`).then(res =>
         res.arrayBuffer(),
       ),
     ]);
@@ -30,7 +30,7 @@ export async function GET() {
             backgroundImage:
               "radial-gradient(circle at 25% 25%, rgba(75, 75, 75, 0.15) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(75, 75, 75, 0.15) 0%, transparent 50%)",
             padding: "50px 60px 45px 60px",
-            fontFamily: "Segment, sans-serif",
+            fontFamily: "Fredoka, sans-serif",
           }}
         >
           {/* Header */}
@@ -295,13 +295,13 @@ export async function GET() {
         height: 800,
         fonts: [
           {
-            name: "Segment",
-            data: fontMedium,
+            name: "Fredoka",
+            data: fontRegular,
             style: "normal",
             weight: 500,
           },
           {
-            name: "Segment",
+            name: "Fredoka",
             data: fontBold,
             style: "normal",
             weight: 700,

@@ -1,7 +1,10 @@
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
+
+// Cache the OG image for 1 hour
+export const revalidate = 3600;
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +15,31 @@ export async function GET(request: NextRequest) {
 
     // Determine if this is a generic "create your wishlist" page or a specific user's wishlist
     const isGeneric = !address;
+
+    // Christmas theme colors from globals.css
+    const forestGreen = "#468763"; // oklch(0.55 0.16 155)
+    const gold = "#c0a053"; // oklch(0.68 0.14 85)
+    const pineGreen = "#3d7357"; // oklch(0.50 0.14 165)
+    const background = "#262626"; // oklch(0.15 0.02 25)
+    const cardBg = "#383838"; // oklch(0.22 0.02 25)
+
+    // Load custom fonts and monster image
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const [fontRegular, fontBold, monsterImage] = await Promise.all([
+      fetch(`${baseUrl}/fonts/Fredoka/Fredoka-Medium.ttf`).then(res =>
+        res.arrayBuffer(),
+      ),
+      fetch(`${baseUrl}/fonts/Fredoka/Fredoka-Bold.ttf`).then(res =>
+        res.arrayBuffer(),
+      ),
+      fetch(`${baseUrl}/images/monster-reading.png`).then(res =>
+        res.arrayBuffer(),
+      ),
+    ]);
+
+    // Convert monster image to base64
+    const monsterBase64 = Buffer.from(monsterImage).toString("base64");
+    const monsterDataUrl = `data:image/png;base64,${monsterBase64}`;
 
     if (isGeneric) {
       // Generic OG image for the main wishlist page
@@ -25,24 +53,24 @@ export async function GET(request: NextRequest) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#000",
-              backgroundImage:
-                "linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)",
+              backgroundColor: background,
+              backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}22 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}22 0%, transparent 50%), radial-gradient(circle at 40% 20%, ${pineGreen}22 0%, transparent 50%)`,
               padding: "40px 80px",
               position: "relative",
+              fontFamily: "Fredoka, sans-serif",
             }}
           >
-            {/* Decorative floating gifts */}
+            {/* Christmas decorative emojis */}
             <div
               style={{
                 position: "absolute",
                 top: 60,
                 left: 100,
                 fontSize: 50,
-                opacity: 0.5,
+                opacity: 0.4,
               }}
             >
-              🎁
+              🎄
             </div>
             <div
               style={{
@@ -50,10 +78,10 @@ export async function GET(request: NextRequest) {
                 top: 150,
                 right: 120,
                 fontSize: 40,
-                opacity: 0.4,
+                opacity: 0.3,
               }}
             >
-              🎀
+              🎅
             </div>
             <div
               style={{
@@ -64,8 +92,23 @@ export async function GET(request: NextRequest) {
                 opacity: 0.3,
               }}
             >
-              ✨
+              ⛄
             </div>
+
+            {/* Monster image */}
+            <img
+              src={monsterDataUrl}
+              alt="Monster"
+              width={120}
+              height={120}
+              style={{
+                position: "absolute",
+                bottom: 80,
+                right: 100,
+                transform: "rotate(-5deg) scaleX(-1)",
+                opacity: 0.9,
+              }}
+            />
 
             {/* Main content */}
             <div
@@ -80,44 +123,50 @@ export async function GET(request: NextRequest) {
               <div
                 style={{
                   display: "flex",
-                  fontSize: 70,
-                  fontWeight: 700,
-                  background: "linear-gradient(to right, #fff, #c8c8c8)",
-                  backgroundClip: "text",
-                  color: "transparent",
-                  textAlign: "center",
+                  alignItems: "center",
+                  gap: 20,
+                  marginBottom: 10,
                 }}
               >
-                Create Your Perfect
+                <span style={{ fontSize: 60 }}>🎄</span>
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 70,
+                    fontWeight: 700,
+                    color: "#fff",
+                    textAlign: "center",
+                  }}
+                >
+                  Holiday Wishlist
+                </div>
+                <span style={{ fontSize: 60 }}>🎁</span>
               </div>
 
               <div
                 style={{
                   display: "flex",
-                  fontSize: 120,
-                  fontWeight: 900,
-                  background:
-                    "linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
-                  backgroundClip: "text",
-                  color: "transparent",
+                  fontSize: 48,
+                  fontWeight: 500,
+                  color: gold,
                   textAlign: "center",
-                  letterSpacing: "-4px",
+                  marginTop: 10,
                 }}
               >
-                Wishlist
+                ✨ Make gifting magical this holiday season ✨
               </div>
 
               <div
                 style={{
                   display: "flex",
                   fontSize: 32,
-                  color: "#888",
+                  color: "#9ca3af",
                   textAlign: "center",
                   marginTop: 20,
                   maxWidth: 800,
                 }}
               >
-                Gift coordination made easy • Share with family & friends
+                Create and share your wishlist • Coordinate with loved ones
               </div>
             </div>
 
@@ -128,17 +177,31 @@ export async function GET(request: NextRequest) {
                 position: "absolute",
                 bottom: 50,
                 fontSize: 28,
-                color: "#667eea",
+                color: forestGreen,
                 fontWeight: 700,
               }}
             >
-              Wishlist App
+              wishlist.myk.party
             </div>
           </div>
         ),
         {
           width: 1200,
           height: 630,
+          fonts: [
+            {
+              name: "Fredoka",
+              data: fontRegular,
+              style: "normal",
+              weight: 500,
+            },
+            {
+              name: "Fredoka",
+              data: fontBold,
+              style: "normal",
+              weight: 700,
+            },
+          ],
         },
       );
     }
@@ -156,40 +219,51 @@ export async function GET(request: NextRequest) {
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#000",
-            backgroundImage:
-              "linear-gradient(135deg, #000 0%, #1a1a2e 50%, #16213e 100%)",
-            padding: "40px 80px",
+            backgroundColor: background,
+            backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}22 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}22 0%, transparent 50%), radial-gradient(circle at 40% 20%, ${pineGreen}22 0%, transparent 50%)`,
+            padding: "50px 80px",
             position: "relative",
+            fontFamily: "Fredoka, sans-serif",
           }}
         >
-          {/* Top decorative element */}
+          {/* Christmas decorative emojis */}
           <div
             style={{
-              display: "flex",
               position: "absolute",
-              top: 40,
+              top: 50,
               left: 80,
-              fontSize: 60,
+              fontSize: 50,
+              opacity: 0.4,
             }}
           >
-            🎁
+            🎄
           </div>
-
-          {/* Decorative elements */}
           <div
             style={{
               position: "absolute",
               top: 50,
               right: 100,
-              fontSize: 40,
-              opacity: 0.4,
+              fontSize: 45,
+              opacity: 0.3,
             }}
           >
-            ✨
+            🎅
           </div>
+
+          {/* Monster image */}
+          <img
+            src={monsterDataUrl}
+            alt="Monster"
+            width={140}
+            height={140}
+            style={{
+              position: "absolute",
+              bottom: 60,
+              right: 80,
+              transform: "rotate(-5deg) scaleX(-1)",
+              opacity: 0.9,
+            }}
+          />
 
           {/* Main content */}
           <div
@@ -198,93 +272,134 @@ export async function GET(request: NextRequest) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 20,
+              flex: 1,
+              gap: 30,
             }}
           >
-            {/* Title */}
+            {/* Card container */}
             <div
               style={{
                 display: "flex",
-                fontSize: 80,
-                fontWeight: 900,
-                background: "linear-gradient(to right, #fff, #a8a8a8)",
-                backgroundClip: "text",
-                color: "transparent",
-                textAlign: "center",
-                letterSpacing: "-2px",
+                flexDirection: "column",
+                alignItems: "center",
+                backgroundColor: cardBg,
+                borderRadius: 24,
+                padding: "50px 60px",
+                border: `2px solid ${forestGreen}44`,
+                boxShadow: `0 8px 32px ${forestGreen}33`,
               }}
             >
-              {displayName}&apos;s
-            </div>
-
-            {/* Wishlist */}
-            <div
-              style={{
-                display: "flex",
-                fontSize: 100,
-                fontWeight: 900,
-                background:
-                  "linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
-                backgroundClip: "text",
-                color: "transparent",
-                textAlign: "center",
-                letterSpacing: "-3px",
-              }}
-            >
-              Wishlist
-            </div>
-
-            {/* Item count badge */}
-            {itemCount && Number(itemCount) > 0 && (
+              {/* Owner name */}
               <div
                 style={{
                   display: "flex",
-                  backgroundColor: "#667eea",
-                  borderRadius: 50,
-                  padding: "20px 40px",
-                  fontSize: 40,
-                  color: "#fff",
+                  fontSize: 72,
                   fontWeight: 700,
-                  marginTop: 20,
-                  boxShadow: "0 8px 32px rgba(102, 126, 234, 0.4)",
+                  background: `linear-gradient(90deg, ${forestGreen} 0%, ${gold} 50%, ${pineGreen} 100%)`,
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                  textAlign: "center",
+                  letterSpacing: "-2px",
+                  marginBottom: 10,
                 }}
               >
-                {itemCount} {Number(itemCount) === 1 ? "item" : "items"}
+                {displayName}&apos;s Wishlist
               </div>
-            )}
+
+              {/* Item count badge */}
+              {itemCount && Number(itemCount) > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 15,
+                    backgroundColor: forestGreen,
+                    borderRadius: 50,
+                    padding: "20px 45px",
+                    marginTop: 20,
+                    boxShadow: `0 4px 24px ${forestGreen}66`,
+                  }}
+                >
+                  <span style={{ fontSize: 40 }}>🎁</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 42,
+                      color: "#fff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {itemCount} {Number(itemCount) === 1 ? "item" : "items"}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Call to action */}
             <div
               style={{
                 display: "flex",
-                fontSize: 28,
-                color: "#888",
-                marginTop: 20,
+                fontSize: 32,
+                color: gold,
+                marginTop: 10,
+                fontWeight: 500,
               }}
             >
-              Browse & mark items you&apos;d like to gift
+              ✨ Browse & mark items you&apos;d like to gift ✨
             </div>
           </div>
 
-          {/* Bottom app name */}
+          {/* Footer */}
           <div
             style={{
               display: "flex",
-              position: "absolute",
-              bottom: 40,
-              right: 80,
-              fontSize: 30,
-              color: "#667eea",
-              fontWeight: 700,
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 20,
+              paddingTop: 20,
+              borderTop: `1px solid ${forestGreen}44`,
             }}
           >
-            Wishlist App
+            <div
+              style={{
+                display: "flex",
+                fontSize: 24,
+                color: "#9ca3af",
+              }}
+            >
+              Built by myk.eth
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 24,
+                color: forestGreen,
+                fontWeight: 700,
+              }}
+            >
+              wishlist.holiday
+            </div>
           </div>
         </div>
       ),
       {
         width: 1200,
         height: 630,
+        fonts: [
+          {
+            name: "Fredoka",
+            data: fontRegular,
+            style: "normal",
+            weight: 500,
+          },
+          {
+            name: "Fredoka",
+            data: fontBold,
+            style: "normal",
+            weight: 700,
+          },
+        ],
       },
     );
   } catch (e: unknown) {
