@@ -1,5 +1,6 @@
 "use client";
 
+import { sdk } from "@farcaster/miniapp-sdk";
 import { Check, Share2 } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -15,6 +16,8 @@ import {
   useActiveAccount,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
+
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +55,7 @@ export default function PublicWishlistPage() {
   const account = useActiveAccount();
   const currentUserAddress = account?.address;
   const { token, isLoading: isTokenLoading } = useAuthToken();
+  const { isInMiniApp } = useIsInMiniApp();
 
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,15 +163,40 @@ export default function PublicWishlistPage() {
     }
   };
 
-  const copyShareLink = async () => {
+  const handleShareClick = async () => {
     const url = window.location.href;
+    const text = `Check out this holiday wishlist! 🎄🎁`;
+
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success("Link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
+      if (isInMiniApp) {
+        // Use Farcaster SDK in miniapp context
+        const embeds: [string] = [url];
+        await sdk.actions.composeCast({
+          text,
+          embeds,
+        });
+      } else {
+        // Use Web Share API as fallback
+        if (navigator.share) {
+          await navigator.share({
+            title: "Holiday Wishlist",
+            text: text,
+            url: url,
+          });
+        } else {
+          // Fallback: copy to clipboard if share isn't supported
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          toast.success("Link copied to clipboard!");
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }
     } catch (error) {
-      toast.error("Failed to copy link");
+      // Only show error if it's not a user cancellation
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("Error sharing wishlist:", error);
+        toast.error("Failed to share wishlist");
+      }
     }
   };
 
@@ -316,7 +345,7 @@ export default function PublicWishlistPage() {
                 className="gap-2"
                 size="sm"
                 variant="outline"
-                onClick={copyShareLink}
+                onClick={handleShareClick}
               >
                 {copied ? (
                   <>
