@@ -19,7 +19,7 @@ export async function GET() {
       homeUrl: URL,
       iconUrl: `${URL}/images/logo.png`,
       splashImageUrl: `${URL}/images/logo.png`,
-      splashBackgroundColor: "#000000",
+      splashBackgroundColor: "#fcf8f3",
       webhookUrl: `${URL}/api/webhook`,
       subtitle: "Holiday shopping coordination",
       description: appDescription,
