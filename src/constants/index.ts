@@ -10,8 +10,8 @@ export const chain = base;
 
 // ADDRESSES
 export const wishlist = {
-  [baseSepolia.id]: "0x7b037daa8cbd14b68b2bc920d7be045c3eb2ab0a",
-  [base.id]: "0x7b037daa8cbd14b68b2bc920d7be045c3eb2ab0a",
+  [baseSepolia.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
+  [base.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
 };
 
 export const usdc = {
