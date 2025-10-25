@@ -25,7 +25,7 @@ export async function GET() {
       description: appDescription,
       screenshotUrls: [],
       primaryCategory: "shopping",
-      tags: ["holidays", "gifts", "wishlist"],
+      tags: ["holidays", "gift", "christmas", "exchange", "secret santa"],
       heroImageUrl: `${URL}/images/hero.png`,
       tagline: "Gift coordination made easy",
       ogTitle: appName,
