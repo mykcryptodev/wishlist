@@ -12,11 +12,11 @@ import {
   AccountName,
   AccountProvider,
   Blobbie,
-  ConnectButton,
   useActiveAccount,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
 
+import { ConnectButton } from "@/components/auth/ConnectButton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -386,10 +386,10 @@ export default function PublicWishlistPage() {
                 <div>
                   <h3 className="font-semibold mb-1">Want to help out?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Connect your wallet to sign up as a purchaser for items
+                    Login to sign up as a purchaser for items
                   </p>
                 </div>
-                <ConnectButton client={client} />
+                <ConnectButton />
               </div>
             </CardContent>
           </Card>

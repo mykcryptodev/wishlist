@@ -1,27 +1,36 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { getSocialProfiles } from "thirdweb/social";
+
+import { serverClient } from "@/lib/thirdweb-server";
 
 export const runtime = "edge";
 
 // Cache the OG image for 1 hour
 export const revalidate = 3600;
 
+interface WishlistItem {
+  id: string;
+  imageUrl: string;
+  title: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get("address");
-    const name = searchParams.get("name");
     const itemCount = searchParams.get("itemCount") || "0";
 
     // Determine if this is a generic "create your wishlist" page or a specific user's wishlist
     const isGeneric = !address;
 
-    // Christmas theme colors from globals.css
+    // Christmas theme colors - Light mode with cream background
     const forestGreen = "#468763"; // oklch(0.55 0.16 155)
     const gold = "#c0a053"; // oklch(0.68 0.14 85)
     const pineGreen = "#3d7357"; // oklch(0.50 0.14 165)
-    const background = "#262626"; // oklch(0.15 0.02 25)
-    const cardBg = "#383838"; // oklch(0.22 0.02 25)
+    const creamBackground = "#faf9f7"; // oklch(0.98 0.008 70) - Light mode cream
+    const cardBg = "#ffffff"; // oklch(0.995 0.005 70) - Light mode card
+    const textDark = "#2e2721"; // oklch(0.2 0.03 25) - Dark text for light bg
 
     // Load custom fonts and monster image
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -53,8 +62,8 @@ export async function GET(request: NextRequest) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: background,
-              backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}22 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}22 0%, transparent 50%), radial-gradient(circle at 40% 20%, ${pineGreen}22 0%, transparent 50%)`,
+              backgroundColor: creamBackground,
+              backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}15 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}15 0%, transparent 50%), radial-gradient(circle at 40% 20%, ${pineGreen}15 0%, transparent 50%)`,
               padding: "40px 80px",
               position: "relative",
               fontFamily: "Fredoka, sans-serif",
@@ -67,7 +76,7 @@ export async function GET(request: NextRequest) {
                 top: 60,
                 left: 100,
                 fontSize: 50,
-                opacity: 0.4,
+                opacity: 0.5,
               }}
             >
               🎄
@@ -78,7 +87,7 @@ export async function GET(request: NextRequest) {
                 top: 150,
                 right: 120,
                 fontSize: 40,
-                opacity: 0.3,
+                opacity: 0.4,
               }}
             >
               🎅
@@ -89,7 +98,7 @@ export async function GET(request: NextRequest) {
                 bottom: 100,
                 left: 150,
                 fontSize: 45,
-                opacity: 0.3,
+                opacity: 0.4,
               }}
             >
               ⛄
@@ -134,7 +143,7 @@ export async function GET(request: NextRequest) {
                     display: "flex",
                     fontSize: 70,
                     fontWeight: 700,
-                    color: "#fff",
+                    color: textDark,
                     textAlign: "center",
                   }}
                 >
@@ -160,7 +169,7 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   fontSize: 32,
-                  color: "#9ca3af",
+                  color: "#6b6560",
                   textAlign: "center",
                   marginTop: 20,
                   maxWidth: 800,
@@ -206,11 +215,69 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // User-specific wishlist OG image
-    const displayName =
-      name ||
-      (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Anonymous");
+    // Fetch social profiles from thirdweb
+    let displayName = address
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : "Anonymous";
+    let socialAvatar: string | undefined;
 
+    if (address) {
+      try {
+        const profiles = await getSocialProfiles({
+          address,
+          client: serverClient,
+        });
+
+        // Prefer name from any social profile (Farcaster, Lens, or ENS)
+        if (profiles && profiles.length > 0) {
+          // Prioritize Farcaster, then ENS, then Lens
+          const farcasterProfile = profiles.find(p => p.type === "farcaster");
+          const ensProfile = profiles.find(p => p.type === "ens");
+          const lensProfile = profiles.find(p => p.type === "lens");
+
+          const preferredProfile =
+            farcasterProfile || ensProfile || lensProfile || profiles[0];
+
+          if (preferredProfile?.name) {
+            displayName = preferredProfile.name;
+          }
+          if (preferredProfile?.avatar) {
+            socialAvatar = preferredProfile.avatar;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching social profiles:", error);
+        // Continue with address fallback
+      }
+    }
+
+    // Fetch wishlist items to get product images
+    let productImages: string[] = [];
+    if (address) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_URL || baseUrl;
+        const wishlistResponse = await fetch(
+          `${apiUrl}/api/wishlist?userAddress=${address}`,
+          {
+            next: { revalidate: 300 },
+          },
+        );
+        const wishlistData = await wishlistResponse.json();
+
+        if (wishlistData.success && wishlistData.items) {
+          // Get up to 2 product images
+          productImages = wishlistData.items
+            .slice(0, 2)
+            .map((item: WishlistItem) => item.imageUrl)
+            .filter((url: string) => url && url.trim() !== "");
+        }
+      } catch (error) {
+        console.error("Error fetching wishlist items:", error);
+        // Continue without product images
+      }
+    }
+
+    // User-specific wishlist OG image
     return new ImageResponse(
       (
         <div
@@ -219,9 +286,9 @@ export async function GET(request: NextRequest) {
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            backgroundColor: background,
-            backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}22 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}22 0%, transparent 50%), radial-gradient(circle at 40% 20%, ${pineGreen}22 0%, transparent 50%)`,
-            padding: "50px 80px",
+            backgroundColor: creamBackground,
+            backgroundImage: `radial-gradient(circle at 20% 50%, ${forestGreen}12 0%, transparent 50%), radial-gradient(circle at 80% 80%, ${gold}12 0%, transparent 50%)`,
+            padding: "50px 70px",
             position: "relative",
             fontFamily: "Fredoka, sans-serif",
           }}
@@ -230,10 +297,10 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               position: "absolute",
-              top: 50,
-              left: 80,
-              fontSize: 50,
-              opacity: 0.4,
+              top: 40,
+              left: 60,
+              fontSize: 45,
+              opacity: 0.5,
             }}
           >
             🎄
@@ -241,10 +308,10 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               position: "absolute",
-              top: 50,
-              right: 100,
-              fontSize: 45,
-              opacity: 0.3,
+              top: 40,
+              right: 80,
+              fontSize: 40,
+              opacity: 0.4,
             }}
           >
             🎅
@@ -253,15 +320,15 @@ export async function GET(request: NextRequest) {
           {/* Monster image */}
           <img
             alt="Monster"
-            height={140}
+            height={120}
             src={monsterDataUrl}
-            width={140}
+            width={120}
             style={{
               position: "absolute",
-              bottom: 60,
-              right: 80,
+              bottom: 50,
+              right: 60,
               transform: "rotate(-5deg) scaleX(-1)",
-              opacity: 0.9,
+              opacity: 0.85,
             }}
           />
 
@@ -273,35 +340,41 @@ export async function GET(request: NextRequest) {
               alignItems: "center",
               justifyContent: "center",
               flex: 1,
-              gap: 30,
+              gap: 25,
             }}
           >
-            {/* Card container */}
+            {/* Header with avatar and name */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                backgroundColor: cardBg,
-                borderRadius: 24,
-                padding: "50px 60px",
-                border: `2px solid ${forestGreen}44`,
-                boxShadow: `0 8px 32px ${forestGreen}33`,
+                gap: 20,
               }}
             >
+              {socialAvatar && (
+                <img
+                  alt="Avatar"
+                  height={100}
+                  src={socialAvatar}
+                  width={100}
+                  style={{
+                    borderRadius: "50%",
+                    border: `4px solid ${forestGreen}`,
+                    boxShadow: `0 4px 16px ${forestGreen}44`,
+                  }}
+                />
+              )}
+
               {/* Owner name */}
               <div
                 style={{
                   display: "flex",
-                  fontSize: 72,
+                  fontSize: 62,
                   fontWeight: 700,
-                  background: `linear-gradient(90deg, ${forestGreen} 0%, ${gold} 50%, ${pineGreen} 100%)`,
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  color: "transparent",
+                  color: textDark,
                   textAlign: "center",
-                  letterSpacing: "-2px",
-                  marginBottom: 10,
+                  letterSpacing: "-1.5px",
                 }}
               >
                 {displayName}&apos;s Wishlist
@@ -313,19 +386,18 @@ export async function GET(request: NextRequest) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 15,
+                    gap: 12,
                     backgroundColor: forestGreen,
                     borderRadius: 50,
-                    padding: "20px 45px",
-                    marginTop: 20,
-                    boxShadow: `0 4px 24px ${forestGreen}66`,
+                    padding: "16px 40px",
+                    boxShadow: `0 4px 20px ${forestGreen}55`,
                   }}
                 >
-                  <span style={{ fontSize: 40 }}>🎁</span>
+                  <span style={{ fontSize: 32 }}>🎁</span>
                   <div
                     style={{
                       display: "flex",
-                      fontSize: 42,
+                      fontSize: 36,
                       color: "#fff",
                       fontWeight: 700,
                     }}
@@ -336,14 +408,53 @@ export async function GET(request: NextRequest) {
               )}
             </div>
 
+            {/* Product images showcase */}
+            {productImages.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 20,
+                  marginTop: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {productImages.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      backgroundColor: cardBg,
+                      borderRadius: 16,
+                      padding: 12,
+                      boxShadow: `0 4px 16px ${forestGreen}22`,
+                      border: `2px solid ${forestGreen}33`,
+                    }}
+                  >
+                    <img
+                      alt={`Product ${idx + 1}`}
+                      height={140}
+                      src={imgUrl}
+                      width={140}
+                      style={{
+                        borderRadius: 12,
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Call to action */}
             <div
               style={{
                 display: "flex",
-                fontSize: 32,
+                fontSize: 28,
                 color: gold,
-                marginTop: 10,
+                marginTop: 15,
                 fontWeight: 500,
+                textAlign: "center",
               }}
             >
               ✨ Browse & mark items you&apos;d like to gift ✨
@@ -355,25 +466,16 @@ export async function GET(request: NextRequest) {
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent: "center",
               marginTop: 20,
               paddingTop: 20,
-              borderTop: `1px solid ${forestGreen}44`,
+              borderTop: `2px solid ${forestGreen}22`,
             }}
           >
             <div
               style={{
                 display: "flex",
-                fontSize: 24,
-                color: "#9ca3af",
-              }}
-            >
-              Built by myk.eth
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: 24,
+                fontSize: 22,
                 color: forestGreen,
                 fontWeight: 700,
               }}

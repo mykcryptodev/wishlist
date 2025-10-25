@@ -1,7 +1,8 @@
 "use client";
 
-import { ConnectButton, useActiveAccount } from "thirdweb/react";
+import { useActiveAccount } from "thirdweb/react";
 
+import { ConnectButton } from "@/components/auth/ConnectButton";
 import { ExchangeManager } from "@/components/exchanges/ExchangeManager";
 import {
   Card,
@@ -10,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { client } from "@/providers/Thirdweb";
 
 export default function ExchangesPage() {
   const account = useActiveAccount();
@@ -33,16 +33,14 @@ export default function ExchangesPage() {
         {!account ? (
           <Card className="shadow-lg hover:shadow-xl transition-shadow border-accent/20">
             <CardHeader>
-              <CardTitle className="text-outlined">
-                🎁 Connect Your Wallet
-              </CardTitle>
+              <CardTitle className="text-outlined">🎁 Login</CardTitle>
               <CardDescription>
-                You need to connect your wallet to manage gift exchanges and
-                join the festive fun!
+                You need to login to manage gift exchanges and join the festive
+                fun!
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ConnectButton client={client} />
+              <ConnectButton />
             </CardContent>
           </Card>
         ) : (

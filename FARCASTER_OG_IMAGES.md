@@ -17,26 +17,38 @@ This route generates beautiful, dynamic OG images using Vercel's `@vercel/og` pa
 #### Generic Wishlist Image (No Address)
 
 - Used for the main `/wishlist` page
-- Shows "Create Your Perfect Wishlist" message
-- Decorative elements (gifts, sparkles, ribbons)
-- Call-to-action: "Gift coordination made easy • Share with family & friends"
+- Shows "Holiday Wishlist" with Christmas theme
+- Cream background from light mode theme
+- Decorative elements (Christmas tree, Santa, snowman)
+- Call-to-action: "Create and share your wishlist • Coordinate with loved ones"
 
 **URL:** `https://your-domain.com/api/wishlist/og`
 
 #### User-Specific Wishlist Image
 
 - Used for `/wishlist/[address]` pages
-- Displays user's shortened address or name
+- **Fetches social profiles from thirdweb API** (Farcaster, ENS, Lens)
+- Displays user's social name and avatar (no raw addresses shown unless no social profile found)
+- Cream background matching the light mode theme
 - Shows item count badge if items exist
+- **Displays up to 2 product images** from the wishlist
 - Personalized messaging: "Browse & mark items you'd like to gift"
 
-**URL:** `https://your-domain.com/api/wishlist/og?address=0x123...&itemCount=5&name=Alice`
+**URL:** `https://your-domain.com/api/wishlist/og?address=0x123...&itemCount=5`
 
 **Parameters:**
 
 - `address` (optional): Wallet address of the wishlist owner
-- `name` (optional): Display name (falls back to shortened address)
 - `itemCount` (optional): Number of items in the wishlist (default: "0")
+
+**Social Data Integration:**
+
+The OG image route automatically:
+
+1. Fetches social profiles using thirdweb's `getSocialProfiles` API
+2. Prioritizes Farcaster > ENS > Lens for name and avatar
+3. Falls back to shortened address only if no social profile exists
+4. Fetches wishlist items to display product images (up to 2)
 
 ### 2. Farcaster Miniapp Metadata
 
@@ -116,17 +128,36 @@ All OG images are generated with:
 ### Design Elements
 
 1. **Background**
-   - Gradient from black to dark blue (#000 → #1a1a2e → #16213e)
+   - Cream background (#faf9f7) from light mode theme
+   - Subtle radial gradients using forest green, gold, and pine green accents
+   - Warm, inviting Christmas-themed appearance
 2. **Typography**
-   - Main heading: Gradient purple/pink (#667eea → #764ba2 → #f093fb)
-   - Secondary text: White with gradient fade
-   - Accent text: Muted gray (#888)
+   - Main heading: Dark text (#2e2721) for readability on light background
+   - Secondary text: Gold (#c0a053) for festive accents
+   - Tertiary text: Muted brown (#6b6560)
+   - Font: Fredoka (Medium and Bold weights)
 
-3. **Decorative Elements**
-   - Gift emojis (🎁)
-   - Sparkles (✨)
-   - Ribbons (🎀)
+3. **Color Palette** (Christmas Theme)
+   - Forest Green: #468763
+   - Gold: #c0a053
+   - Pine Green: #3d7357
+   - Cream Background: #faf9f7
+   - Card Background: #ffffff
+   - Dark Text: #2e2721
+
+4. **Decorative Elements**
+   - Christmas tree emoji (🎄)
+   - Santa emoji (🎅)
+   - Snowman emoji (⛄)
+   - Gift emoji (🎁)
+   - Monster character reading (bottom right)
    - Positioned with varying opacity for depth
+
+5. **User-Specific Features**
+   - Social avatar (circular, 100px) with forest green border
+   - Product images (140px square) in white cards with subtle shadows
+   - Item count badge with green background
+   - Up to 2 product images displayed side-by-side
 
 ## Testing
 
