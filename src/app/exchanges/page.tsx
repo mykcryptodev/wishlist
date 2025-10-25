@@ -18,19 +18,29 @@ export default function ExchangesPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Gift Exchanges</h1>
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <span className="text-4xl">🎅</span>
+            <h1 className="text-4xl font-bold text-christmas-gradient">
+              Secret Santa & Gift Exchanges
+            </h1>
+            <span className="text-4xl">🎄</span>
+          </div>
           <p className="text-muted-foreground text-lg">
-            Create or join gift exchanges to coordinate with friends and family
+            🎁 Create or join gift exchanges to coordinate with friends and
+            family 🎁
           </p>
         </div>
 
         {!account ? (
-          <Card>
+          <Card className="shadow-lg hover:shadow-xl transition-shadow border-accent/20">
             <CardHeader>
-              <CardTitle>Connect Your Wallet</CardTitle>
+              <CardTitle className="text-christmas-gradient">
+                🎁 Connect Your Wallet
+              </CardTitle>
               <CardDescription>
-                You need to connect your wallet to manage gift exchanges
+                You need to connect your wallet to manage gift exchanges and
+                join the festive fun!
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -39,9 +49,11 @@ export default function ExchangesPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            <Card>
+            <Card className="shadow-lg hover:shadow-xl transition-shadow border-accent/20">
               <CardHeader>
-                <CardTitle>How Gift Exchanges Work</CardTitle>
+                <CardTitle className="text-christmas-gradient">
+                  🎄 How Gift Exchanges Work
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>

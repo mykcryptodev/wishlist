@@ -46,33 +46,37 @@ export default function WishlistPage() {
         {/* Header Section */}
         <div className="text-center py-8 space-y-6">
           <div className="flex flex-col items-center justify-center gap-4 flex-wrap">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              My Wishlist
-            </h1>
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">🎄</span>
+              <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+                My Wishlist
+              </h1>
+              <span className="text-4xl">🎁</span>
+            </div>
             {address && (
               <Button
-                className="gap-2"
+                className="gap-2 btn-christmas shadow-lg hover:shadow-xl hover:scale-105 transition-all"
                 size="lg"
                 variant="outline"
                 onClick={copyShareLink}
               >
                 {copied ? (
                   <>
-                    <Check className="w-4 h-4" />
-                    Copied!
+                    <Check className="w-4 h-4" />✨ Copied!
                   </>
                 ) : (
                   <>
                     <Share2 className="w-4 h-4" />
-                    Share My Wishlist
+                    🎅 Share My Wishlist
                   </>
                 )}
               </Button>
             )}
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-            Create your holiday wishlist by adding items from any website. Just
-            paste a link and we&apos;ll help you organize your perfect wishlist!
+            ✨ Create your magical holiday wishlist by adding items from any
+            website. Just paste a link and we&apos;ll help you organize your
+            perfect Holiday wishlist! 🎅
           </p>
         </div>
         {/* Add Item Form */}

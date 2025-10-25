@@ -91,14 +91,15 @@ export default function MyPurchasesPage() {
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-christmas-gradient">
                   <ShoppingBag className="w-6 h-6" />
-                  My Purchases
+                  🎁 My Purchases
                 </CardTitle>
                 <CardDescription>
-                  Items you&apos;re planning to purchase for others
+                  Items you&apos;re planning to purchase for others this
+                  Christmas!
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center py-12">
@@ -121,12 +122,16 @@ export default function MyPurchasesPage() {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-2">
-              My Purchases
-            </h1>
+          <div className="mb-8 text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <span className="text-4xl">🎅</span>
+              <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+                My Purchases
+              </h1>
+              <span className="text-4xl">🎁</span>
+            </div>
             <p className="text-xl text-muted-foreground">
-              Loading items you&apos;re purchasing...
+              Loading items you&apos;re purchasing... ✨
             </p>
           </div>
 
@@ -150,25 +155,30 @@ export default function MyPurchasesPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-2">
-            My Purchases
-          </h1>
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <span className="text-4xl">🎅</span>
+            <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+              My Purchases
+            </h1>
+            <span className="text-4xl">🎁</span>
+          </div>
           <p className="text-xl text-muted-foreground">
-            Items you&apos;re planning to purchase for others
+            Items you&apos;re planning to purchase for others this Christmas 🎄
           </p>
         </div>
 
         {items.length === 0 ? (
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-2xl mx-auto shadow-lg">
             <CardContent className="text-center py-12">
               <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold mb-2">No purchases yet</h3>
               <p className="text-muted-foreground mb-4">
-                Browse wishlists and sign up to purchase items for others
+                Browse wishlists and sign up to purchase items for others to
+                spread Christmas joy! 🎅
               </p>
               <Link href="/users">
-                <Button>Browse Wishlists</Button>
+                <Button className="btn-christmas">🎁 Browse Wishlists</Button>
               </Link>
             </CardContent>
           </Card>
@@ -200,7 +210,7 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
   };
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg">
+    <Card className="group overflow-hidden transition-all hover:shadow-xl hover:border-accent/40">
       {/* Image Section */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {item.imageUrl ? (
