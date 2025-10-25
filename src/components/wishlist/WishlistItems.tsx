@@ -33,6 +33,7 @@ import {
   showSuccessToast,
 } from "@/lib/toast";
 
+import { EditWishlistItemDialog } from "./EditWishlistItemDialog";
 import { PurchasersDialog } from "./PurchasersDialog";
 import { WishlistItemCard } from "./WishlistItemCard";
 
@@ -71,6 +72,8 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [selectedItemTitle, setSelectedItemTitle] = useState<string>("");
     const [purchasersDialogOpen, setPurchasersDialogOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const loadingToastIdRef = useRef<string | number | null>(null);
 
     // Expose refresh function to parent component
@@ -245,8 +248,15 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
     }
 
     const handleEdit = (itemId: string) => {
-      // TODO: Implement edit functionality
-      toast.info("Edit functionality coming soon!");
+      const item = items.find(i => i.id === itemId);
+      if (item) {
+        setEditingItem(item);
+        setEditDialogOpen(true);
+      }
+    };
+
+    const handleEditSuccess = () => {
+      fetchItems();
     };
 
     const handleViewPurchasers = (itemId: string) => {
@@ -334,6 +344,17 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
             open={purchasersDialogOpen}
             onOpenChange={setPurchasersDialogOpen}
             onPurchaserChange={handlePurchaserChange}
+          />
+        )}
+
+        {/* Edit Dialog */}
+        {editingItem && (
+          <EditWishlistItemDialog
+            item={editingItem}
+            open={editDialogOpen}
+            userAddress={userAddress}
+            onOpenChange={setEditDialogOpen}
+            onSuccess={handleEditSuccess}
           />
         )}
       </>
