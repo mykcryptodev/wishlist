@@ -69,10 +69,10 @@ export function Navigation() {
           <div className="flex items-center space-x-8">
             <Link className="flex items-center group" href="/">
               <Image
-                src="/images/logo.png"
                 alt={appName}
-                width={32}
                 height={32}
+                src="/images/logo.png"
+                width={32}
               />
             </Link>
 

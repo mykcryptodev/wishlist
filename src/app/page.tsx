@@ -36,10 +36,10 @@ export default function Home() {
               🎄
             </span>
             <Image
-              src="/images/lockup.png"
               alt="Holiday Wishlist"
-              width={350}
               height={100}
+              src="/images/lockup.png"
+              width={350}
             />
             <span
               className="text-5xl"
