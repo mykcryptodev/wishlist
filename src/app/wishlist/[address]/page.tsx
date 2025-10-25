@@ -336,16 +336,18 @@ export default function PublicWishlistPage() {
               </p>
             </div>
           </AccountProvider>
-          <div className="relative">
-            <Image
-              alt="Monster"
-              className="absolute -top-10 -right-10"
-              height={148}
-              src="/images/monster-reading.png"
-              style={{ transform: "rotate(-5deg) scaleX(-1)" }}
-              width={148}
-            />
-          </div>
+          {!isOwner && items.length > 0 && (
+            <div className="relative">
+              <Image
+                alt="Monster"
+                className="absolute -top-10 -right-10"
+                height={148}
+                src="/images/monster-reading.png"
+                style={{ transform: "rotate(-5deg) scaleX(-1)" }}
+                width={148}
+              />
+            </div>
+          )}
         </div>
 
         {/* Connect Wallet Banner for Non-Connected Users */}
