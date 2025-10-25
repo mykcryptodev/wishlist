@@ -1,5 +1,6 @@
 "use client";
 
+import { sdk } from "@farcaster/miniapp-sdk";
 import { Check, Share2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,10 +12,12 @@ import {
   WishlistItems,
   WishlistItemsRef,
 } from "@/components/wishlist/WishlistItems";
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 export default function WishlistPage() {
   const account = useActiveAccount();
   const address = account?.address || "";
+  const { isInMiniApp } = useIsInMiniApp();
   const [copied, setCopied] = useState(false);
   const wishlistItemsRef = useRef<WishlistItemsRef>(null);
 
@@ -23,20 +26,45 @@ export default function WishlistPage() {
     wishlistItemsRef.current?.refreshItems();
   };
 
-  const copyShareLink = async () => {
+  const handleShareClick = async () => {
     if (!address) {
       toast.error("Please connect your wallet first");
       return;
     }
 
     const url = `${window.location.origin}/wishlist/${address}`;
+    const text = "Check out my holiday wishlist! 🎄🎁";
+
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success("Share link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch (_error) {
-      toast.error("Failed to copy link");
+      if (isInMiniApp) {
+        // Use Farcaster SDK in miniapp context
+        const embeds: [string] = [url];
+        await sdk.actions.composeCast({
+          text,
+          embeds,
+        });
+      } else {
+        // Use Web Share API as fallback
+        if (navigator.share) {
+          await navigator.share({
+            title: "My Holiday Wishlist",
+            text: text,
+            url: url,
+          });
+        } else {
+          // Fallback: copy to clipboard if share isn't supported
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          toast.success("Share link copied to clipboard!");
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }
+    } catch (error) {
+      // Only show error if it's not a user cancellation
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("Error sharing wishlist:", error);
+        toast.error("Failed to share wishlist");
+      }
     }
   };
 
@@ -58,7 +86,7 @@ export default function WishlistPage() {
                 className="gap-2 btn-christmas shadow-lg hover:shadow-xl hover:scale-105 transition-all"
                 size="lg"
                 variant="outline"
-                onClick={copyShareLink}
+                onClick={handleShareClick}
               >
                 {copied ? (
                   <>

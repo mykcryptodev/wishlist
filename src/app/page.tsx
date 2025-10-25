@@ -93,7 +93,7 @@ export default function Home() {
             alt="Monster"
             className="absolute -top-20 -left-10 -z-10"
             height={148}
-            src="/images/monster.png"
+            src="/images/monster-elf.png"
             style={{ transform: "rotate(5deg)" }}
             width={148}
           />
