@@ -1,84 +1,217 @@
-# Football Pick Em
+# Holiday Wishlist 🎄
 
-![Football Boxes](public/readme.png)
+![Holiday Wishlist](public/images/hero.png)
 
-NFL Pick'em contests where users mint NFTs representing their predictions. Each NFT contains picks for all games in a week. Winners are determined by most correct picks, with prizes distributed on-chain.
+A decentralized holiday wishlist application where users can create and share their gift wishlists, coordinate gift-giving through private exchanges, and manage purchases with blockchain-backed transparency.
+
+## Features
+
+✨ **Create & Share Wishlists** - Build your holiday wishlist with items, descriptions, images, and prices  
+🎁 **Purchaser Signup** - Coordinate who's buying what to avoid duplicate gifts  
+🎅 **Gift Exchanges** - Create private groups to coordinate gift-giving with friends and family  
+🔐 **Blockchain-Backed** - All wishlist data stored on-chain for transparency and permanence  
+💼 **Multiple Auth Options** - Connect with email, social logins, or crypto wallets via Thirdweb  
+🌐 **Farcaster Integration** - Share your wishlist on Farcaster with rich OG images  
+🎨 **Festive Theme** - Beautiful Christmas-themed UI with snowfall and decorations
 
 ## How It Works
 
 ### Smart Contracts
 
-**Pickem** - Main contest contract. Users enter contests by paying an entry fee and submitting predictions (stored as NFTs). After games complete, the contract calculates scores and distributes the prize pool to winners based on configurable payout structures (winner-take-all, top-3, or top-5).
+**Wishlist Contract** - Core contract for managing wishlist items and purchaser signups. Users create items with title, description, URL, image, and price. Other users can sign up as purchasers to indicate they're buying an item. The contract prevents users from seeing who's purchasing their own items to maintain gift surprises.
 
-**PickemNFT** - ERC721 contract that represents each user's predictions as an NFT. The NFT metadata includes the contest details, picks for each game, and the current score once games are finalized.
+Key features:
 
-**GameScoreOracle** - Chainlink Functions oracle that fetches game results from ESPN's API. Returns winner, total points, and quarter-by-quarter scores for tiebreaker resolution.
+- Create, update, and delete wishlist items
+- Sign up/remove as purchaser for items
+- Track all addresses with wishlists (directory)
+- Permission system for manager operations
+- Event emissions for all state changes
 
-Prize distribution uses a 24-hour delay after games finalize to ensure oracle data is accurate. Treasury takes a 2% fee on entry amounts.
+Deployed on Base Sepolia and Base Mainnet.
 
 #### Deploy Contracts
 
 ```bash
 cd solidity
-RPC_URL=YOUR_RPC_URL PRIVATE_KEY=YOUR_PRIVATE_KEY make deploy-base && make verify-contracts-base
+RPC_URL=YOUR_RPC_URL PRIVATE_KEY=YOUR_PRIVATE_KEY npm run deploy
 ```
 
 #### Run Tests
 
 ```bash
+cd solidity
 forge test -vv
 ```
 
 ### Frontend & APIs
 
-**Next.js App** - Server-rendered pages for creating contests, viewing leaderboards, and making picks. Uses Thirdweb SDK for wallet connections and contract interactions.
+**Next.js App** - Server-rendered pages for creating wishlists, browsing items, and managing gift exchanges. Uses Thirdweb SDK for wallet connections and contract interactions.
 
 **API Routes**:
 
-- `/api/contest/[contestId]` - Fetches contest data from blockchain
-- `/api/contest/[contestId]/live-rankings` - Real-time leaderboard with cached game results
-- `/api/games` - ESPN game data (teams, times, scores)
-- `/api/og/pickem/[contestId]` - Dynamic OG images for social sharing
-- `/api/tokens` - Token price/metadata for payment options
+- `/api/wishlist/[address]` - Fetch wishlist items for a user
+- `/api/wishlist/og` - Generate dynamic OG images for social sharing
+- `/api/purchasers` - Manage purchaser signups with exchange filtering
+- `/api/exchanges/*` - Create and manage gift exchange groups
+- `/api/farcaster/*` - Farcaster frame and metadata endpoints
+- `/api/auth/*` - SIWE (Sign-In With Ethereum) authentication
 
 **Key Features**:
 
-- Thirdweb embedded wallets (email, social, passkey login)
-- Real-time score updates via Redis caching
-- Dynamic metadata for SEO and social sharing
-- Multi-token support for entry fees (ETH, USDC, etc.)
+- **Thirdweb Authentication**: Email, social logins, passkeys, and wallet connections
+- **SIWE Integration**: Secure server-side authentication with wallet signatures
+- **Gift Exchange Privacy**: Filter purchaser visibility by exchange membership
+- **Supabase Database**: Store exchange groups, memberships, and user profiles
+- **Redis Caching**: Cache blockchain data for improved performance
+- **Dynamic OG Images**: Generate shareable images with wishlist previews
+- **Farcaster Frames**: Interactive frames for viewing wishlists on Farcaster
+
+### Gift Exchanges
+
+Gift exchanges are private groups where members can coordinate gift-giving:
+
+1. **Create Exchange** - Generate a unique 6-character invite code
+2. **Invite Members** - Share the code with friends/family
+3. **Coordinate Gifts** - See who in your exchange has signed up as purchasers
+4. **Privacy Protection** - Owners never see their own purchasers
+
+When viewing a wishlist:
+
+- **Your own list**: Purchaser info is hidden (keeps gifts a surprise!)
+- **Exchange member's list**: See only purchasers from your shared exchanges
+- **Non-member's list**: See all purchasers (public view)
+
+See [GIFT_EXCHANGE_USER_GUIDE.md](GIFT_EXCHANGE_USER_GUIDE.md) for detailed instructions.
 
 ## Development
 
 ```bash
+# Install dependencies
 bun install
+
+# Run development server
 bun dev
+
+# Format and lint code
+bun run format
+bun run lint
+
+# Check code quality
+bun run check
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Environment Variables
 
-Copy `env.example` to `.env.local`:
+Copy `env.example` to `.env.local` and configure:
 
 ```bash
-# Thirdweb
-NEXT_PUBLIC_THIRDWEB_CLIENT_ID=
-THIRDWEB_SECRET_KEY=
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Base Sepolia or Base Mainnet RPC
-NEXT_PUBLIC_RPC_URL=
+# Thirdweb (for wallet auth and blockchain interactions)
+THIRDWEB_SECRET_KEY=your_secret_key
+THIRDWEB_PROJECT_WALLET=your_project_wallet_address
+NEXT_PUBLIC_THIRDWEB_CLIENT_ID=your_client_id
+ADMIN_PRIVATE_KEY=your_private_key_for_siwe
 
-# Redis (for caching game data)
-REDIS_URL=
+# Neynar (for Farcaster integration)
+NEYNAR_API_KEY=your_neynar_api_key
 
-# Contract addresses
-NEXT_PUBLIC_PICKEM_ADDRESS=
-NEXT_PUBLIC_PICKEM_NFT_ADDRESS=
+# Upstash Redis (for caching blockchain data)
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+
+# Supabase (for exchange groups and user data)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
+
+### Setup Guides
+
+- **Redis**: See [REDIS_SETUP.md](REDIS_SETUP.md) for Upstash Redis configuration
+- **SIWE Auth**: See [SIWE_SETUP_INSTRUCTIONS.md](SIWE_SETUP_INSTRUCTIONS.md) for authentication setup
+- **Gift Exchanges**: See [GIFT_EXCHANGE_SETUP.md](GIFT_EXCHANGE_SETUP.md) for exchange feature setup
+- **Thirdweb**: See [THIRDWEB_SUMMARY.md](THIRDWEB_SUMMARY.md) for wallet integration details
 
 ## Deployment
 
-The app runs on Vercel. Contracts are deployed via Foundry scripts in `/solidity`.
+The app is designed to run on Vercel with the following services:
 
-See `REDIS_SETUP.md` for cache configuration and `SCORING_MECHANISM.md` for detailed payout logic.
+- **Frontend**: Vercel (Next.js)
+- **Smart Contracts**: Base Sepolia (testnet) / Base Mainnet (production)
+- **Database**: Supabase (PostgreSQL)
+- **Cache**: Upstash Redis
+- **Auth**: Thirdweb + SIWE
+- **Farcaster**: Neynar API
+
+Deploy the frontend:
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+Configure environment variables in Vercel dashboard before deploying.
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS 4
+- **UI Components**: shadcn/ui, Radix UI, Lucide Icons
+- **Blockchain**: Thirdweb SDK v5, Solidity (Foundry)
+- **Database**: Supabase (PostgreSQL)
+- **Cache**: Upstash Redis
+- **Auth**: Thirdweb Embedded Wallets, SIWE
+- **Social**: Farcaster (Neynar), OG Image Generation (@vercel/og)
+- **Forms**: React Hook Form, Zod validation
+
+## Project Structure
+
+```
+├── src/
+│   ├── app/                 # Next.js app router pages
+│   │   ├── api/            # API routes
+│   │   ├── exchanges/      # Gift exchange pages
+│   │   ├── wishlist/       # Wishlist pages
+│   │   └── users/          # User directory
+│   ├── components/         # React components
+│   │   ├── auth/          # Authentication UI
+│   │   ├── exchanges/     # Exchange management
+│   │   ├── wishlist/      # Wishlist UI
+│   │   └── ui/            # shadcn components
+│   ├── lib/               # Utility functions
+│   ├── hooks/             # Custom React hooks
+│   ├── providers/         # Context providers
+│   └── constants/         # Contract ABIs and addresses
+├── solidity/              # Smart contracts
+│   ├── contracts/src/     # Solidity source files
+│   ├── script/            # Deployment scripts
+│   └── test/              # Contract tests
+└── public/                # Static assets
+```
+
+## Key Documentation
+
+- [GIFT_EXCHANGE_USER_GUIDE.md](GIFT_EXCHANGE_USER_GUIDE.md) - Complete guide for using gift exchanges
+- [PURCHASER_SIGNUP_USAGE.md](PURCHASER_SIGNUP_USAGE.md) - How purchaser signup works
+- [WISHLIST_DIRECTORY_FEATURE.md](WISHLIST_DIRECTORY_FEATURE.md) - Browse wishlists feature
+- [FARCASTER_OG_IMAGES.md](FARCASTER_OG_IMAGES.md) - Social sharing configuration
+- [CHRISTMAS_THEME.md](CHRISTMAS_THEME.md) - UI theming details
+
+## Contributing
+
+This is a personal/demonstration project, but feel free to fork and adapt for your own use!
+
+## License
+
+MIT License - see individual files for details.
+
+---
+
+🎄 Happy Holidays! 🎁
