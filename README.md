@@ -34,7 +34,7 @@ Deployed on Base Sepolia and Base Mainnet.
 
 ```bash
 cd solidity
-RPC_URL=YOUR_RPC_URL PRIVATE_KEY=YOUR_PRIVATE_KEY npm run deploy
+npx thirdweb deploy -k YOUR_SECRET_KEY
 ```
 
 #### Run Tests
