@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
               alt="Monster"
               height={120}
               src={monsterDataUrl}
+              width={120}
               style={{
                 position: "absolute",
                 bottom: 80,
@@ -107,7 +108,6 @@ export async function GET(request: NextRequest) {
                 transform: "rotate(-5deg) scaleX(-1)",
                 opacity: 0.9,
               }}
-              width={120}
             />
 
             {/* Main content */}
@@ -255,6 +255,7 @@ export async function GET(request: NextRequest) {
             alt="Monster"
             height={140}
             src={monsterDataUrl}
+            width={140}
             style={{
               position: "absolute",
               bottom: 60,
@@ -262,7 +263,6 @@ export async function GET(request: NextRequest) {
               transform: "rotate(-5deg) scaleX(-1)",
               opacity: 0.9,
             }}
-            width={140}
           />
 
           {/* Main content */}
