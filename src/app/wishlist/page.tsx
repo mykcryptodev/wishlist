@@ -48,7 +48,7 @@ export default function WishlistPage() {
           <div className="flex flex-col items-center justify-center gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <span className="text-4xl">🎄</span>
-              <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+              <h1 className="text-4xl md:text-6xl font-bold text-outlined">
                 My Wishlist
               </h1>
               <span className="text-4xl">🎁</span>

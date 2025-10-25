@@ -21,9 +21,7 @@ export default function ExchangesPage() {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className="text-4xl">🎅</span>
-            <h1 className="text-4xl font-bold text-christmas-gradient">
-              Gift Exchanges
-            </h1>
+            <h1 className="text-4xl font-bold text-outlined">Gift Exchanges</h1>
             <span className="text-4xl">🎄</span>
           </div>
           <p className="text-muted-foreground text-lg">
@@ -35,7 +33,7 @@ export default function ExchangesPage() {
         {!account ? (
           <Card className="shadow-lg hover:shadow-xl transition-shadow border-accent/20">
             <CardHeader>
-              <CardTitle className="text-christmas-gradient">
+              <CardTitle className="text-outlined">
                 🎁 Connect Your Wallet
               </CardTitle>
               <CardDescription>

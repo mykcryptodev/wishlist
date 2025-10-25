@@ -302,7 +302,7 @@ export function Navigation() {
               }}
               connectButton={{
                 label: "Login",
-                className: "!size-9",
+                className: "!size-9 !min-w-20 !mr-2",
               }}
               connectModal={{
                 title: `Login to ${appName}`,
@@ -340,7 +340,7 @@ export function Navigation() {
               }}
               signInButton={{
                 label: "Sign In",
-                className: "!size-9 !min-h-0",
+                className: "!size-9 !min-h-0 !min-w-30 !mr-2",
               }}
               theme={
                 resolvedTheme === "dark"

@@ -93,13 +93,13 @@ export default function MyPurchasesPage() {
           <div className="max-w-2xl mx-auto">
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-christmas-gradient">
+                <CardTitle className="flex items-center gap-2 text-outlined">
                   <ShoppingBag className="w-6 h-6" />
                   🎁 My Purchases
                 </CardTitle>
                 <CardDescription>
-                  Items you&apos;re planning to purchase for others this
-                  Christmas!
+                  Items you&apos;re planning to purchase for others this holiday
+                  season!
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center py-12">
@@ -125,7 +125,7 @@ export default function MyPurchasesPage() {
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
               <span className="text-4xl">🎅</span>
-              <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+              <h1 className="text-4xl md:text-6xl font-bold text-outlined">
                 My Purchases
               </h1>
               <span className="text-4xl">🎁</span>
@@ -158,13 +158,14 @@ export default function MyPurchasesPage() {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className="text-4xl">🎅</span>
-            <h1 className="text-4xl md:text-6xl font-bold text-christmas-gradient">
+            <h1 className="text-4xl md:text-6xl font-bold text-outlined">
               My Purchases
             </h1>
             <span className="text-4xl">🎁</span>
           </div>
           <p className="text-xl text-muted-foreground">
-            Items you&apos;re planning to purchase for others this Christmas 🎄
+            Items you&apos;re planning to purchase for others this holiday
+            season 🎄
           </p>
         </div>
 
@@ -175,7 +176,7 @@ export default function MyPurchasesPage() {
               <h3 className="text-lg font-semibold mb-2">No purchases yet</h3>
               <p className="text-muted-foreground mb-4">
                 Browse wishlists and sign up to purchase items for others to
-                spread Christmas joy! 🎅
+                spread joy! 🎅
               </p>
               <Link href="/users">
                 <Button className="btn-christmas">🎁 Browse Wishlists</Button>

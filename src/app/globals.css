@@ -345,8 +345,8 @@
 /* White text with black outline for maximum readability */
 .text-outlined {
   color: white;
-  -webkit-text-stroke: 3px black;
-  text-stroke: 3px black;
+  -webkit-text-stroke: 5px black;
+  text-stroke: 5px black;
   paint-order: stroke fill;
   font-weight: 700;
 }
