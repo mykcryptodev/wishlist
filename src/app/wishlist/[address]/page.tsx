@@ -17,8 +17,6 @@ import {
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
 
-import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +28,7 @@ import {
 import { PurchasersDialog } from "@/components/wishlist/PurchasersDialog";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 import { client } from "@/providers/Thirdweb";
 
 interface WishlistItem {
@@ -165,7 +164,7 @@ export default function PublicWishlistPage() {
 
   const handleShareClick = async () => {
     const url = window.location.href;
-    const text = `Check out this holiday wishlist! 🎄🎁`;
+    const text = "Check out this holiday wishlist! 🎄🎁";
 
     try {
       if (isInMiniApp) {
