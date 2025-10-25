@@ -1,8 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
-import Image from "next/image";
 
 export default function Home() {
   return (
@@ -87,12 +87,12 @@ export default function Home() {
 
         <div className="relative">
           <Image
-            src="/images/monster.png"
             alt="Monster"
-            width={148}
-            height={148}
             className="absolute -top-20 -left-10 -z-10"
+            height={148}
+            src="/images/monster.png"
             style={{ transform: "rotate(5deg)" }}
+            width={148}
           />
         </div>
 

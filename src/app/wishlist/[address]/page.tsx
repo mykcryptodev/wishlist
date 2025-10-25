@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Share2 } from "lucide-react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,7 +28,6 @@ import { PurchasersDialog } from "@/components/wishlist/PurchasersDialog";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { client } from "@/providers/Thirdweb";
-import Image from "next/image";
 
 interface WishlistItem {
   id: string;
@@ -338,12 +338,12 @@ export default function PublicWishlistPage() {
           </AccountProvider>
           <div className="relative">
             <Image
-              src="/images/monster-reading.png"
               alt="Monster"
-              width={148}
-              height={148}
               className="absolute -top-10 -right-10"
+              height={148}
+              src="/images/monster-reading.png"
               style={{ transform: "rotate(-5deg) scaleX(-1)" }}
+              width={148}
             />
           </div>
         </div>
