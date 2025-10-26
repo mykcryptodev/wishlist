@@ -71,7 +71,7 @@ export function WishlistItemCard({
         {/* Badges */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <Badge
-            className="backdrop-blur-sm bg-background/80"
+            className="backdrop-blur-sm bg-background/80 text-foreground border border-border/60 dark:bg-primary/80 dark:text-primary-foreground dark:border-primary/70"
             variant="secondary"
           >
             {formatPrice(item.price)}
