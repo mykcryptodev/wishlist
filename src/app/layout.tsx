@@ -7,6 +7,7 @@ import { Navigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { appName } from "@/constants";
+import { wishGovernancePageFlag } from "@/flags";
 import {
   generateFarcasterMetadata,
   getBaseUrl,
@@ -93,11 +94,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const showWishLink = await wishGovernancePageFlag();
+
   return (
     <html suppressHydrationWarning lang="en">
       <body className={`${fredoka.variable} antialiased`}>
@@ -111,7 +114,7 @@ export default function RootLayout({
             <DisplayTokenProvider>
               <FarcasterProvider>
                 <ChristmasSnowfall />
-                <Navigation />
+                <Navigation showWishLink={showWishLink} />
                 {children}
               </FarcasterProvider>
             </DisplayTokenProvider>
