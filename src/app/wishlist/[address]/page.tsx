@@ -251,7 +251,7 @@ export default function PublicWishlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background overflow-x-hidden">
         <main className="container mx-auto px-4 py-8">
           {/* Header Section with Profile (Skeletons) */}
           <div className="text-center py-8 space-y-6">
@@ -309,7 +309,7 @@ export default function PublicWishlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <main className="container mx-auto px-4 py-8">
         {/* Header Section with Profile */}
         <div className="text-center py-8 space-y-6">
