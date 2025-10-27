@@ -2,7 +2,7 @@
 
 import { User } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AccountAvatar,
   AccountName,
@@ -10,6 +10,7 @@ import {
   Blobbie,
 } from "thirdweb/react";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ interface WishlistDirectoryProps {
   description?: string;
   maxItems?: number;
   showAll?: boolean;
+  itemsPerPage?: number;
 }
 
 export function WishlistDirectory({
@@ -32,10 +34,12 @@ export function WishlistDirectory({
   description = "Discover wishlists from our community",
   maxItems,
   showAll = false,
+  itemsPerPage,
 }: WishlistDirectoryProps) {
   const [addresses, setAddresses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchWishlistAddresses() {
@@ -60,9 +64,48 @@ export function WishlistDirectory({
     fetchWishlistAddresses();
   }, []);
 
-  const displayedAddresses = maxItems
+  const displayedAddresses = maxItems && !showAll
     ? addresses.slice(0, maxItems)
     : addresses;
+
+  const totalItems = displayedAddresses.length;
+  const totalPages = itemsPerPage
+    ? Math.max(1, Math.ceil(totalItems / itemsPerPage))
+    : 1;
+  const startIndex = itemsPerPage ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = itemsPerPage
+    ? Math.min(startIndex + itemsPerPage, totalItems)
+    : totalItems;
+
+  useEffect(() => {
+    if (!itemsPerPage) {
+      return;
+    }
+
+    setCurrentPage(1);
+  }, [itemsPerPage, totalItems]);
+
+  useEffect(() => {
+    if (!itemsPerPage) {
+      return;
+    }
+
+    const effectiveTotalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+    if (currentPage > effectiveTotalPages) {
+      setCurrentPage(effectiveTotalPages);
+    }
+  }, [currentPage, itemsPerPage, totalItems]);
+
+  const paginatedAddresses = useMemo(() => {
+    if (!itemsPerPage) {
+      return displayedAddresses;
+    }
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+
+    return displayedAddresses.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, displayedAddresses, itemsPerPage]);
 
   if (isLoading) {
     return (
@@ -76,7 +119,7 @@ export function WishlistDirectory({
           </div>
         )}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
+          {Array.from({ length: itemsPerPage ?? 6 }, (_, index) => index + 1).map(i => (
             <Card key={i}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
@@ -130,7 +173,7 @@ export function WishlistDirectory({
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayedAddresses.map(address => (
+        {paginatedAddresses.map(address => (
           <WishlistCard key={address} address={address} />
         ))}
       </div>
@@ -143,6 +186,33 @@ export function WishlistDirectory({
           >
             View all {addresses.length} wishlists →
           </Link>
+        </div>
+      )}
+
+      {itemsPerPage && totalItems > itemsPerPage && (
+        <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {startIndex + 1}-{endIndex} of {totalItems} wishlists
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={currentPage === 1}
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              disabled={currentPage === totalPages}
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>

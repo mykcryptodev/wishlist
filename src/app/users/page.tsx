@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSearch } from "@/components/user-search";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
@@ -14,13 +13,15 @@ interface User {
 }
 
 export default function UsersPage() {
-  const [activeTab, setActiveTab] = useState("search");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleUserSelect = (user: User) => {
     console.log("Selected user:", user);
     // Navigate to user's profile/wishlist
     // router.push(`/users/${user.fid}`);
   };
+
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,25 +35,26 @@ export default function UsersPage() {
             <span className="text-4xl">🎄</span>
           </div>
           <p className="text-muted-foreground text-lg">
-            ✨ Search for Farcaster users or browse all wishlists on the
-            platform ✨
+            ✨ Browse every onchain wishlist or search for Farcaster friends ✨
           </p>
         </div>
 
-        <Tabs className="w-full" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 shadow-md">
-            <TabsTrigger value="search">🔍 Search Users</TabsTrigger>
-            <TabsTrigger value="all">🎅 All Wishlists</TabsTrigger>
-          </TabsList>
+        <div className="mx-auto max-w-4xl mb-8">
+          <UserSearch
+            className="w-full"
+            onQueryChange={setSearchQuery}
+            onUserSelect={handleUserSelect}
+          />
+        </div>
 
-          <TabsContent className="max-w-4xl mx-auto" value="search">
-            <UserSearch onUserSelect={handleUserSelect} />
-          </TabsContent>
-
-          <TabsContent value="all">
-            <WishlistDirectory description="" showAll={true} title="" />
-          </TabsContent>
-        </Tabs>
+        {!isSearching && (
+          <WishlistDirectory
+            showAll
+            description="Discover wishlists from the Farcaster community."
+            itemsPerPage={12}
+            title="All Wishlists"
+          />
+        )}
       </main>
     </div>
   );
