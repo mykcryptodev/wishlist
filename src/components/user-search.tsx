@@ -46,6 +46,7 @@ interface UserSearchProps {
   placeholder?: string;
   showBio?: boolean;
   className?: string;
+  onQueryChange?: (query: string) => void;
 }
 
 export function UserSearch({
@@ -53,6 +54,7 @@ export function UserSearch({
   placeholder = "Search for Farcaster users...",
   showBio = true,
   className = "",
+  onQueryChange,
 }: UserSearchProps) {
   const router = useRouter();
   const { isInMiniApp } = useIsInMiniApp();
@@ -133,6 +135,7 @@ export function UserSearch({
     setUsers([]);
     setNextCursor(null);
     setError(null);
+    onQueryChange?.("");
   };
 
   const handleRequestWishlist = async (user: User, event: React.MouseEvent) => {
@@ -179,7 +182,11 @@ export function UserSearch({
           placeholder={placeholder}
           type="text"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => {
+            const value = e.target.value;
+            setQuery(value);
+            onQueryChange?.(value);
+          }}
         />
         {query && (
           <button
