@@ -76,8 +76,8 @@ export function Navigation() {
                 rel="noopener noreferrer"
                 target="_blank"
               >
+                <span className="leading-none">Follow on</span>
                 <XIcon className="h-4 w-4" />
-                Follow on X
               </Link>
             </div>
           </div>
@@ -148,8 +148,8 @@ export function Navigation() {
                       rel="noopener noreferrer"
                       target="_blank"
                     >
+                      <span className="leading-none">Follow on</span>
                       <XIcon className="h-4 w-4" />
-                      Follow on X
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
