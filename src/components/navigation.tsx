@@ -8,6 +8,7 @@ import { useState } from "react";
 import { appName } from "@/constants";
 
 import { ConnectButton } from "./auth/ConnectButton";
+import { XIcon } from "./icons/x-icon";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -68,6 +69,15 @@ export function Navigation() {
                 href="/users"
               >
                 Browse
+              </Link>
+              <Link
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                href="https://x.com/wishonchain"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <XIcon className="h-4 w-4" />
+                Follow on X
               </Link>
             </div>
           </div>
@@ -130,6 +140,17 @@ export function Navigation() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/users">Browse</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      className="flex items-center gap-2"
+                      href="https://x.com/wishonchain"
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      <XIcon className="h-4 w-4" />
+                      Follow on X
+                    </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
