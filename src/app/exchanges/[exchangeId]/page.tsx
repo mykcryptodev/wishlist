@@ -309,32 +309,34 @@ export default function ExchangeWishlistsPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-16 max-w-6xl space-y-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground mb-2">
-              <Link className="hover:underline" href="/exchanges">
-                ← Back to Exchanges
-              </Link>
-            </p>
-            <h1 className="text-4xl font-bold text-outlined">
-              {exchange?.name || "Exchange Wishlists"}
-            </h1>
-            {exchange?.description && (
-              <p className="text-muted-foreground mt-2 max-w-2xl">
-                {exchange.description}
-              </p>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            <Link className="inline-flex items-center gap-2 hover:underline" href="/exchanges">
+              <span aria-hidden>←</span> Back to Exchanges
+            </Link>
+          </p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-outlined">
+                {exchange?.name || "Exchange Wishlists"}
+              </h1>
+              {exchange?.description && (
+                <p className="text-muted-foreground max-w-2xl">
+                  {exchange.description}
+                </p>
+              )}
+            </div>
+            {exchange && (
+              <Card className="md:w-40 text-center border-accent/30 self-start md:self-end">
+                <CardHeader className="py-3">
+                  <CardTitle className="text-lg">Members</CardTitle>
+                  <CardDescription className="text-2xl font-bold">
+                    {exchange.memberCount}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             )}
           </div>
-          {exchange && (
-            <Card className="min-w-[180px] text-center border-accent/30">
-              <CardHeader className="py-3">
-                <CardTitle className="text-lg">Members</CardTitle>
-                <CardDescription className="text-2xl font-bold">
-                  {exchange.memberCount}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          )}
         </div>
 
         {error && (
