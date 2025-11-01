@@ -27,8 +27,8 @@ contract StakeAWishTest is Test {
     address public bob = address(3);
     address public attacker = address(4);
     
-    uint256 public constant INITIAL_SUPPLY = 1_000_000 * 10**18;
-    uint256 public constant REWARD_POOL = 500_000 * 10**18;
+    uint256 public constant INITIAL_SUPPLY = 1_000_000_000 * 10**18; // 1B tokens
+    uint256 public constant REWARD_POOL = 500_000_000 * 10**18; // 500M tokens
     uint80 public constant TIME_UNIT = 1 days;
     uint256 public constant REWARD_NUMERATOR = 1;
     uint256 public constant REWARD_DENOMINATOR = 1;
@@ -328,6 +328,171 @@ contract StakeAWishTest is Test {
         
         uint256 burnable = stakeContract.getBurnableAmount(alice);
         assertEq(burnable, stakeAmount * daysStaked);
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Daily Burn Cap Tests
+    // ========================================
+
+    function testDailyBurnCapInfo() public {
+        (uint256 remaining, uint256 total, uint256 used) = stakeContract.getDailyBurnCapInfo();
+        
+        assertEq(total, 222_000_000 * 10**18, "Total cap should be 222M");
+        assertEq(remaining, 222_000_000 * 10**18, "Remaining should equal total initially");
+        assertEq(used, 0, "Used should be 0 initially");
+    }
+
+    function testDailyBurnCapEnforced() public {
+        // Stake a large amount
+        uint256 largeStake = 300_000_000 * 10**18;
+        
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, largeStake);
+        // Transfer enough reward tokens for the burn cap
+        rewardToken.transfer(address(stakeContract), 222_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), largeStake);
+        stakeContract.stake(largeStake);
+        
+        // Wait 1 day to get burn allowance
+        vm.warp(block.timestamp + 1 days);
+        
+        // Try to burn more than daily cap (300M burnable > 222M cap)
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertGt(burnable, stakeContract.DAILY_BURN_CAP(), "User has more burnable than cap");
+        
+        // Should burn up to the cap (222M) instead of reverting
+        stakeContract.burnRewardTokens(burnable);
+        
+        // Check that exactly the cap was burned
+        (uint256 remaining, uint256 total, uint256 used) = stakeContract.getDailyBurnCapInfo();
+        assertEq(used, stakeContract.DAILY_BURN_CAP(), "Should burn exactly the cap");
+        assertEq(remaining, 0, "No cap should remain");
+        
+        // User's burned amount should be 222M
+        assertEq(stakeContract.burnedAmount(alice), 222_000_000 * 10**18, "User burned amount should be 222M");
+        
+        vm.stopPrank();
+    }
+
+    function testDailyBurnCapMultipleUsers() public {
+        // Setup: Give alice and bob enough tokens
+        uint256 stakeAmount = 150_000_000 * 10**18;
+        
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, stakeAmount);
+        stakingToken.transfer(bob, stakeAmount);
+        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        // Both stake
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        // Alice burns first - 150M (within cap)
+        vm.prank(alice);
+        stakeContract.burnRewardTokens(150_000_000 * 10**18);
+        
+        // Check cap info after Alice's burn
+        (uint256 remaining, uint256 total, uint256 used) = stakeContract.getDailyBurnCapInfo();
+        assertEq(used, 150_000_000 * 10**18, "150M should be used");
+        assertEq(remaining, 72_000_000 * 10**18, "72M should remain");
+        assertEq(stakeContract.burnedAmount(alice), 150_000_000 * 10**18, "Alice burned 150M");
+        
+        // Bob tries to burn 150M but only 72M cap remains - should automatically burn just 72M
+        vm.startPrank(bob);
+        stakeContract.burnRewardTokens(150_000_000 * 10**18);
+        
+        // Should have burned exactly 72M (the remaining cap)
+        assertEq(stakeContract.burnedAmount(bob), 72_000_000 * 10**18, "Bob should have burned 72M");
+        vm.stopPrank();
+        
+        // Cap should now be fully used
+        assertTrue(stakeContract.isDailyBurnCapReached(), "Cap should be reached");
+        (remaining, total, used) = stakeContract.getDailyBurnCapInfo();
+        assertEq(remaining, 0, "No cap should remain");
+        assertEq(used, total, "Used should equal total");
+        
+        // Any further burn attempts should revert with DailyBurnCapExceeded since cap is reached
+        vm.expectRevert(StakeAWish.DailyBurnCapExceeded.selector);
+        vm.prank(bob);
+        stakeContract.burnRewardTokens(1);
+    }
+
+    function testDailyBurnCapResetsNextDay() public {
+        // Setup
+        uint256 stakeAmount = 150_000_000 * 10**18;
+        
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, stakeAmount);
+        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Day 1: Warp to get burn allowance and burn 150M
+        // Use absolute timestamp 100 days to start with a clean slate
+        vm.warp(100 days);
+        stakeContract.burnRewardTokens(150_000_000 * 10**18);
+        
+        (uint256 remaining1, uint256 total1, uint256 used1) = stakeContract.getDailyBurnCapInfo();
+        assertEq(used1, 150_000_000 * 10**18, "150M should be used on day 1");
+        assertEq(remaining1, 72_000_000 * 10**18, "72M should remain on day 1");
+        
+        // Day 2: Warp to next day
+        vm.warp(101 days);
+        
+        (uint256 remaining2, uint256 total2, uint256 used2) = stakeContract.getDailyBurnCapInfo();
+        assertEq(used2, 0, "Used should be 0 on day 2");
+        assertEq(remaining2, total2, "Cap should be full on day 2");
+        assertEq(remaining2, 222_000_000 * 10**18, "Cap should be 222M on day 2");
+        
+        // Should be able to burn another 150M on day 2
+        stakeContract.burnRewardTokens(150_000_000 * 10**18);
+        
+        // Verify day 2 burn worked
+        assertEq(stakeContract.burnedAmount(alice), 300_000_000 * 10**18, "Alice should have burned 300M total over 2 days");
+        
+        vm.stopPrank();
+    }
+
+    function testDailyBurnCapEvent() public {
+        // Setup
+        uint256 stakeAmount = 222_000_000 * 10**18;
+        
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, stakeAmount);
+        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        vm.warp(block.timestamp + 1 days);
+        
+        // Burning exactly the cap should emit DailyBurnCapReached event
+        uint256 today = block.timestamp / 1 days;
+        vm.expectEmit(true, true, true, true);
+        emit StakeAWish.DailyBurnCapReached(today, 222_000_000 * 10**18);
+        
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        
         vm.stopPrank();
     }
 }

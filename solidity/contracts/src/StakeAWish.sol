@@ -17,25 +17,32 @@ contract StakeAWish is Staking20, Permissions {
     error InsufficientBurnAllowance();
     error NoBurnableTokens();
     error InvalidAmount();
+    error DailyBurnCapExceeded();
 
     // Permission role for managing stake conditions
     bytes32 public constant STAKE_CONDITIONS_MANAGER_ROLE = keccak256("STAKE_CONDITIONS_MANAGER_ROLE");
 
     address public rewardToken;
 
-    // Burn period (24 hours)
-    // TODO: Set this to 1 day in prod
-    uint256 public constant BURN_PERIOD = 1 minutes;
+    // Burn period (24 hours in production)
+    uint256 public constant BURN_PERIOD = 1 days;
 
-    // Track how much burn allowance has been used
+    // Global daily burn cap to protect reward pool burns 222M WISH/day
+    uint256 public constant DAILY_BURN_CAP = 222_000_000 * 10**18;
+
+    // Track how much burn allowance has been used per user
     mapping(address => uint256) public burnedAmount;
     
     // Track when each staker first staked (for burn calculations)
     mapping(address => uint256) public stakingStartTime;
 
+    // Track total amount burned per day (day number => amount burned that day)
+    mapping(uint256 => uint256) public dailyBurnedAmount;
+
     // Events
     event StakedWishesBurned(address indexed staker, uint256 amount);
     event BurnTrackingStarted(address indexed staker, uint256 timestamp);
+    event DailyBurnCapReached(uint256 day, uint256 amount);
 
     constructor(
         uint80 _timeUnit,
@@ -166,16 +173,42 @@ contract StakeAWish is Staking20, Permissions {
     /**
      * @dev Burn tokens from the reward pool based on staking duration
      * For every 24 hours staked, user can burn an amount equal to their staked balance
-     * @param amount The amount of reward tokens to burn
+     * Subject to global daily burn cap to protect reward pool
+     * If requested amount exceeds remaining daily cap, burns up to the cap instead of reverting
+     * @param amount The maximum amount of reward tokens to burn
      */
     function burnRewardTokens(uint256 amount) external {
         if (amount == 0) revert InvalidAmount();
         
         uint256 burnable = getBurnableAmount(msg.sender);
         if (burnable == 0) revert NoBurnableTokens();
-        if (amount > burnable) revert InsufficientBurnAllowance();
         
-        _burnRewardTokens(msg.sender, amount);
+        // Check daily burn cap
+        uint256 today = block.timestamp / 1 days;
+        uint256 burnedToday = dailyBurnedAmount[today];
+        uint256 remainingCap = DAILY_BURN_CAP > burnedToday ? DAILY_BURN_CAP - burnedToday : 0;
+        
+        // If cap is already reached, revert
+        if (remainingCap == 0) revert DailyBurnCapExceeded();
+        
+        // Calculate actual amount to burn (minimum of: requested, burnable allowance, remaining cap)
+        uint256 actualBurnAmount = amount;
+        if (actualBurnAmount > burnable) {
+            actualBurnAmount = burnable;
+        }
+        if (actualBurnAmount > remainingCap) {
+            actualBurnAmount = remainingCap;
+        }
+        
+        // Update daily burn tracking
+        dailyBurnedAmount[today] += actualBurnAmount;
+        
+        // Emit event if cap is now reached
+        if (dailyBurnedAmount[today] >= DAILY_BURN_CAP) {
+            emit DailyBurnCapReached(today, dailyBurnedAmount[today]);
+        }
+        
+        _burnRewardTokens(msg.sender, actualBurnAmount);
     }
 
     /**
@@ -233,5 +266,33 @@ contract StakeAWish is Staking20, Permissions {
         availableToBurn = getBurnableAmount(staker);
         
         return (currentStaked, timeStaked, completePeriods, totalBurnable, alreadyBurned, availableToBurn);
+    }
+
+    /**
+     * @dev Get remaining daily burn cap for today
+     * @return remaining Amount of burn cap still available today
+     * @return total Total daily burn cap
+     * @return used Amount already burned today
+     */
+    function getDailyBurnCapInfo() external view returns (
+        uint256 remaining,
+        uint256 total,
+        uint256 used
+    ) {
+        uint256 today = block.timestamp / 1 days;
+        used = dailyBurnedAmount[today];
+        total = DAILY_BURN_CAP;
+        remaining = total > used ? total - used : 0;
+        
+        return (remaining, total, used);
+    }
+
+    /**
+     * @dev Check if daily burn cap has been reached
+     * @return True if today's burn cap has been reached
+     */
+    function isDailyBurnCapReached() external view returns (bool) {
+        uint256 today = block.timestamp / 1 days;
+        return dailyBurnedAmount[today] >= DAILY_BURN_CAP;
     }
 }
