@@ -333,89 +333,6 @@ export const Stake: FC = () => {
           </span>
         </div>
 
-        {/* Rewards Section - Show if user has staked tokens */}
-        {Number(stakedBalance) > 0 && (
-          <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">Pending Rewards</span>
-              </div>
-              <span className="text-lg font-bold text-green-500">
-                {isLoadingStaked ? (
-                  <span className="text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                ) : (
-                  `${shortenLargeNumber(Number(rewardsBalance)).toLocaleString()} WISH`
-                )}
-              </span>
-            </div>
-            <Button
-              className="w-full"
-              variant="default"
-              onClick={handleClaimRewards}
-              disabled={
-                isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
-              }
-            >
-              {isClaiming ? (
-                "Claiming..."
-              ) : (
-                <>
-                  <Gift className="w-4 h-4 mr-2" />
-                  Claim Rewards
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Claim your earned staking rewards and add them to your wallet
-            </p>
-          </div>
-        )}
-
-        {/* Burn Section - Show if user has staked tokens */}
-        {Number(stakedBalance) > 0 && (
-          <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500" />
-                <span className="text-sm font-medium">Burnable Tokens</span>
-              </div>
-              <span className="text-lg font-bold text-orange-500">
-                {isLoadingBurnable ? (
-                  <span className="text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                ) : (
-                  `${shortenLargeNumber(Number(burnableBalance)).toLocaleString()} WISH`
-                )}
-              </span>
-            </div>
-            <Button
-              className="w-full"
-              variant="destructive"
-              onClick={handleBurn}
-              disabled={
-                isLoadingBurnable || Number(burnableBalance) <= 0 || isBurning
-              }
-            >
-              {isBurning ? (
-                "Burning..."
-              ) : (
-                <>
-                  <Flame className="w-4 h-4 mr-2" />
-                  Burn WISH from supply
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Burns WISH from supply based on your staking duration. This does
-              not affect your WISH balance.
-            </p>
-          </div>
-        )}
-
         <Tabs defaultValue="stake" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="stake">Stake</TabsTrigger>
@@ -512,6 +429,89 @@ export const Stake: FC = () => {
             </Button>
           </TabsContent>
         </Tabs>
+
+        {/* Rewards Section - Show if user has staked tokens */}
+        {Number(stakedBalance) > 0 && (
+          <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-green-500" />
+                <span className="text-sm font-medium">Pending Rewards</span>
+              </div>
+              <span className="text-lg font-bold text-green-500">
+                {isLoadingStaked ? (
+                  <span className="text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                ) : (
+                  `${shortenLargeNumber(Number(rewardsBalance)).toLocaleString()} WISH`
+                )}
+              </span>
+            </div>
+            <Button
+              className="w-full"
+              variant="default"
+              onClick={handleClaimRewards}
+              disabled={
+                isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
+              }
+            >
+              {isClaiming ? (
+                "Claiming..."
+              ) : (
+                <>
+                  <Gift className="w-4 h-4 mr-2" />
+                  Claim Rewards
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Claim your earned staking rewards and add them to your wallet
+            </p>
+          </div>
+        )}
+
+        {/* Burn Section - Show if user has staked tokens */}
+        {Number(stakedBalance) > 0 && (
+          <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                <span className="text-sm font-medium">Burnable Tokens</span>
+              </div>
+              <span className="text-lg font-bold text-orange-500">
+                {isLoadingBurnable ? (
+                  <span className="text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                ) : (
+                  `${shortenLargeNumber(Number(burnableBalance)).toLocaleString()} WISH`
+                )}
+              </span>
+            </div>
+            <Button
+              className="w-full"
+              variant="destructive"
+              onClick={handleBurn}
+              disabled={
+                isLoadingBurnable || Number(burnableBalance) <= 0 || isBurning
+              }
+            >
+              {isBurning ? (
+                "Burning..."
+              ) : (
+                <>
+                  <Flame className="w-4 h-4 mr-2" />
+                  Burn WISH from supply
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Burns WISH from supply based on your staking duration. This does
+              not affect your WISH balance.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
