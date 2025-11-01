@@ -26,11 +26,7 @@ import { ChristmasLights } from "./christmas-lights";
 import { ModeToggle } from "./mode-toggle";
 import { UserSearch } from "./user-search";
 
-type NavigationProps = {
-  showWishLink: boolean;
-};
-
-export function Navigation({ showWishLink }: NavigationProps) {
+export function Navigation() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -73,14 +69,12 @@ export function Navigation({ showWishLink }: NavigationProps) {
               >
                 Browse
               </Link>
-              {showWishLink ? (
-                <Link
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  href="/wish"
-                >
-                  $WISH
-                </Link>
-              ) : null}
+              <Link
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                href="/wish"
+              >
+                $WISH
+              </Link>
             </div>
           </div>
 
@@ -143,11 +137,9 @@ export function Navigation({ showWishLink }: NavigationProps) {
                   <DropdownMenuItem asChild>
                     <Link href="/users">Browse</Link>
                   </DropdownMenuItem>
-                  {showWishLink ? (
-                    <DropdownMenuItem asChild>
-                      <Link href="/wish">$WISH</Link>
-                    </DropdownMenuItem>
-                  ) : null}
+                  <DropdownMenuItem asChild>
+                    <Link href="/wish">$WISH</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
