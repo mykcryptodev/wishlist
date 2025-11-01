@@ -30,6 +30,8 @@ import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
 
+const isStakingComingSoon = true;
+
 export const Stake: FC = () => {
   const account = useActiveAccount();
   const queryClient = useQueryClient();
@@ -348,272 +350,290 @@ export const Stake: FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Stake $WISH</CardTitle>
-        <CardDescription>
-          Lock your tokens to earn rewards and burn capabilities
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* APY Display */}
-        <div className="flex justify-between items-center p-4 bg-primary/10 rounded-lg border border-primary/20">
-          <span className="text-sm font-medium">Current APY:</span>
-          <span className="text-lg font-bold text-primary">
-            {isAPYLoading ? (
-              <span className="text-muted-foreground">Loading...</span>
-            ) : apyError ? (
-              <span className="text-destructive text-sm">Failed to load</span>
-            ) : apy !== undefined ? (
-              <>
-                <SplitFlipNumber
-                  value={shortenLargeNumber(apy).toLocaleString()}
-                />
-                %
-              </>
-            ) : (
-              "N/A"
-            )}
-          </span>
+    <Card className="max-w-2xl mx-auto relative">
+      {isStakingComingSoon && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-background/50 backdrop-blur-sm rounded-lg">
+          <div className="text-center space-y-2">
+            <div className="text-3xl font-bold text-primary">
+              Staking and Burning Coming Soon!
+            </div>
+            <p className="text-muted-foreground">
+              Get ready to stake your $WISH tokens
+            </p>
+          </div>
         </div>
-
-        <Tabs className="w-full" defaultValue="stake">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="stake">Stake</TabsTrigger>
-            <TabsTrigger value="unstake">Unstake</TabsTrigger>
-          </TabsList>
-
-          <BalanceDisplay />
-
-          <TabsContent className="space-y-4" value="stake">
-            <div className="space-y-2">
-              <Label htmlFor="stake-amount">Amount</Label>
-              <div className="flex gap-2">
-                <Input
-                  disabled={isLoading || !balance}
-                  id="stake-amount"
-                  inputMode="decimal"
-                  placeholder="0.0"
-                  type="text"
-                  value={stakeAmount}
-                  onChange={handleStakeAmountChange}
-                />
-                <Button
-                  disabled={isLoading || !balance}
-                  type="button"
-                  variant="secondary"
-                  onClick={setMaxStake}
-                >
-                  Max
-                </Button>
-              </div>
-              {stakeAmount &&
-                balance &&
-                Number(stakeAmount) > Number(balance.displayValue) && (
-                  <p className="text-sm text-destructive">
-                    Amount exceeds balance
-                  </p>
-                )}
-            </div>
-
-            <Button
-              className="w-full"
-              disabled={!isValidStakeAmount || isLoading || isStaking}
-              onClick={handleStake}
-            >
-              {isStaking ? "Staking..." : "Stake Tokens"}
-            </Button>
-          </TabsContent>
-
-          <TabsContent className="space-y-4" value="unstake">
-            <div className="space-y-2">
-              <Label htmlFor="unstake-amount">Amount</Label>
-              <div className="flex gap-2">
-                <Input
-                  disabled={isLoading || isLoadingStaked}
-                  id="unstake-amount"
-                  inputMode="decimal"
-                  placeholder="0.0"
-                  type="text"
-                  value={unstakeAmount}
-                  onChange={handleUnstakeAmountChange}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={
-                    isLoading || isLoadingStaked || Number(stakedBalance) === 0
-                  }
-                  onClick={setMaxUnstake}
-                >
-                  Max
-                </Button>
-              </div>
-              {unstakeAmount &&
-                Number(unstakeAmount) > Number(stakedBalance) && (
-                  <p className="text-sm text-destructive">
-                    Amount exceeds staked balance
-                  </p>
-                )}
-            </div>
-
-            <Button
-              className="w-full"
-              disabled={
-                !unstakeAmount ||
-                Number(unstakeAmount) <= 0 ||
-                Number(unstakeAmount) > Number(stakedBalance) ||
-                isLoading ||
-                isLoadingStaked ||
-                isUnstaking
-              }
-              onClick={handleUnstake}
-            >
-              {isUnstaking ? "Unstaking..." : "Unstake"}
-            </Button>
-          </TabsContent>
-        </Tabs>
-
-        {/* Rewards Section - Show if user has staked tokens */}
-        {Number(stakedBalance) > 0 && (
-          <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium">Pending Rewards</span>
-              </div>
-              <span className="text-lg font-bold text-green-500">
-                {isLoadingStaked ? (
-                  <span className="text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                ) : (
-                  <>
-                    <SplitFlipNumber
-                      value={shortenLargeNumber(
-                        Number(rewardsBalance),
-                      ).toLocaleString()}
-                    />
-                    <span className="ml-1">WISH</span>
-                  </>
-                )}
-              </span>
-            </div>
-            <Button
-              className="w-full"
-              variant="default"
-              disabled={
-                isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
-              }
-              onClick={handleClaimRewards}
-            >
-              {isClaiming ? (
-                "Claiming..."
-              ) : (
+      )}
+      <div
+        className={isStakingComingSoon ? "opacity-20 pointer-events-none" : ""}
+      >
+        <CardHeader>
+          <CardTitle>Stake $WISH</CardTitle>
+          <CardDescription>
+            Lock your tokens to earn rewards and burn capabilities
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* APY Display */}
+          <div className="flex justify-between items-center p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <span className="text-sm font-medium">Current APY:</span>
+            <span className="text-lg font-bold text-primary">
+              {isAPYLoading ? (
+                <span className="text-muted-foreground">Loading...</span>
+              ) : apyError ? (
+                <span className="text-destructive text-sm">Failed to load</span>
+              ) : apy !== undefined ? (
                 <>
-                  <Gift className="w-4 h-4 mr-2" />
-                  Claim Rewards
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Claim your earned staking rewards and add them to your wallet
-            </p>
-          </div>
-        )}
-
-        {/* Burn Section - Show if user has staked tokens */}
-        {Number(stakedBalance) > 0 && (
-          <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500" />
-                <span className="text-sm font-medium">Burnable Tokens</span>
-              </div>
-              <span className="text-lg font-bold text-orange-500">
-                {isLoadingBurnable ? (
-                  <span className="text-sm text-muted-foreground">
-                    Loading...
-                  </span>
-                ) : (
-                  <>
-                    <SplitFlipNumber
-                      value={shortenLargeNumber(
-                        Number(burnableBalance),
-                      ).toLocaleString()}
-                    />
-                    <span className="ml-1">WISH</span>
-                  </>
-                )}
-              </span>
-            </div>
-
-            {/* Global Daily Burn Progress */}
-            {!isLoadingDailyBurn && dailyBurnData && (
-              <div className="mb-3 space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Today&apos;s Global Burn Progress</span>
-                  <span>
-                    {shortenLargeNumber(
-                      dailyBurnData.dailyBurned,
-                    ).toLocaleString()}{" "}
-                    /{" "}
-                    {shortenLargeNumber(
-                      dailyBurnData.dailyBurnCap,
-                    ).toLocaleString()}{" "}
-                    WISH
-                  </span>
-                </div>
-                <Progress
-                  className="h-2"
-                  value={dailyBurnData.percentageComplete}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    {dailyBurnData.percentageComplete.toFixed(2)}% complete
-                  </span>
-                  <span>
-                    {shortenLargeNumber(
-                      dailyBurnData.remaining,
-                    ).toLocaleString()}{" "}
-                    remaining
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <Button
-              className="w-full"
-              variant="destructive"
-              disabled={
-                isLoadingBurnable ||
-                Number(burnableBalance) <= 0 ||
-                isBurning ||
-                dailyBurnData?.isCapReached
-              }
-              onClick={handleBurn}
-            >
-              {isBurning ? (
-                "Burning..."
-              ) : dailyBurnData?.isCapReached ? (
-                <>
-                  <Flame className="w-4 h-4 mr-2" />
-                  Daily Burn Cap Reached
+                  <SplitFlipNumber
+                    value={shortenLargeNumber(apy).toLocaleString()}
+                  />
+                  %
                 </>
               ) : (
-                <>
-                  <Flame className="w-4 h-4 mr-2" />
-                  Burn WISH from supply
-                </>
+                "N/A"
               )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Burns WISH from supply based on your staking duration. This does
-              not affect your WISH balance.
-            </p>
+            </span>
           </div>
-        )}
-      </CardContent>
+
+          <Tabs className="w-full" defaultValue="stake">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="stake">Stake</TabsTrigger>
+              <TabsTrigger value="unstake">Unstake</TabsTrigger>
+            </TabsList>
+
+            <BalanceDisplay />
+
+            <TabsContent className="space-y-4" value="stake">
+              <div className="space-y-2">
+                <Label htmlFor="stake-amount">Amount</Label>
+                <div className="flex gap-2">
+                  <Input
+                    disabled={isLoading || !balance}
+                    id="stake-amount"
+                    inputMode="decimal"
+                    placeholder="0.0"
+                    type="text"
+                    value={stakeAmount}
+                    onChange={handleStakeAmountChange}
+                  />
+                  <Button
+                    disabled={isLoading || !balance}
+                    type="button"
+                    variant="secondary"
+                    onClick={setMaxStake}
+                  >
+                    Max
+                  </Button>
+                </div>
+                {stakeAmount &&
+                  balance &&
+                  Number(stakeAmount) > Number(balance.displayValue) && (
+                    <p className="text-sm text-destructive">
+                      Amount exceeds balance
+                    </p>
+                  )}
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={!isValidStakeAmount || isLoading || isStaking}
+                onClick={handleStake}
+              >
+                {isStaking ? "Staking..." : "Stake Tokens"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent className="space-y-4" value="unstake">
+              <div className="space-y-2">
+                <Label htmlFor="unstake-amount">Amount</Label>
+                <div className="flex gap-2">
+                  <Input
+                    disabled={isLoading || isLoadingStaked}
+                    id="unstake-amount"
+                    inputMode="decimal"
+                    placeholder="0.0"
+                    type="text"
+                    value={unstakeAmount}
+                    onChange={handleUnstakeAmountChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={
+                      isLoading ||
+                      isLoadingStaked ||
+                      Number(stakedBalance) === 0
+                    }
+                    onClick={setMaxUnstake}
+                  >
+                    Max
+                  </Button>
+                </div>
+                {unstakeAmount &&
+                  Number(unstakeAmount) > Number(stakedBalance) && (
+                    <p className="text-sm text-destructive">
+                      Amount exceeds staked balance
+                    </p>
+                  )}
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={
+                  !unstakeAmount ||
+                  Number(unstakeAmount) <= 0 ||
+                  Number(unstakeAmount) > Number(stakedBalance) ||
+                  isLoading ||
+                  isLoadingStaked ||
+                  isUnstaking
+                }
+                onClick={handleUnstake}
+              >
+                {isUnstaking ? "Unstaking..." : "Unstake"}
+              </Button>
+            </TabsContent>
+          </Tabs>
+
+          {/* Rewards Section - Show if user has staked tokens */}
+          {Number(stakedBalance) > 0 && (
+            <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-green-500" />
+                  <span className="text-sm font-medium">Pending Rewards</span>
+                </div>
+                <span className="text-lg font-bold text-green-500">
+                  {isLoadingStaked ? (
+                    <span className="text-sm text-muted-foreground">
+                      Loading...
+                    </span>
+                  ) : (
+                    <>
+                      <SplitFlipNumber
+                        value={shortenLargeNumber(
+                          Number(rewardsBalance),
+                        ).toLocaleString()}
+                      />
+                      <span className="ml-1">WISH</span>
+                    </>
+                  )}
+                </span>
+              </div>
+              <Button
+                className="w-full"
+                variant="default"
+                disabled={
+                  isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
+                }
+                onClick={handleClaimRewards}
+              >
+                {isClaiming ? (
+                  "Claiming..."
+                ) : (
+                  <>
+                    <Gift className="w-4 h-4 mr-2" />
+                    Claim Rewards
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Claim your earned staking rewards and add them to your wallet
+              </p>
+            </div>
+          )}
+
+          {/* Burn Section - Show if user has staked tokens */}
+          {Number(stakedBalance) > 0 && (
+            <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  <span className="text-sm font-medium">Burnable Tokens</span>
+                </div>
+                <span className="text-lg font-bold text-orange-500">
+                  {isLoadingBurnable ? (
+                    <span className="text-sm text-muted-foreground">
+                      Loading...
+                    </span>
+                  ) : (
+                    <>
+                      <SplitFlipNumber
+                        value={shortenLargeNumber(
+                          Number(burnableBalance),
+                        ).toLocaleString()}
+                      />
+                      <span className="ml-1">WISH</span>
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Global Daily Burn Progress */}
+              {!isLoadingDailyBurn && dailyBurnData && (
+                <div className="mb-3 space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Today&apos;s Global Burn Progress</span>
+                    <span>
+                      {shortenLargeNumber(
+                        dailyBurnData.dailyBurned,
+                      ).toLocaleString()}{" "}
+                      /{" "}
+                      {shortenLargeNumber(
+                        dailyBurnData.dailyBurnCap,
+                      ).toLocaleString()}{" "}
+                      WISH
+                    </span>
+                  </div>
+                  <Progress
+                    className="h-2"
+                    value={dailyBurnData.percentageComplete}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      {dailyBurnData.percentageComplete.toFixed(2)}% complete
+                    </span>
+                    <span>
+                      {shortenLargeNumber(
+                        dailyBurnData.remaining,
+                      ).toLocaleString()}{" "}
+                      remaining
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                variant="destructive"
+                disabled={
+                  isLoadingBurnable ||
+                  Number(burnableBalance) <= 0 ||
+                  isBurning ||
+                  dailyBurnData?.isCapReached
+                }
+                onClick={handleBurn}
+              >
+                {isBurning ? (
+                  "Burning..."
+                ) : dailyBurnData?.isCapReached ? (
+                  <>
+                    <Flame className="w-4 h-4 mr-2" />
+                    Daily Burn Cap Reached
+                  </>
+                ) : (
+                  <>
+                    <Flame className="w-4 h-4 mr-2" />
+                    Burn WISH from supply
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Burns WISH from supply based on your staking duration. This does
+                not affect your WISH balance.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </div>
     </Card>
   );
 };
