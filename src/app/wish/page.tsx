@@ -61,7 +61,7 @@ const stakingFeatures = [
     icon: <Coins className="h-6 w-6 text-yellow-500" />,
   },
   {
-    title: "Burn",
+    title: "Stake to Burn",
     description:
       "For every 24 hours you stake, you earn the ability to burn an amount equal to your staked balance from the reward pool. This creates a deflationary mechanism that reduces total supply.",
     icon: <Flame className="h-6 w-6 text-orange-500" />,
@@ -108,7 +108,7 @@ export default async function WishPage() {
               ✨
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-outlined">
-              $WISH Token Governance
+              $WISH Token Mechanics
             </h1>
             <span aria-label="gift" className="text-4xl" role="img">
               🎁
