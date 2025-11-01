@@ -25,6 +25,7 @@ import { useBurnableAmount } from "@/hooks/useBurnableAmount";
 import { shortenLargeNumber } from "thirdweb/utils";
 import { ConnectButton } from "./auth/ConnectButton";
 import { Flame, Gift } from "lucide-react";
+import { SplitFlipNumber } from "@/components/ui/animated-number";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
@@ -246,11 +247,13 @@ export const Stake: FC = () => {
             <div className="flex flex-col">
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-lg font-bold">
-                  {shortenLargeNumber(
-                    Number(balance.displayValue),
-                  ).toLocaleString()}
+                  <SplitFlipNumber
+                    value={shortenLargeNumber(
+                      Number(balance.displayValue),
+                    ).toLocaleString()}
+                  />
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground ml-1">
                   {balance.symbol}
                 </span>
               </div>
@@ -276,9 +279,13 @@ export const Stake: FC = () => {
             <div className="flex flex-col">
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-lg font-bold">
-                  {shortenLargeNumber(Number(stakedBalance)).toLocaleString()}
+                  <SplitFlipNumber
+                    value={shortenLargeNumber(
+                      Number(stakedBalance),
+                    ).toLocaleString()}
+                  />
                 </span>
-                <span className="text-xs text-muted-foreground">WISH</span>
+                <span className="text-xs text-muted-foreground ml-1">WISH</span>
               </div>
               {Number(stakedBalance) >= 1000 && (
                 <span className="text-xs text-muted-foreground">
@@ -326,7 +333,12 @@ export const Stake: FC = () => {
             ) : apyError ? (
               <span className="text-destructive text-sm">Failed to load</span>
             ) : apy !== undefined ? (
-              `${shortenLargeNumber(apy).toLocaleString()}%`
+              <>
+                <SplitFlipNumber
+                  value={shortenLargeNumber(apy).toLocaleString()}
+                />
+                %
+              </>
             ) : (
               "N/A"
             )}
@@ -444,7 +456,14 @@ export const Stake: FC = () => {
                     Loading...
                   </span>
                 ) : (
-                  `${shortenLargeNumber(Number(rewardsBalance)).toLocaleString()} WISH`
+                  <>
+                    <SplitFlipNumber
+                      value={shortenLargeNumber(
+                        Number(rewardsBalance),
+                      ).toLocaleString()}
+                    />
+                    <span className="ml-1">WISH</span>
+                  </>
                 )}
               </span>
             </div>
@@ -485,7 +504,14 @@ export const Stake: FC = () => {
                     Loading...
                   </span>
                 ) : (
-                  `${shortenLargeNumber(Number(burnableBalance)).toLocaleString()} WISH`
+                  <>
+                    <SplitFlipNumber
+                      value={shortenLargeNumber(
+                        Number(burnableBalance),
+                      ).toLocaleString()}
+                    />
+                    <span className="ml-1">WISH</span>
+                  </>
                 )}
               </span>
             </div>
