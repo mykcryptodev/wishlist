@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { chain } from "@/constants";
-import { CACHE_TTL, getUserSearchCacheKey, redis } from "@/lib/redis";
+import {
+  CACHE_TTL,
+  getUserSearchCacheKey,
+  redis,
+  shouldUseCache,
+} from "@/lib/redis";
 import { getWishlistAddresses } from "@/lib/wishlist-utils";
 
 interface NeynarUser {
@@ -58,11 +63,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check cache first
+    // Check cache first (skip if chain doesn't support caching)
     const cacheKey = getUserSearchCacheKey(query, cursor ?? undefined);
-    if (redis) {
+    if (shouldUseCache(chain.id)) {
       try {
-        const cachedData = await redis.get(cacheKey);
+        const cachedData = await redis!.get(cacheKey);
         if (cachedData) {
           console.log(`[User Search] Cache hit for query: "${query}"`);
           return NextResponse.json(cachedData);
@@ -152,10 +157,10 @@ export async function GET(request: NextRequest) {
       nextCursor: data.result.next?.cursor,
     };
 
-    // Store in cache for future requests
-    if (redis) {
+    // Store in cache for future requests (only if chain supports caching)
+    if (shouldUseCache(chain.id)) {
       try {
-        await redis.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, result);
+        await redis!.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, result);
         console.log(
           `[User Search] Cached results for query: "${query}" (TTL: ${CACHE_TTL.FIVE_MINUTES}s)`,
         );

@@ -2,16 +2,23 @@ import {
   getUserSearchCacheKey,
   getWishlistAddressesCacheKey,
   redis,
+  shouldUseCache,
 } from "./redis";
 
 /**
  * Invalidate user search cache by query
  * This should be called if you need to force refresh search results
+ * @param query - The search query to invalidate
+ * @param cursor - Optional cursor for pagination
+ * @param chainId - The chain ID to check if caching should be used
  */
 export async function invalidateUserSearchCache(
   query: string,
   cursor?: string,
+  chainId?: number,
 ): Promise<void> {
+  // Skip if chain doesn't support caching or redis is not configured
+  if (chainId !== undefined && !shouldUseCache(chainId)) return;
   if (!redis) return;
 
   const cacheKey = getUserSearchCacheKey(query, cursor);
@@ -21,8 +28,13 @@ export async function invalidateUserSearchCache(
 /**
  * Invalidate all user search caches matching a pattern
  * Warning: This can be expensive if you have many cached searches
+ * @param chainId - Optional chain ID to check if caching should be used
  */
-export async function invalidateAllUserSearchCaches(): Promise<void> {
+export async function invalidateAllUserSearchCaches(
+  chainId?: number,
+): Promise<void> {
+  // Skip if chain doesn't support caching or redis is not configured
+  if (chainId !== undefined && !shouldUseCache(chainId)) return;
   if (!redis) return;
 
   try {
@@ -47,6 +59,14 @@ export async function invalidateAllUserSearchCaches(): Promise<void> {
 export async function invalidateWishlistAddressesCache(
   chainId: number,
 ): Promise<void> {
+  // Skip if chain doesn't support caching
+  if (!shouldUseCache(chainId)) {
+    console.log(
+      `[Cache] Caching disabled for chain ${chainId}, skipping cache invalidation`,
+    );
+    return;
+  }
+
   if (!redis) {
     console.log("[Cache] Redis not configured, skipping cache invalidation");
     return;

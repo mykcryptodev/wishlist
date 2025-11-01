@@ -3,7 +3,12 @@
  */
 
 import { wishlist as wishlistAddress } from "@/constants";
-import { CACHE_TTL, getWishlistAddressesCacheKey, redis } from "@/lib/redis";
+import {
+  CACHE_TTL,
+  getWishlistAddressesCacheKey,
+  redis,
+  shouldUseCache,
+} from "@/lib/redis";
 import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 /**
@@ -14,10 +19,10 @@ import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 export async function getWishlistAddresses(chainId: number): Promise<string[]> {
   const cacheKey = getWishlistAddressesCacheKey(chainId);
 
-  // Check cache first
-  if (redis) {
+  // Check cache first (skip if chain doesn't support caching)
+  if (shouldUseCache(chainId)) {
     try {
-      const cachedAddresses = await redis.get<string[]>(cacheKey);
+      const cachedAddresses = await redis!.get<string[]>(cacheKey);
       if (cachedAddresses) {
         console.log(`[Wishlist] Cache hit for chain ${chainId}`);
         return cachedAddresses;
@@ -49,10 +54,10 @@ export async function getWishlistAddresses(chainId: number): Promise<string[]> {
     `[Wishlist] Fetched ${addresses.length} addresses from contract for chain ${chainId}`,
   );
 
-  // Store in cache for future requests (only if we have valid data)
-  if (redis && addresses) {
+  // Store in cache for future requests (only if we have valid data and chain supports caching)
+  if (shouldUseCache(chainId) && addresses) {
     try {
-      await redis.setex(cacheKey, CACHE_TTL.ONE_HOUR, addresses);
+      await redis!.setex(cacheKey, CACHE_TTL.ONE_HOUR, addresses);
       console.log(
         `[Wishlist] Cached ${addresses.length} addresses for chain ${chainId} (TTL: ${CACHE_TTL.ONE_HOUR}s)`,
       );
