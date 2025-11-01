@@ -9,6 +9,7 @@ import {
   PiggyBank,
   Vote,
 } from "lucide-react";
+import Image from "next/image";
 
 import Buy from "@/components/buy";
 import Stake from "@/components/stake";
@@ -19,7 +20,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Image from "next/image";
 
 const governanceSteps = [
   {
@@ -113,11 +113,11 @@ export default function WishPage() {
 
         <Card className="border-accent/30 shadow-md pt-0">
           <Image
-            src="/images/ecosystem.png"
             alt="WISH"
-            width={1200}
-            height={1200}
             className="rounded-xl rounded-b-none"
+            height={1200}
+            src="/images/ecosystem.png"
+            width={1200}
           />
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl md:text-3xl flex items-center gap-2">

@@ -552,7 +552,7 @@ export const Stake: FC = () => {
             {!isLoadingDailyBurn && dailyBurnData && (
               <div className="mb-3 space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Today's Global Burn Progress</span>
+                  <span>Today&apos;s Global Burn Progress</span>
                   <span>
                     {shortenLargeNumber(
                       dailyBurnData.dailyBurned,
@@ -565,8 +565,8 @@ export const Stake: FC = () => {
                   </span>
                 </div>
                 <Progress
-                  value={dailyBurnData.percentageComplete}
                   className="h-2"
+                  value={dailyBurnData.percentageComplete}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
