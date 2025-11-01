@@ -1,33 +1,29 @@
-import { flag } from "@vercel/flags/next";
+import { dedupe, flag } from "flags/next";
+import type { Identify } from "flags";
+import { statsigAdapter, type StatsigUser } from "@flags-sdk/statsig";
 
-const WISH_FLAG_ENV_OVERRIDE = process.env.NEXT_PUBLIC_WISH_GOVERNANCE_PAGE;
+// Identify function for Statsig - provides user context for flag evaluation
+export const identify = dedupe((async () => ({
+  // You can add more user properties here later if needed
+  // For now, we'll use a simple userID
+  userID: "anonymous", // This can be enhanced later with actual user IDs
+})) satisfies Identify<StatsigUser>);
 
-export const wishGovernancePageFlag = flag<boolean>({
-  key: "wish-governance-page",
-  description: "Enable the public governance overview for the $WISH token.",
-  options: [
-    { label: "Off", value: false },
-    { label: "On", value: true },
-  ],
-  /**
-   * The decide callback is the synchronous fallback that runs when no
-   * provider (for example the Vercel dashboard) sends an override for this
-   * request. It keeps local development convenient while making production
-   * environments opt-in by default.
-   */
-  async decide() {
-    if (WISH_FLAG_ENV_OVERRIDE === "true") {
-      return true;
-    }
+// Helper function to create feature flags with Statsig adapter
+export const createFeatureFlag = (key: string) =>
+  flag<boolean, StatsigUser>({
+    key,
+    adapter: statsigAdapter.featureGate(gate => gate.value, {
+      exposureLogging: true,
+    }),
+    identify,
+    // Fallback for development when Statsig is not configured
+    async decide() {
+      return process.env.NODE_ENV === "development";
+    },
+  });
 
-    if (WISH_FLAG_ENV_OVERRIDE === "false") {
-      return false;
-    }
-
-    // Without any explicit override we default to disabled, but allow local
-    // development to view the page without needing to configure a flag.
-    return process.env.NODE_ENV === "development";
-  },
-});
+// Create the wish governance page flag
+export const wishGovernancePageFlag = createFeatureFlag("wish-governance-page");
 
 export const flags = [wishGovernancePageFlag];

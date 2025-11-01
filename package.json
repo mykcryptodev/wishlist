@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@farcaster/miniapp-sdk": "^0.1.10",
+    "@flags-sdk/statsig": "^0.2.4",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -37,6 +38,7 @@
     "@vercel/og": "^0.8.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "flags": "^4.0.1",
     "install": "^0.13.0",
     "jose": "^6.1.0",
     "lucide-react": "^0.542.0",
