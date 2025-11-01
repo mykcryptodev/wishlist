@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { wishGovernancePageFlag } from "@/flags";
+import Buy from "@/components/buy";
 
 const governanceSteps = [
   {
@@ -141,6 +142,15 @@ export default async function WishPage() {
             </CardDescription>
           </CardHeader>
         </Card>
+
+        <section className="mt-16 space-y-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-semibold text-outlined">
+              Acquire $WISH Tokens
+            </h2>
+            <Buy />
+          </div>
+        </section>
 
         <section className="mt-16 space-y-8">
           <div className="text-center space-y-2">

@@ -14,6 +14,11 @@ export const wishlist = {
   [base.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
 };
 
+export const wish = {
+  [baseSepolia.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
+  [base.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
+};
+
 export const usdc = {
   [baseSepolia.id]: "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
   [base.id]: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
