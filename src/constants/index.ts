@@ -6,7 +6,7 @@ export const appDescription =
   "Create your perfect holiday wishlist. Collaborate with family and friends!";
 
 // CHAINS
-export const chain = baseSepolia;
+export const chain = base;
 
 // ADDRESSES
 export const wishlist = {
