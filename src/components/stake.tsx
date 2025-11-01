@@ -24,7 +24,7 @@ import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useBurnableAmount } from "@/hooks/useBurnableAmount";
 import { shortenLargeNumber } from "thirdweb/utils";
 import { ConnectButton } from "./auth/ConnectButton";
-import { Flame } from "lucide-react";
+import { Flame, Gift } from "lucide-react";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
@@ -34,6 +34,7 @@ export const Stake: FC = () => {
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const {
     data: balance,
@@ -60,6 +61,7 @@ export const Stake: FC = () => {
   } = useBurnableAmount(account?.address);
 
   const stakedBalance = stakedData?.tokensStakedFormatted || "0";
+  const rewardsBalance = stakedData?.rewardsFormatted || "0";
   const burnableBalance = burnableData?.burnableFormatted || "0";
 
   const {
@@ -67,7 +69,8 @@ export const Stake: FC = () => {
     isLoading: isAPYLoading,
     error: apyError,
   } = useStakingAPY();
-  const { stakeTokens, unstakeTokens, burnTokens } = useStakeContract();
+  const { stakeTokens, unstakeTokens, burnTokens, claimRewardsTokens } =
+    useStakeContract();
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -193,6 +196,40 @@ export const Stake: FC = () => {
     }
   };
 
+  const handleClaimRewards = async () => {
+    if (!rewardsBalance || Number(rewardsBalance) <= 0) return;
+
+    const amountToClaim = rewardsBalance;
+    setIsClaiming(true);
+    try {
+      await claimRewardsTokens();
+
+      // Optimistically set rewards to 0 after successful transaction
+      queryClient.setQueryData(
+        ["stakedBalance", chain.id, account?.address],
+        (oldData: any) => ({
+          ...oldData,
+          rewards: BigInt(0),
+          rewardsFormatted: "0",
+        }),
+      );
+
+      toast.success(
+        `Successfully claimed ${shortenLargeNumber(Number(amountToClaim)).toLocaleString()} WISH rewards!`,
+      );
+
+      // Refetch to get accurate balances
+      await Promise.all([refetchStaked(), refetchBalance()]);
+    } catch (error) {
+      console.error("Claim error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to claim rewards",
+      );
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
   const BalanceDisplay = () => {
     return (
       <div className="grid grid-cols-2 gap-4 pt-2">
@@ -295,6 +332,47 @@ export const Stake: FC = () => {
             )}
           </span>
         </div>
+
+        {/* Rewards Section - Show if user has staked tokens */}
+        {Number(stakedBalance) > 0 && (
+          <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-green-500" />
+                <span className="text-sm font-medium">Pending Rewards</span>
+              </div>
+              <span className="text-lg font-bold text-green-500">
+                {isLoadingStaked ? (
+                  <span className="text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                ) : (
+                  `${shortenLargeNumber(Number(rewardsBalance)).toLocaleString()} WISH`
+                )}
+              </span>
+            </div>
+            <Button
+              className="w-full"
+              variant="default"
+              onClick={handleClaimRewards}
+              disabled={
+                isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
+              }
+            >
+              {isClaiming ? (
+                "Claiming..."
+              ) : (
+                <>
+                  <Gift className="w-4 h-4 mr-2" />
+                  Claim Rewards
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Claim your earned staking rewards and add them to your wallet
+            </p>
+          </div>
+        )}
 
         {/* Burn Section - Show if user has staked tokens */}
         {Number(stakedBalance) > 0 && (

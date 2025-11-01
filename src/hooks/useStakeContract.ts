@@ -16,6 +16,7 @@ import {
   withdraw,
   getStakeInfo,
   burnRewardTokens,
+  claimRewards,
 } from "@/constants/contracts/stake";
 import { client } from "@/providers/Thirdweb";
 
@@ -271,6 +272,32 @@ export function useStakeContract() {
     }
   };
 
+  // Claim staking rewards
+  const claimRewardsTokens = async () => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      console.log("Claiming staking rewards...");
+
+      const claimTransaction = claimRewards({
+        contract: stakeContract,
+      });
+
+      const result = await sendTx(claimTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Rewards claimed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error claiming rewards:", error);
+      throw error;
+    }
+  };
+
   // Get staked info for an address
   const getStakedInfo = async (address: string) => {
     try {
@@ -294,6 +321,7 @@ export function useStakeContract() {
     stakeTokens,
     unstakeTokens,
     burnTokens,
+    claimRewardsTokens,
     getStakedInfo,
   };
 }
