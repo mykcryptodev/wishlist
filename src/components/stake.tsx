@@ -1,7 +1,9 @@
 "use client";
 
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 import { useActiveAccount, useWalletBalance } from "thirdweb/react";
+import { toast } from "sonner";
+import { toEther } from "thirdweb";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,17 +19,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { chain, wish } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
+import { useStakeContract } from "@/hooks/useStakeContract";
 import { shortenLargeNumber } from "thirdweb/utils";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
   const [stakeAmount, setStakeAmount] = useState("");
   const [unstakeAmount, setUnstakeAmount] = useState("");
+  const [isStaking, setIsStaking] = useState(false);
+  const [isUnstaking, setIsUnstaking] = useState(false);
+  const [stakedBalance, setStakedBalance] = useState<string>("0");
+  const [isLoadingStaked, setIsLoadingStaked] = useState(false);
 
   const {
     data: balance,
     isLoading,
     isError,
+    refetch: refetchBalance,
   } = useWalletBalance({
     chain,
     address: account?.address,
@@ -36,6 +44,31 @@ export const Stake: FC = () => {
   });
 
   const { apy, isLoading: isAPYLoading, error: apyError } = useStakingAPY();
+  const { stakeTokens, unstakeTokens, getStakedInfo } = useStakeContract();
+
+  // Fetch staked balance
+  useEffect(() => {
+    const fetchStakedBalance = async () => {
+      if (!account?.address) {
+        setStakedBalance("0");
+        return;
+      }
+
+      setIsLoadingStaked(true);
+      try {
+        const info = await getStakedInfo(account.address);
+        const stakedEther = toEther(info.tokensStaked);
+        setStakedBalance(stakedEther);
+      } catch (error) {
+        console.error("Error fetching staked balance:", error);
+        setStakedBalance("0");
+      } finally {
+        setIsLoadingStaked(false);
+      }
+    };
+
+    fetchStakedBalance();
+  }, [account?.address, getStakedInfo]);
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -61,11 +94,82 @@ export const Stake: FC = () => {
     }
   };
 
+  const setMaxUnstake = () => {
+    setUnstakeAmount(stakedBalance);
+  };
+
+  const refetchStakedBalance = async () => {
+    if (!account?.address) return;
+
+    try {
+      const info = await getStakedInfo(account.address);
+      const stakedEther = toEther(info.tokensStaked);
+      setStakedBalance(stakedEther);
+    } catch (error) {
+      console.error("Error refetching staked balance:", error);
+    }
+  };
+
   const isValidStakeAmount =
     stakeAmount &&
     Number(stakeAmount) > 0 &&
     balance &&
     Number(stakeAmount) <= Number(balance.displayValue);
+
+  const handleStake = async () => {
+    if (!isValidStakeAmount) return;
+
+    setIsStaking(true);
+    try {
+      const result = await stakeTokens({
+        amount: stakeAmount,
+        startTracking: true, // Always start burn tracking when staking
+      });
+
+      if (result.batched) {
+        toast.success(
+          "Transactions submitted! Approval, staking, and burn tracking will be processed together.",
+        );
+      } else {
+        toast.success("Tokens staked successfully!");
+      }
+
+      // Reset form and refetch balances
+      setStakeAmount("");
+      await Promise.all([refetchBalance(), refetchStakedBalance()]);
+    } catch (error) {
+      console.error("Stake error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to stake tokens",
+      );
+    } finally {
+      setIsStaking(false);
+    }
+  };
+
+  const handleUnstake = async () => {
+    if (!unstakeAmount || Number(unstakeAmount) <= 0) return;
+
+    setIsUnstaking(true);
+    try {
+      await unstakeTokens({
+        amount: unstakeAmount,
+      });
+
+      toast.success("Tokens unstaked successfully!");
+
+      // Reset form and refetch balances
+      setUnstakeAmount("");
+      await Promise.all([refetchBalance(), refetchStakedBalance()]);
+    } catch (error) {
+      console.error("Unstake error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to unstake tokens",
+      );
+    } finally {
+      setIsUnstaking(false);
+    }
+  };
 
   const BalanceDisplay = () => {
     return (
@@ -184,15 +288,31 @@ export const Stake: FC = () => {
 
             <Button
               className="w-full"
-              disabled={!isValidStakeAmount || isLoading}
+              disabled={!isValidStakeAmount || isLoading || isStaking}
+              onClick={handleStake}
             >
-              Stake Tokens
+              {isStaking ? "Staking..." : "Stake Tokens"}
             </Button>
           </TabsContent>
 
           <TabsContent value="unstake" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="unstake-amount">Amount</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="unstake-amount">Amount</Label>
+                <span className="text-sm text-muted-foreground">
+                  Staked:{" "}
+                  {isLoadingStaked ? (
+                    "..."
+                  ) : (
+                    <>
+                      {shortenLargeNumber(
+                        Number(stakedBalance),
+                      ).toLocaleString()}{" "}
+                      WISH
+                    </>
+                  )}
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Input
                   id="unstake-amount"
@@ -201,21 +321,40 @@ export const Stake: FC = () => {
                   placeholder="0.0"
                   value={unstakeAmount}
                   onChange={handleUnstakeAmountChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isLoadingStaked}
                 />
-                <Button type="button" variant="secondary" disabled={isLoading}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={setMaxUnstake}
+                  disabled={
+                    isLoading || isLoadingStaked || Number(stakedBalance) === 0
+                  }
+                >
                   Max
                 </Button>
               </div>
+              {unstakeAmount &&
+                Number(unstakeAmount) > Number(stakedBalance) && (
+                  <p className="text-sm text-destructive">
+                    Amount exceeds staked balance
+                  </p>
+                )}
             </div>
 
             <Button
               className="w-full"
               disabled={
-                !unstakeAmount || Number(unstakeAmount) <= 0 || isLoading
+                !unstakeAmount ||
+                Number(unstakeAmount) <= 0 ||
+                Number(unstakeAmount) > Number(stakedBalance) ||
+                isLoading ||
+                isLoadingStaked ||
+                isUnstaking
               }
+              onClick={handleUnstake}
             >
-              Unstake
+              {isUnstaking ? "Unstaking..." : "Unstake"}
             </Button>
           </TabsContent>
         </Tabs>
