@@ -1755,52 +1755,6 @@ export function stake(options: BaseTransactionOptions<StakeParams>) {
 }
 
 /**
- * Calls the "startBurnTracking" function on the contract.
- * @param options - The options for the "startBurnTracking" function.
- * @returns A prepared transaction object.
- * @example
- * ```
- * import { startBurnTracking } from "TODO";
- *
- * const transaction = startBurnTracking();
- *
- * // Send the transaction
- * ...
- *
- * ```
- */
-export function startBurnTracking(options: BaseTransactionOptions) {
-  return prepareContractCall({
-    contract: options.contract,
-    method: ["0x60c012b4", [], []],
-    params: [],
-  });
-}
-
-/**
- * Calls the "stopBurnTracking" function on the contract.
- * @param options - The options for the "stopBurnTracking" function.
- * @returns A prepared transaction object.
- * @example
- * ```
- * import { stopBurnTracking } from "TODO";
- *
- * const transaction = stopBurnTracking();
- *
- * // Send the transaction
- * ...
- *
- * ```
- */
-export function stopBurnTracking(options: BaseTransactionOptions) {
-  return prepareContractCall({
-    contract: options.contract,
-    method: ["0x91d57e35", [], []],
-    params: [],
-  });
-}
-
-/**
  * Represents the parameters for the "withdraw" function.
  */
 export type WithdrawParams = {

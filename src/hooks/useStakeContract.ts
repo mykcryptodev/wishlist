@@ -11,12 +11,7 @@ import {
 import { sendCalls as walletSendCalls } from "thirdweb/wallets/eip5792";
 
 import { chain, stake as stakeAddress, wish } from "@/constants";
-import {
-  stake,
-  startBurnTracking,
-  withdraw,
-  getStakeInfo,
-} from "@/constants/contracts/stake";
+import { stake, withdraw, getStakeInfo } from "@/constants/contracts/stake";
 import { client } from "@/providers/Thirdweb";
 
 export function useStakeContract() {
@@ -40,10 +35,9 @@ export function useStakeContract() {
     address: wish[chain.id],
   });
 
-  // Stake tokens with optional burn tracking
+  // Stake tokens (burn tracking starts automatically)
   const stakeTokens = async (params: {
     amount: string; // amount in token units (not wei)
-    startTracking?: boolean; // whether to also call startBurnTracking
   }) => {
     if (!account) throw new Error("No account connected");
     if (!wallet) throw new Error("No wallet connected");
@@ -120,21 +114,12 @@ export function useStakeContract() {
         transactions.push(approveTransaction);
       }
 
-      // Stake transaction
+      // Stake transaction (burn tracking starts automatically in the contract)
       const stakeTransaction = stake({
         contract: stakeContract,
         amount: amountInWei,
       });
       transactions.push(stakeTransaction);
-
-      // Start burn tracking transaction (if requested)
-      let burnTrackingTransaction;
-      if (params.startTracking) {
-        burnTrackingTransaction = startBurnTracking({
-          contract: stakeContract,
-        });
-        transactions.push(burnTrackingTransaction);
-      }
 
       // Execute transactions based on wallet capabilities
       if (supportsBatching && transactions.length > 1) {
@@ -193,18 +178,6 @@ export function useStakeContract() {
         console.log("✅ Stake confirmed:", stakeReceipt.transactionHash);
         receipts.push(stakeReceipt);
 
-        // Send burn tracking transaction (if requested)
-        if (params.startTracking && burnTrackingTransaction) {
-          const burnResult = await sendTx(burnTrackingTransaction);
-          const burnReceipt = await waitForReceipt({
-            client,
-            chain,
-            transactionHash: burnResult.transactionHash,
-          });
-          console.log("✅ Burn tracking started:", burnReceipt.transactionHash);
-          receipts.push(burnReceipt);
-        }
-
         return { receipts, batched: false };
       } else {
         // Single transaction (no approval needed)
@@ -214,18 +187,6 @@ export function useStakeContract() {
           chain,
           transactionHash: result.transactionHash,
         });
-
-        // If burn tracking was requested, send it separately
-        if (params.startTracking && burnTrackingTransaction) {
-          const burnResult = await sendTx(burnTrackingTransaction);
-          const burnReceipt = await waitForReceipt({
-            client,
-            chain,
-            transactionHash: burnResult.transactionHash,
-          });
-          console.log("✅ Burn tracking started:", burnReceipt.transactionHash);
-          return { receipts: [receipt, burnReceipt], batched: false };
-        }
 
         return { receipt, batched: false };
       }

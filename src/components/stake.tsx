@@ -98,15 +98,16 @@ export const Stake: FC = () => {
     try {
       const result = await stakeTokens({
         amount: stakeAmount,
-        startTracking: true, // Always start burn tracking when staking
       });
 
       if (result.batched) {
         toast.success(
-          "Transactions submitted! Approval, staking, and burn tracking will be processed together.",
+          "Transactions submitted! Approval and staking will be processed together.",
         );
       } else {
-        toast.success("Tokens staked successfully!");
+        toast.success(
+          "Tokens staked successfully! Burn tracking started automatically.",
+        );
       }
 
       // Reset form and refetch balances
@@ -131,7 +132,9 @@ export const Stake: FC = () => {
         amount: unstakeAmount,
       });
 
-      toast.success("Tokens unstaked successfully!");
+      toast.success(
+        "Tokens unstaked successfully! Available reward tokens were burned automatically.",
+      );
 
       // Reset form and refetch balances
       setUnstakeAmount("");

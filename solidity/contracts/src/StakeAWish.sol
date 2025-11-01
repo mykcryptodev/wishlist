@@ -24,7 +24,8 @@ contract StakeAWish is Staking20, Permissions {
     address public rewardToken;
 
     // Burn period (24 hours)
-    uint256 public constant BURN_PERIOD = 1 days;
+    // TODO: Set this to 1 day in prod
+    uint256 public constant BURN_PERIOD = 1 minutes;
 
     // Track how much burn allowance has been used
     mapping(address => uint256) public burnedAmount;
@@ -58,28 +59,53 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
-     * @dev Start tracking burn allowance for the caller
-     * @notice Must be called by stakers who want to participate in the burn mechanism
-     * @notice Can only be called once per staking session
+     * @dev Override stake function to automatically start burn tracking
+     * @param _amount Amount of tokens to stake
      */
-    function startBurnTracking() external {
-        (uint256 currentStake, ) = this.getStakeInfo(msg.sender);
-        require(currentStake > 0, "Must have active stake");
-        require(stakingStartTime[msg.sender] == 0, "Tracking already started");
+    function _stake(uint256 _amount) internal virtual override {
+        // Call parent stake function
+        super._stake(_amount);
         
-        stakingStartTime[msg.sender] = block.timestamp;
-        emit BurnTrackingStarted(msg.sender, block.timestamp);
+        // Automatically start burn tracking if not already started
+        _startBurnTracking(msg.sender);
     }
 
     /**
-     * @dev Stop burn tracking and reset state (called when fully unstaking)
-     * @notice Should be called before withdrawing all tokens if you want to reset burn tracking
+     * @dev Override withdraw function to automatically burn available tokens
+     * @param _amount Amount of tokens to unstake
      */
-    function stopBurnTracking() external {
-        require(stakingStartTime[msg.sender] > 0, "No active tracking");
+    function _withdraw(uint256 _amount) internal virtual override {
+        // Get burnable amount before withdrawing
+        uint256 burnable = getBurnableAmount(msg.sender);
         
-        delete stakingStartTime[msg.sender];
-        delete burnedAmount[msg.sender];
+        // Burn available tokens if any (before unstaking)
+        if (burnable > 0) {
+            _burnRewardTokens(msg.sender, burnable);
+        }
+        
+        // Call parent withdraw function
+        super._withdraw(_amount);
+        
+        // Check if user has fully unstaked
+        (uint256 remainingStake, ) = this.getStakeInfo(msg.sender);
+        if (remainingStake == 0 && stakingStartTime[msg.sender] > 0) {
+            // Auto-reset tracking when fully unstaked
+            delete stakingStartTime[msg.sender];
+            delete burnedAmount[msg.sender];
+        }
+    }
+
+    /**
+     * @dev Internal function to start burn tracking
+     * @param staker Address of the staker
+     */
+    function _startBurnTracking(address staker) internal {
+        // Only set start time if not already tracking
+        // This makes the function idempotent - safe to call multiple times
+        if (stakingStartTime[staker] == 0) {
+            stakingStartTime[staker] = block.timestamp;
+            emit BurnTrackingStarted(staker, block.timestamp);
+        }
     }
 
     /**
@@ -149,8 +175,17 @@ contract StakeAWish is Staking20, Permissions {
         if (burnable == 0) revert NoBurnableTokens();
         if (amount > burnable) revert InsufficientBurnAllowance();
         
+        _burnRewardTokens(msg.sender, amount);
+    }
+
+    /**
+     * @dev Internal function to burn reward tokens
+     * @param staker Address of the staker
+     * @param amount Amount of tokens to burn from reward pool
+     */
+    function _burnRewardTokens(address staker, uint256 amount) internal {
         // Update burned amount tracker
-        burnedAmount[msg.sender] += amount;
+        burnedAmount[staker] += amount;
         
         // Get reward pool balance
         uint256 rewardPoolBalance = IERC20(rewardToken).balanceOf(address(this));
@@ -163,7 +198,7 @@ contract StakeAWish is Staking20, Permissions {
             ERC20Burnable(rewardToken).burn(amountToBurn);
         }
         
-        emit StakedWishesBurned(msg.sender, amountToBurn);
+        emit StakedWishesBurned(staker, amountToBurn);
     }
 
     /**
