@@ -1,6 +1,6 @@
-import { dedupe, flag } from "flags/next";
-import type { Identify } from "flags";
 import { statsigAdapter, type StatsigUser } from "@flags-sdk/statsig";
+import type { Identify } from "flags";
+import { dedupe, flag } from "flags/next";
 
 // Identify function for Statsig - provides user context for flag evaluation
 export const identify = dedupe((async () => ({
