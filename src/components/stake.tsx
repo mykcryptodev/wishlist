@@ -126,9 +126,13 @@ export const Stake: FC = () => {
         );
       }
 
-      // Reset form and refetch balances
+      // Reset form
       setStakeAmount("");
-      await Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
+
+      // Delay refetch to allow blockchain to propagate
+      setTimeout(() => {
+        Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
+      }, 1500);
     } catch (error) {
       console.error("Stake error:", error);
       toast.error(
@@ -152,9 +156,13 @@ export const Stake: FC = () => {
         "Tokens unstaked successfully! Available reward tokens were burned automatically.",
       );
 
-      // Reset form and refetch balances
+      // Reset form
       setUnstakeAmount("");
-      await Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
+
+      // Delay refetch to allow blockchain to propagate
+      setTimeout(() => {
+        Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
+      }, 1500);
     } catch (error) {
       console.error("Unstake error:", error);
       toast.error(
@@ -175,7 +183,7 @@ export const Stake: FC = () => {
         amount: amountToBurn,
       });
 
-      // Set burnable to 0 after successful transaction
+      // Optimistically set burnable to 0 after successful transaction
       queryClient.setQueryData(["burnableAmount", chain.id, account?.address], {
         burnable: BigInt(0),
         burnableFormatted: "0",
@@ -185,13 +193,15 @@ export const Stake: FC = () => {
         `Successfully burned ${shortenLargeNumber(Number(amountToBurn)).toLocaleString()} WISH from supply!`,
       );
 
-      // Refetch to get the accurate new burnable amount
-      await refetchBurnable();
+      // Let the automatic refetch interval (10s) handle the next update
+      // This prevents flashing by not immediately overwriting the optimistic update
     } catch (error) {
       console.error("Burn error:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to burn tokens",
       );
+      // On error, refetch to restore correct state
+      await refetchBurnable();
     } finally {
       setIsBurning(false);
     }
@@ -219,13 +229,18 @@ export const Stake: FC = () => {
         `Successfully claimed ${shortenLargeNumber(Number(amountToClaim)).toLocaleString()} WISH rewards!`,
       );
 
-      // Refetch to get accurate balances
-      await Promise.all([refetchStaked(), refetchBalance()]);
+      // Delay refetch to allow blockchain to propagate
+      // This prevents the flash of old data overwriting our optimistic update
+      setTimeout(() => {
+        Promise.all([refetchStaked(), refetchBalance()]);
+      }, 2000);
     } catch (error) {
       console.error("Claim error:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to claim rewards",
       );
+      // On error, immediately refetch to restore correct state
+      await Promise.all([refetchStaked(), refetchBalance()]);
     } finally {
       setIsClaiming(false);
     }
