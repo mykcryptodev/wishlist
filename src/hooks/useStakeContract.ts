@@ -12,11 +12,11 @@ import { sendCalls as walletSendCalls } from "thirdweb/wallets/eip5792";
 
 import { chain, stake as stakeAddress, wish } from "@/constants";
 import {
-  stake,
-  withdraw,
-  getStakeInfo,
   burnRewardTokens,
   claimRewards,
+  getStakeInfo,
+  stake,
+  withdraw,
 } from "@/constants/contracts/stake";
 import { client } from "@/providers/Thirdweb";
 
@@ -80,8 +80,12 @@ export function useStakeContract() {
       if (capabilitiesLoading) {
         console.log("⏳ Loading wallet capabilities...");
       } else if (hasError) {
+        const errorMessage =
+          capabilities && "message" in capabilities
+            ? String(capabilities.message)
+            : "Unknown error";
         console.log(
-          `❌ Wallet capabilities error: ${(capabilities as any).message}. Will send transactions separately if needed.`,
+          `❌ Wallet capabilities error: ${errorMessage}. Will send transactions separately if needed.`,
         );
       } else if (supportsBatching) {
         console.log(

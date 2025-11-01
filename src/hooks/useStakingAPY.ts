@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { getContract } from "thirdweb";
-import { getRewardRatio, getTimeUnit } from "@/constants/contracts/stake";
+
 import { chain, stake } from "@/constants";
+import { getRewardRatio, getTimeUnit } from "@/constants/contracts/stake";
 import { client } from "@/providers/Thirdweb";
 
 /**

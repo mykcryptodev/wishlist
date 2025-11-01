@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import Buy from "@/components/buy";
+import Stake from "@/components/stake";
 import {
   Card,
   CardContent,
@@ -18,7 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Stake from "@/components/stake";
 
 const governanceSteps = [
   {

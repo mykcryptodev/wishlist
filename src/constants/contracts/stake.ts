@@ -1,9 +1,9 @@
 import {
-  prepareEvent,
-  prepareContractCall,
-  readContract,
-  type BaseTransactionOptions,
   type AbiParameterToPrimitiveType,
+  type BaseTransactionOptions,
+  prepareContractCall,
+  prepareEvent,
+  readContract,
 } from "thirdweb";
 
 /**

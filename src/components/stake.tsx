@@ -1,10 +1,13 @@
 "use client";
 
-import { FC, useState } from "react";
-import { useActiveAccount, useWalletBalance } from "thirdweb/react";
-import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Flame, Gift } from "lucide-react";
+import { FC, useState } from "react";
+import { toast } from "sonner";
+import { useActiveAccount, useWalletBalance } from "thirdweb/react";
+import { shortenLargeNumber } from "thirdweb/utils";
 
+import { SplitFlipNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,15 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { chain, wish } from "@/constants";
-import { client } from "@/providers/Thirdweb";
-import { useStakingAPY } from "@/hooks/useStakingAPY";
+import { useBurnableAmount } from "@/hooks/useBurnableAmount";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
-import { useBurnableAmount } from "@/hooks/useBurnableAmount";
-import { shortenLargeNumber } from "thirdweb/utils";
+import { useStakingAPY } from "@/hooks/useStakingAPY";
+import { client } from "@/providers/Thirdweb";
+
 import { ConnectButton } from "./auth/ConnectButton";
-import { Flame, Gift } from "lucide-react";
-import { SplitFlipNumber } from "@/components/ui/animated-number";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
@@ -216,14 +217,26 @@ export const Stake: FC = () => {
       await claimRewardsTokens();
 
       // Optimistically set rewards to 0 after successful transaction
-      queryClient.setQueryData(
-        ["stakedBalance", chain.id, account?.address],
-        (oldData: any) => ({
+      queryClient.setQueryData<{
+        tokensStaked: bigint;
+        tokensStakedFormatted: string;
+        rewards: bigint;
+        rewardsFormatted: string;
+      }>(["stakedBalance", chain.id, account?.address], oldData => {
+        if (!oldData) {
+          return {
+            tokensStaked: BigInt(0),
+            tokensStakedFormatted: "0",
+            rewards: BigInt(0),
+            rewardsFormatted: "0",
+          };
+        }
+        return {
           ...oldData,
           rewards: BigInt(0),
           rewardsFormatted: "0",
-        }),
-      );
+        };
+      });
 
       toast.success(
         `Successfully claimed ${shortenLargeNumber(Number(amountToClaim)).toLocaleString()} WISH rewards!`,
@@ -360,7 +373,7 @@ export const Stake: FC = () => {
           </span>
         </div>
 
-        <Tabs defaultValue="stake" className="w-full">
+        <Tabs className="w-full" defaultValue="stake">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="stake">Stake</TabsTrigger>
             <TabsTrigger value="unstake">Unstake</TabsTrigger>
@@ -368,24 +381,24 @@ export const Stake: FC = () => {
 
           <BalanceDisplay />
 
-          <TabsContent value="stake" className="space-y-4">
+          <TabsContent className="space-y-4" value="stake">
             <div className="space-y-2">
               <Label htmlFor="stake-amount">Amount</Label>
               <div className="flex gap-2">
                 <Input
+                  disabled={isLoading || !balance}
                   id="stake-amount"
-                  type="text"
                   inputMode="decimal"
                   placeholder="0.0"
+                  type="text"
                   value={stakeAmount}
                   onChange={handleStakeAmountChange}
-                  disabled={isLoading || !balance}
                 />
                 <Button
+                  disabled={isLoading || !balance}
                   type="button"
                   variant="secondary"
                   onClick={setMaxStake}
-                  disabled={isLoading || !balance}
                 >
                   Max
                 </Button>
@@ -408,26 +421,26 @@ export const Stake: FC = () => {
             </Button>
           </TabsContent>
 
-          <TabsContent value="unstake" className="space-y-4">
+          <TabsContent className="space-y-4" value="unstake">
             <div className="space-y-2">
               <Label htmlFor="unstake-amount">Amount</Label>
               <div className="flex gap-2">
                 <Input
+                  disabled={isLoading || isLoadingStaked}
                   id="unstake-amount"
-                  type="text"
                   inputMode="decimal"
                   placeholder="0.0"
+                  type="text"
                   value={unstakeAmount}
                   onChange={handleUnstakeAmountChange}
-                  disabled={isLoading || isLoadingStaked}
                 />
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={setMaxUnstake}
                   disabled={
                     isLoading || isLoadingStaked || Number(stakedBalance) === 0
                   }
+                  onClick={setMaxUnstake}
                 >
                   Max
                 </Button>
@@ -485,10 +498,10 @@ export const Stake: FC = () => {
             <Button
               className="w-full"
               variant="default"
-              onClick={handleClaimRewards}
               disabled={
                 isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
               }
+              onClick={handleClaimRewards}
             >
               {isClaiming ? (
                 "Claiming..."
@@ -533,10 +546,10 @@ export const Stake: FC = () => {
             <Button
               className="w-full"
               variant="destructive"
-              onClick={handleBurn}
               disabled={
                 isLoadingBurnable || Number(burnableBalance) <= 0 || isBurning
               }
+              onClick={handleBurn}
             >
               {isBurning ? (
                 "Burning..."
