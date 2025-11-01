@@ -4,13 +4,14 @@ import {
   Dices,
   Flame,
   Gift,
-  HandHeart,
   HandCoins,
+  HandHeart,
   PiggyBank,
   Vote,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import Buy from "@/components/buy";
 import {
   Card,
   CardContent,
@@ -19,7 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { wishGovernancePageFlag } from "@/flags";
-import Buy from "@/components/buy";
 
 const governanceSteps = [
   {
@@ -280,8 +280,8 @@ export default async function WishPage() {
               </p>
               <p>
                 • <strong>Optional Governance:</strong> If needed, $WISH holders
-                may vote on which gifts to purchase from winners' lists or how
-                to handle unreachable winners.
+                may vote on which gifts to purchase from winners&apos; lists or
+                how to handle unreachable winners.
               </p>
               <p>
                 • <strong>Gift Delivery:</strong> Winners are contacted for

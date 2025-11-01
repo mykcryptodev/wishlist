@@ -1,15 +1,16 @@
 "use client";
 
-import { FC } from "react";
 import sdk from "@farcaster/miniapp-sdk";
+import { useTheme } from "next-themes";
+import { FC } from "react";
 import { toast } from "sonner";
+import { BuyWidget, darkTheme, lightTheme } from "thirdweb/react";
+
+import { Button } from "@/components/ui/button";
+import { chain, usdc, wish } from "@/constants";
 import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 import { toCaip19 } from "@/lib/utils";
-import { useTheme } from "next-themes";
-import { chain, usdc, wish } from "@/constants";
-import { Button } from "./ui/button";
 import { client } from "@/providers/Thirdweb";
-import { BuyWidget, darkTheme, lightTheme } from "thirdweb/react";
 
 export const Buy: FC = () => {
   const { isInMiniApp } = useIsInMiniApp();
