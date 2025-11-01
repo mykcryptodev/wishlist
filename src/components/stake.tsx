@@ -18,9 +18,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { chain, wish } from "@/constants";
 import { useBurnableAmount } from "@/hooks/useBurnableAmount";
+import { useDailyBurn } from "@/hooks/useDailyBurn";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
@@ -61,6 +63,8 @@ export const Stake: FC = () => {
     isLoading: isLoadingBurnable,
     refetch: refetchBurnable,
   } = useBurnableAmount(account?.address);
+
+  const { data: dailyBurnData, isLoading: isLoadingDailyBurn } = useDailyBurn();
 
   const stakedBalance = stakedData?.tokensStakedFormatted || "0";
   const rewardsBalance = stakedData?.rewardsFormatted || "0";
@@ -543,6 +547,41 @@ export const Stake: FC = () => {
                 )}
               </span>
             </div>
+
+            {/* Global Daily Burn Progress */}
+            {!isLoadingDailyBurn && dailyBurnData && (
+              <div className="mb-3 space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Today's Global Burn Progress</span>
+                  <span>
+                    {shortenLargeNumber(
+                      dailyBurnData.dailyBurned,
+                    ).toLocaleString()}{" "}
+                    /{" "}
+                    {shortenLargeNumber(
+                      dailyBurnData.dailyBurnCap,
+                    ).toLocaleString()}{" "}
+                    WISH
+                  </span>
+                </div>
+                <Progress
+                  value={dailyBurnData.percentageComplete}
+                  className="h-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {dailyBurnData.percentageComplete.toFixed(2)}% complete
+                  </span>
+                  <span>
+                    {shortenLargeNumber(
+                      dailyBurnData.remaining,
+                    ).toLocaleString()}{" "}
+                    remaining
+                  </span>
+                </div>
+              </div>
+            )}
+
             <Button
               className="w-full"
               variant="destructive"
