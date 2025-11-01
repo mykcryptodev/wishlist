@@ -1,4 +1,14 @@
-import { CheckCircle, Coins, Gift, HandHeart, Shield } from "lucide-react";
+import {
+  Beef,
+  Coins,
+  Dices,
+  Flame,
+  Gift,
+  HandHeart,
+  HandCoins,
+  PiggyBank,
+  Vote,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 
 import {
@@ -15,25 +25,52 @@ const governanceSteps = [
     title: "Fee Collection",
     description:
       "Trading fees from $WISH token activity are automatically collected in ETH. These fees accumulate into a dedicated fund that will be used exclusively for purchasing and shipping holiday gifts.",
-    icon: <Coins className="h-6 w-6 text-yellow-500" />,
+    icon: <PiggyBank className="h-6 w-6 text-yellow-500" />,
   },
   {
     title: "Random Winner Selection",
     description:
       "On December 1, 2025, winners are selected via rofl.house using Chainlink VRF for provably fair onchain randomness. Only users with a Neynar score of 0.9 or higher are eligible, ensuring real, trusted community members.",
-    icon: <Shield className="h-6 w-6 text-sky-600" />,
+    icon: <Dices className="h-6 w-6 text-sky-600" />,
   },
   {
     title: "Community Governance (Optional)",
     description:
       "Depending on available funds and item costs, $WISH token holders may vote via Snapshot to help decide which specific gifts to purchase from winners' wishlists or address other decisions.",
-    icon: <CheckCircle className="h-6 w-6 text-green-600" />,
+    icon: <Vote className="h-6 w-6 text-green-600" />,
   },
   {
     title: "Purchase & Delivery",
     description:
       "Winners are contacted for shipping information, gifts are purchased using treasury funds and delivered as holiday gifts.",
     icon: <Gift className="h-6 w-6 text-rose-500" />,
+  },
+];
+
+const stakingFeatures = [
+  {
+    title: "Stake a $WISH",
+    description:
+      "Lock your $WISH tokens in the staking contract to earn rewards over time. Your tokens remain yours and can be withdrawn at any time.",
+    icon: <Beef className="h-6 w-6 text-blue-500" />,
+  },
+  {
+    title: "Earn Staking Rewards",
+    description:
+      "Staked tokens automatically earn rewards from the reward pool. The longer you stake, the more rewards you accumulate.",
+    icon: <Coins className="h-6 w-6 text-yellow-500" />,
+  },
+  {
+    title: "Burn",
+    description:
+      "For every 24 hours you stake, you earn the ability to burn an amount equal to your staked balance from the reward pool. This creates a deflationary mechanism that reduces total supply.",
+    icon: <Flame className="h-6 w-6 text-orange-500" />,
+  },
+  {
+    title: "Community-Driven Supply",
+    description:
+      "The burn mechanism gives holders the power to reduce circulating supply, potentially increasing scarcity while supporting the holiday gifting mission.",
+    icon: <HandCoins className="h-6 w-6 text-rose-500" />,
   },
 ];
 
@@ -80,8 +117,10 @@ export default async function WishPage() {
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
             $WISH is a one-time seasonal experiment that transforms trading
             activity into surprise holiday gifting. Trading fees fund real gifts
-            for randomly selected wishlist participants—no founder profit, no
-            promises of return, just a magical onchain holiday celebration.
+            for randomly selected wishlist participants. Stake your tokens to
+            earn rewards and unlock the ability to burn tokens, creating
+            deflationary pressure. No founder profit, no promises of return,
+            just a magical onchain holiday celebration.
           </p>
         </div>
 
@@ -102,6 +141,71 @@ export default async function WishPage() {
             </CardDescription>
           </CardHeader>
         </Card>
+
+        <section className="mt-16 space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-semibold text-outlined">
+              Staking & Deflationary Mechanism
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              $WISH holders can stake their tokens to earn rewards and
+              participate in a unique deflationary burn mechanism that reduces
+              circulating supply over time.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {stakingFeatures.map(feature => (
+              <Card
+                key={feature.title}
+                className="h-full border-accent/20 shadow-sm hover:shadow-lg transition-shadow"
+              >
+                <CardHeader className="flex flex-row items-start gap-4">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <CardDescription className="text-sm mt-2">
+                      {feature.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="border-accent/30 bg-muted/30">
+            <CardHeader>
+              <CardTitle className="text-xl">
+                How the Burn Mechanism Works
+              </CardTitle>
+              <CardDescription className="text-base space-y-3 mt-4">
+                <p>
+                  <strong>1. Stake Your Tokens:</strong> Lock your $WISH tokens
+                  in the staking contract and opt-in to burn tracking.
+                </p>
+                <p>
+                  <strong>2. Accumulate Burn Allowance:</strong> For every
+                  complete 24-hour period you stake, you earn the right to burn
+                  tokens equal to your staked amount. Example: Stake 1,000 $WISH
+                  for 3 days = ability to burn up to 3,000 tokens from the
+                  reward pool.
+                </p>
+                <p>
+                  <strong>3. Burn Tokens:</strong> Use your accumulated burn
+                  allowance to permanently remove tokens from circulation,
+                  creating deflationary pressure.
+                </p>
+                <p>
+                  <strong>4. Withdraw Anytime:</strong> Your staked tokens
+                  remain yours and can be withdrawn at any time after claiming
+                  rewards.
+                </p>
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </section>
 
         <section className="mt-16 space-y-8">
           <div className="text-center space-y-2">
@@ -221,7 +325,9 @@ export default async function WishPage() {
           <p className="text-muted-foreground text-sm md:text-base">
             <strong>What $WISH is:</strong> A transparent, community-first way
             to transform trading activity into holiday surprises for randomly
-            selected wishlist participants.
+            selected wishlist participants, featuring a unique staking and
+            deflationary burn mechanism that gives holders the power to reduce
+            circulating supply.
           </p>
           <p className="text-muted-foreground text-sm md:text-base">
             <strong>What $WISH is not:</strong> An investment product, a promise
