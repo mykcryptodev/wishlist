@@ -148,13 +148,18 @@ export default function WishPage() {
         <section className="mt-16 space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-semibold text-outlined">
-              Staking & Deflationary Mechanism
+              Staking & Burn Mechanism
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              $WISH holders can stake their tokens to earn rewards and
-              participate in a unique deflationary burn mechanism that reduces
-              circulating supply over time.
+              $WISH holders can stake their tokens to earn rewards.
+              Additionally, for every 24h staked, they earn the ability to burn
+              an amount equal to their staked balance from the global reward
+              pool.
             </p>
+          </div>
+
+          <div className="text-center">
+            <Stake />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -176,10 +181,6 @@ export default function WishPage() {
                 </CardHeader>
               </Card>
             ))}
-          </div>
-
-          <div className="text-center">
-            <Stake />
           </div>
 
           <Card className="border-accent/30 bg-muted/30">
