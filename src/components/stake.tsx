@@ -1,9 +1,8 @@
 "use client";
 
-import { FC, useState, useEffect } from "react";
+import { FC, useState } from "react";
 import { useActiveAccount, useWalletBalance } from "thirdweb/react";
 import { toast } from "sonner";
-import { toEther } from "thirdweb";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +19,9 @@ import { chain, wish } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
 import { useStakeContract } from "@/hooks/useStakeContract";
+import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { shortenLargeNumber } from "thirdweb/utils";
+import { ConnectButton } from "./auth/ConnectButton";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
@@ -28,8 +29,6 @@ export const Stake: FC = () => {
   const [unstakeAmount, setUnstakeAmount] = useState("");
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
-  const [stakedBalance, setStakedBalance] = useState<string>("0");
-  const [isLoadingStaked, setIsLoadingStaked] = useState(false);
 
   const {
     data: balance,
@@ -43,32 +42,20 @@ export const Stake: FC = () => {
     tokenAddress: wish[chain.id],
   });
 
-  const { apy, isLoading: isAPYLoading, error: apyError } = useStakingAPY();
-  const { stakeTokens, unstakeTokens, getStakedInfo } = useStakeContract();
+  const {
+    data: stakedData,
+    isLoading: isLoadingStaked,
+    refetch: refetchStaked,
+  } = useStakedBalance(account?.address);
 
-  // Fetch staked balance
-  useEffect(() => {
-    const fetchStakedBalance = async () => {
-      if (!account?.address) {
-        setStakedBalance("0");
-        return;
-      }
+  const stakedBalance = stakedData?.tokensStakedFormatted || "0";
 
-      setIsLoadingStaked(true);
-      try {
-        const info = await getStakedInfo(account.address);
-        const stakedEther = toEther(info.tokensStaked);
-        setStakedBalance(stakedEther);
-      } catch (error) {
-        console.error("Error fetching staked balance:", error);
-        setStakedBalance("0");
-      } finally {
-        setIsLoadingStaked(false);
-      }
-    };
-
-    fetchStakedBalance();
-  }, [account?.address, getStakedInfo]);
+  const {
+    data: apy,
+    isLoading: isAPYLoading,
+    error: apyError,
+  } = useStakingAPY();
+  const { stakeTokens, unstakeTokens } = useStakeContract();
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -98,18 +85,6 @@ export const Stake: FC = () => {
     setUnstakeAmount(stakedBalance);
   };
 
-  const refetchStakedBalance = async () => {
-    if (!account?.address) return;
-
-    try {
-      const info = await getStakedInfo(account.address);
-      const stakedEther = toEther(info.tokensStaked);
-      setStakedBalance(stakedEther);
-    } catch (error) {
-      console.error("Error refetching staked balance:", error);
-    }
-  };
-
   const isValidStakeAmount =
     stakeAmount &&
     Number(stakeAmount) > 0 &&
@@ -136,7 +111,7 @@ export const Stake: FC = () => {
 
       // Reset form and refetch balances
       setStakeAmount("");
-      await Promise.all([refetchBalance(), refetchStakedBalance()]);
+      await Promise.all([refetchBalance(), refetchStaked()]);
     } catch (error) {
       console.error("Stake error:", error);
       toast.error(
@@ -160,7 +135,7 @@ export const Stake: FC = () => {
 
       // Reset form and refetch balances
       setUnstakeAmount("");
-      await Promise.all([refetchBalance(), refetchStakedBalance()]);
+      await Promise.all([refetchBalance(), refetchStaked()]);
     } catch (error) {
       console.error("Unstake error:", error);
       toast.error(
@@ -173,33 +148,62 @@ export const Stake: FC = () => {
 
   const BalanceDisplay = () => {
     return (
-      <div className="flex justify-between items-center pt-2">
-        <span className="text-sm font-medium">Your $WISH Balance:</span>
-        <span className="text-lg font-bold">
+      <div className="grid grid-cols-2 gap-4 pt-2">
+        {/* Wallet Balance */}
+        <div className="flex flex-col space-y-1 p-3 bg-muted/50 rounded-lg">
+          <span className="text-xs font-medium text-muted-foreground">
+            Wallet Balance
+          </span>
           {isLoading ? (
-            <span className="text-muted-foreground">Loading...</span>
+            <span className="text-sm text-muted-foreground">Loading...</span>
           ) : isError ? (
-            <span className="text-destructive">Failed to load balance</span>
+            <span className="text-sm text-destructive">Failed to load</span>
           ) : balance ? (
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col">
+              <div className="flex items-baseline justify-center gap-1">
                 <span className="text-lg font-bold">
                   {shortenLargeNumber(
                     Number(balance.displayValue),
                   ).toLocaleString()}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {balance.symbol}
                 </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {Number(balance.displayValue).toLocaleString()}
-              </span>
+              {Number(balance.displayValue) >= 1000 && (
+                <span className="text-xs text-muted-foreground">
+                  {Number(balance.displayValue).toLocaleString()}
+                </span>
+              )}
             </div>
           ) : (
-            <span className="text-muted-foreground">0 WISH</span>
+            <span className="text-lg font-bold">0 WISH</span>
           )}
-        </span>
+        </div>
+
+        {/* Staked Balance */}
+        <div className="flex flex-col space-y-1 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <span className="text-xs font-medium text-muted-foreground">
+            Staked Balance
+          </span>
+          {isLoadingStaked ? (
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          ) : (
+            <div className="flex flex-col">
+              <div className="flex items-baseline justify-center gap-1">
+                <span className="text-lg font-bold">
+                  {shortenLargeNumber(Number(stakedBalance)).toLocaleString()}
+                </span>
+                <span className="text-xs text-muted-foreground">WISH</span>
+              </div>
+              {Number(stakedBalance) >= 1000 && (
+                <span className="text-xs text-muted-foreground">
+                  {Number(stakedBalance).toLocaleString()}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -210,13 +214,11 @@ export const Stake: FC = () => {
         <CardHeader>
           <CardTitle>Stake $WISH</CardTitle>
           <CardDescription>
-            Connect your wallet to stake $WISH tokens and earn rewards
+            Login to stake $WISH tokens and earn rewards
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center">
-            Please connect your wallet to continue
-          </p>
+          <ConnectButton />
         </CardContent>
       </Card>
     );
@@ -239,7 +241,7 @@ export const Stake: FC = () => {
               <span className="text-muted-foreground">Loading...</span>
             ) : apyError ? (
               <span className="text-destructive text-sm">Failed to load</span>
-            ) : apy !== null ? (
+            ) : apy !== undefined ? (
               `${shortenLargeNumber(apy).toLocaleString()}%`
             ) : (
               "N/A"
@@ -297,22 +299,7 @@ export const Stake: FC = () => {
 
           <TabsContent value="unstake" className="space-y-4">
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="unstake-amount">Amount</Label>
-                <span className="text-sm text-muted-foreground">
-                  Staked:{" "}
-                  {isLoadingStaked ? (
-                    "..."
-                  ) : (
-                    <>
-                      {shortenLargeNumber(
-                        Number(stakedBalance),
-                      ).toLocaleString()}{" "}
-                      WISH
-                    </>
-                  )}
-                </span>
-              </div>
+              <Label htmlFor="unstake-amount">Amount</Label>
               <div className="flex gap-2">
                 <Input
                   id="unstake-amount"

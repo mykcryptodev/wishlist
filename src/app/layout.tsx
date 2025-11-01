@@ -13,6 +13,7 @@ import {
 } from "@/lib/farcaster-metadata";
 import { DisplayTokenProvider } from "@/providers/DisplayTokenProvider";
 import { FarcasterProvider } from "@/providers/Farcaster";
+import { ReactQueryProvider } from "@/providers/ReactQuery";
 import ThirdwebProvider from "@/providers/Thirdweb";
 
 import "./globals.css";
@@ -107,16 +108,18 @@ export default async function RootLayout({
           attribute="class"
           defaultTheme="system"
         >
-          <ThirdwebProvider>
-            <DisplayTokenProvider>
-              <FarcasterProvider>
-                <ChristmasSnowfall />
-                <Navigation />
-                {children}
-              </FarcasterProvider>
-            </DisplayTokenProvider>
-          </ThirdwebProvider>
-          <Toaster />
+          <ReactQueryProvider>
+            <ThirdwebProvider>
+              <DisplayTokenProvider>
+                <FarcasterProvider>
+                  <ChristmasSnowfall />
+                  <Navigation />
+                  {children}
+                </FarcasterProvider>
+              </DisplayTokenProvider>
+            </ThirdwebProvider>
+            <Toaster />
+          </ReactQueryProvider>
         </ThemeProvider>
       </body>
     </html>

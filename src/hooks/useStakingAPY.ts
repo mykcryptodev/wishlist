@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getContract } from "thirdweb";
 import { getRewardRatio, getTimeUnit } from "@/constants/contracts/stake";
 import { chain, stake } from "@/constants";
@@ -32,62 +32,42 @@ function calculateAPY(
   return apy;
 }
 
-interface UseStakingAPYReturn {
-  apy: number | null;
-  isLoading: boolean;
-  error: Error | null;
-}
-
 /**
  * Hook to fetch and calculate the current staking APY
  * @returns Object containing APY value, loading state, and error
  */
-export function useStakingAPY(): UseStakingAPYReturn {
-  const [apy, setApy] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function useStakingAPY() {
+  return useQuery({
+    queryKey: ["stakingAPY", chain.id],
+    queryFn: async () => {
+      // Get the staking contract
+      const stakeContract = getContract({
+        address: stake[chain.id],
+        chain,
+        client,
+      });
 
-  useEffect(() => {
-    const fetchAPY = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+      // Get reward parameters from contract
+      const [rewardResult, timeUnitResult] = await Promise.all([
+        getRewardRatio({
+          contract: stakeContract,
+        }),
+        getTimeUnit({
+          contract: stakeContract,
+        }),
+      ]);
 
-        // Get the staking contract
-        const stakeContract = getContract({
-          address: stake[chain.id],
-          chain,
-          client,
-        });
+      // Extract values from results
+      const numerator = rewardResult[0];
+      const denominator = rewardResult[1];
+      const timeUnit = timeUnitResult;
 
-        // Get reward parameters from contract
-        const [rewardResult, timeUnitResult] = await Promise.all([
-          getRewardRatio({
-            contract: stakeContract,
-          }),
-          getTimeUnit({
-            contract: stakeContract,
-          }),
-        ]);
-
-        // Extract values from results
-        const numerator = rewardResult[0];
-        const denominator = rewardResult[1];
-        const timeUnit = timeUnitResult;
-
-        // Calculate APY
-        const calculatedAPY = calculateAPY(numerator, denominator, timeUnit);
-        setApy(calculatedAPY);
-      } catch (err) {
-        console.error("Error fetching staking APY:", err);
-        setError(err instanceof Error ? err : new Error("Failed to fetch APY"));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAPY();
-  }, []);
-
-  return { apy, isLoading, error };
+      // Calculate APY
+      const calculatedAPY = calculateAPY(numerator, denominator, timeUnit);
+      return calculatedAPY;
+    },
+    staleTime: 1000 * 60 * 5, // APY is stable, cache for 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 }
