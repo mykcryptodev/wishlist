@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Image from "next/image";
 
 const governanceSteps = [
   {
@@ -102,23 +103,22 @@ export default function WishPage() {
               ✨
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-outlined">
-              $WISH Token Mechanics
+              $WISH Ecosystem
             </h1>
             <span aria-label="gift" className="text-4xl" role="img">
               🎁
             </span>
           </div>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            $WISH is a one-time seasonal experiment that transforms trading
-            activity into surprise holiday gifting. Trading fees fund real gifts
-            for randomly selected wishlist participants. Stake your tokens to
-            earn rewards and unlock the ability to burn tokens, creating
-            deflationary pressure. No founder profit, no promises of return,
-            just a magical onchain holiday celebration.
-          </p>
         </div>
 
-        <Card className="border-accent/30 shadow-md">
+        <Card className="border-accent/30 shadow-md pt-0">
+          <Image
+            src="/images/ecosystem.png"
+            alt="WISH"
+            width={1200}
+            height={1200}
+            className="rounded-xl rounded-b-none"
+          />
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl md:text-3xl flex items-center gap-2">
               <HandHeart className="h-7 w-7 text-rose-500" />A Holiday Gifting
@@ -126,12 +126,11 @@ export default function WishPage() {
             </CardTitle>
             <CardDescription className="text-base md:text-lg">
               This is a one-time seasonal experiment designed to transform
-              speculative trading revenues into real holiday gifts. Trading fees
-              from $WISH token activity are collected in ETH and used
-              exclusively to purchase and deliver gifts to randomly selected
-              wishlist participants. No founder profit, no token sale, and no
-              guarantees— just a transparent, community-first celebration of
-              generosity.
+              trading revenues into real holiday gifts. Trading fees from $WISH
+              token activity are collected in ETH and used exclusively to
+              purchase and deliver gifts to randomly selected wishlist
+              participants. No guarantees— just a transparent, community-first
+              celebration of generosity.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -333,9 +332,7 @@ export default function WishPage() {
           <p className="text-muted-foreground text-sm md:text-base">
             <strong>What $WISH is:</strong> A transparent, community-first way
             to transform trading activity into holiday surprises for randomly
-            selected wishlist participants, featuring a unique staking and
-            deflationary burn mechanism that gives holders the power to reduce
-            circulating supply.
+            selected wishlist participants.
           </p>
           <p className="text-muted-foreground text-sm md:text-base">
             <strong>What $WISH is not:</strong> An investment product, a promise
