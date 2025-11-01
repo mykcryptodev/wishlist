@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Stake from "@/components/stake";
 
 const governanceSteps = [
   {
@@ -175,6 +176,10 @@ export default function WishPage() {
                 </CardHeader>
               </Card>
             ))}
+          </div>
+
+          <div className="text-center">
+            <Stake />
           </div>
 
           <Card className="border-accent/30 bg-muted/30">
