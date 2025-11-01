@@ -10,8 +10,18 @@ export const chain = base;
 
 // ADDRESSES
 export const wishlist = {
-  [baseSepolia.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
+  [baseSepolia.id]: "0x3753f2cD72850Df8Df3B665229fF5c9Bb13a26Af",
   [base.id]: "0x28b2c964c06d49Ea857B69aa6c743080a125F773",
+};
+
+export const wish = {
+  [baseSepolia.id]: "0x859A5c8777Dac39Fb84820dF00Fa1e1324CA094b",
+  [base.id]: "0xf5f7Ec461CE97d0FA2396b3BFF36656b63811b07",
+};
+
+export const stake = {
+  [baseSepolia.id]: "0xb21d9c50aedd37e530085a0bc206fba316d3a000",
+  [base.id]: "0xd78aF06a5A63e4e8E4Ab94C403C1907ebded583C",
 };
 
 export const usdc = {

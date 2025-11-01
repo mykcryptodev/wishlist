@@ -69,6 +69,12 @@ export function Navigation() {
               >
                 Browse
               </Link>
+              <Link
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                href="/wish"
+              >
+                $WISH
+              </Link>
             </div>
           </div>
 
@@ -130,6 +136,9 @@ export function Navigation() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/users">Browse</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/wish">$WISH</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

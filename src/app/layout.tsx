@@ -13,6 +13,7 @@ import {
 } from "@/lib/farcaster-metadata";
 import { DisplayTokenProvider } from "@/providers/DisplayTokenProvider";
 import { FarcasterProvider } from "@/providers/Farcaster";
+import { ReactQueryProvider } from "@/providers/ReactQuery";
 import ThirdwebProvider from "@/providers/Thirdweb";
 
 import "./globals.css";
@@ -93,7 +94,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -107,16 +108,18 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="system"
         >
-          <ThirdwebProvider>
-            <DisplayTokenProvider>
-              <FarcasterProvider>
-                <ChristmasSnowfall />
-                <Navigation />
-                {children}
-              </FarcasterProvider>
-            </DisplayTokenProvider>
-          </ThirdwebProvider>
-          <Toaster />
+          <ReactQueryProvider>
+            <ThirdwebProvider>
+              <DisplayTokenProvider>
+                <FarcasterProvider>
+                  <ChristmasSnowfall />
+                  <Navigation />
+                  {children}
+                </FarcasterProvider>
+              </DisplayTokenProvider>
+            </ThirdwebProvider>
+            <Toaster />
+          </ReactQueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-
+import { baseSepolia } from "thirdweb/chains";
 
 // Check if Redis environment variables are available
 const isRedisConfigured =
@@ -11,6 +11,20 @@ export const redis = isRedisConfigured
       token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     })
   : null;
+
+/**
+ * Check if Redis caching should be used for a given chain
+ * @param chainId - The chain ID to check
+ * @returns true if caching should be used, false otherwise
+ */
+export const shouldUseCache = (chainId: number): boolean => {
+  // Never use cache for baseSepolia
+  if (chainId === baseSepolia.id) {
+    return false;
+  }
+  // Only use cache if redis is configured
+  return !!redis;
+};
 
 // Cache key helpers
 

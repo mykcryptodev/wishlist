@@ -1,0 +1,331 @@
+"use client";
+
+import { encode, getContract, toUnits, waitForReceipt } from "thirdweb";
+import { allowance, approve, decimals } from "thirdweb/extensions/erc20";
+import {
+  useActiveAccount,
+  useActiveWallet,
+  useCapabilities,
+  useSendTransaction,
+} from "thirdweb/react";
+import { sendCalls as walletSendCalls } from "thirdweb/wallets/eip5792";
+
+import { chain, stake as stakeAddress, wish } from "@/constants";
+import {
+  burnRewardTokens,
+  claimRewards,
+  getStakeInfo,
+  stake,
+  withdraw,
+} from "@/constants/contracts/stake";
+import { client } from "@/providers/Thirdweb";
+
+export function useStakeContract() {
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  const { data: capabilities, isLoading: capabilitiesLoading } =
+    useCapabilities({
+      chainId: chain.id,
+    });
+  const { mutateAsync: sendTx } = useSendTransaction();
+
+  const stakeContract = getContract({
+    client,
+    chain,
+    address: stakeAddress[chain.id],
+  });
+
+  const wishContract = getContract({
+    client,
+    chain,
+    address: wish[chain.id],
+  });
+
+  // Stake tokens (burn tracking starts automatically)
+  const stakeTokens = async (params: {
+    amount: string; // amount in token units (not wei)
+  }) => {
+    if (!account) throw new Error("No account connected");
+    if (!wallet) throw new Error("No wallet connected");
+
+    try {
+      // Get token decimals
+      const tokenDecimals = await decimals({ contract: wishContract });
+
+      // Convert amount to wei
+      const amountInWei = toUnits(params.amount, tokenDecimals);
+
+      console.log(
+        `Staking ${params.amount} tokens (${amountInWei.toString()} wei)`,
+      );
+
+      // Check capabilities for batching support
+      const hasError = capabilities && "message" in capabilities;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const caps = capabilities as any;
+
+      const supportsBatching =
+        !capabilitiesLoading &&
+        capabilities &&
+        !hasError &&
+        (caps?.atomicBatch?.supported === true ||
+          caps?.[chain.id]?.atomicBatch?.supported === true ||
+          caps?.[`0x${chain.id.toString(16)}`]?.atomicBatch?.supported ===
+            true ||
+          caps?.[String(chain.id)]?.atomicBatch?.supported === true ||
+          caps?.sendCalls !== undefined ||
+          caps?.[chain.id]?.sendCalls !== undefined ||
+          caps?.[`0x${chain.id.toString(16)}`]?.sendCalls !== undefined);
+
+      if (capabilitiesLoading) {
+        console.log("⏳ Loading wallet capabilities...");
+      } else if (hasError) {
+        const errorMessage =
+          capabilities && "message" in capabilities
+            ? String(capabilities.message)
+            : "Unknown error";
+        console.log(
+          `❌ Wallet capabilities error: ${errorMessage}. Will send transactions separately if needed.`,
+        );
+      } else if (supportsBatching) {
+        console.log(
+          `✅ Wallet supports batching on chain ${chain.id}, will batch transactions if needed`,
+        );
+      } else {
+        console.log(
+          `⚠️ Wallet does not support batching on chain ${chain.id}, will send transactions separately if needed`,
+        );
+      }
+
+      // Check allowance
+      const currentAllowance = await allowance({
+        contract: wishContract,
+        owner: account.address,
+        spender: stakeAddress[chain.id],
+      });
+
+      console.log(
+        `Current allowance: ${currentAllowance.toString()} wei, needed: ${amountInWei.toString()} wei`,
+      );
+
+      // Prepare transactions
+      const needsApproval = currentAllowance < amountInWei;
+      const transactions = [];
+
+      // Approval transaction (if needed)
+      let approveTransaction;
+      if (needsApproval) {
+        console.log("⚠️ Approval needed");
+        approveTransaction = approve({
+          contract: wishContract,
+          spender: stakeAddress[chain.id],
+          amountWei: amountInWei,
+        });
+        transactions.push(approveTransaction);
+      }
+
+      // Stake transaction (burn tracking starts automatically in the contract)
+      const stakeTransaction = stake({
+        contract: stakeContract,
+        amount: amountInWei,
+      });
+      transactions.push(stakeTransaction);
+
+      // Execute transactions based on wallet capabilities
+      if (supportsBatching && transactions.length > 1) {
+        // Batch all transactions together
+        console.log(
+          `✅ Batching ${transactions.length} transactions together...`,
+        );
+
+        const calls = await Promise.all(
+          transactions.map(async tx => ({
+            to: tx.to!,
+            data: await encode(tx),
+            value: BigInt(0),
+            chain,
+            client,
+          })),
+        );
+
+        const bundleId = await walletSendCalls({
+          wallet,
+          calls,
+        });
+
+        console.log("✅ Batched transaction sent! Bundle ID:", bundleId);
+        return { bundleId, batched: true };
+      } else if (!supportsBatching && transactions.length > 1) {
+        // Send transactions separately
+        console.log(
+          `Sending ${transactions.length} transactions separately...`,
+        );
+
+        const receipts = [];
+
+        // Send approval first (if needed)
+        if (needsApproval && approveTransaction) {
+          const approvalResult = await sendTx(approveTransaction);
+          const approvalReceipt = await waitForReceipt({
+            client,
+            chain,
+            transactionHash: approvalResult.transactionHash,
+          });
+          console.log(
+            "✅ Approval confirmed:",
+            approvalReceipt.transactionHash,
+          );
+          receipts.push(approvalReceipt);
+        }
+
+        // Send stake transaction
+        const stakeResult = await sendTx(stakeTransaction);
+        const stakeReceipt = await waitForReceipt({
+          client,
+          chain,
+          transactionHash: stakeResult.transactionHash,
+        });
+        console.log("✅ Stake confirmed:", stakeReceipt.transactionHash);
+        receipts.push(stakeReceipt);
+
+        return { receipts, batched: false };
+      } else {
+        // Single transaction (no approval needed)
+        const result = await sendTx(stakeTransaction);
+        const receipt = await waitForReceipt({
+          client,
+          chain,
+          transactionHash: result.transactionHash,
+        });
+
+        return { receipt, batched: false };
+      }
+    } catch (error) {
+      console.error("Error staking tokens:", error);
+      throw error;
+    }
+  };
+
+  // Unstake (withdraw) tokens
+  const unstakeTokens = async (params: { amount: string }) => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      // Get token decimals
+      const tokenDecimals = await decimals({ contract: wishContract });
+
+      // Convert amount to wei
+      const amountInWei = toUnits(params.amount, tokenDecimals);
+
+      console.log(
+        `Unstaking ${params.amount} tokens (${amountInWei.toString()} wei)`,
+      );
+
+      const withdrawTransaction = withdraw({
+        contract: stakeContract,
+        amount: amountInWei,
+      });
+
+      const result = await sendTx(withdrawTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Unstake confirmed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error unstaking tokens:", error);
+      throw error;
+    }
+  };
+
+  // Burn reward tokens
+  const burnTokens = async (params: { amount: string }) => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      // Get token decimals
+      const tokenDecimals = await decimals({ contract: wishContract });
+
+      // Convert amount to wei
+      const amountInWei = toUnits(params.amount, tokenDecimals);
+
+      console.log(
+        `Burning ${params.amount} tokens (${amountInWei.toString()} wei)`,
+      );
+
+      const burnTransaction = burnRewardTokens({
+        contract: stakeContract,
+        amount: amountInWei,
+      });
+
+      const result = await sendTx(burnTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Burn confirmed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error burning tokens:", error);
+      throw error;
+    }
+  };
+
+  // Claim staking rewards
+  const claimRewardsTokens = async () => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      console.log("Claiming staking rewards...");
+
+      const claimTransaction = claimRewards({
+        contract: stakeContract,
+      });
+
+      const result = await sendTx(claimTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Rewards claimed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error claiming rewards:", error);
+      throw error;
+    }
+  };
+
+  // Get staked info for an address
+  const getStakedInfo = async (address: string) => {
+    try {
+      const result = await getStakeInfo({
+        contract: stakeContract,
+        staker: address,
+      });
+
+      // result is [tokensStaked, rewards]
+      return {
+        tokensStaked: result[0],
+        rewards: result[1],
+      };
+    } catch (error) {
+      console.error("Error getting stake info:", error);
+      throw error;
+    }
+  };
+
+  return {
+    stakeTokens,
+    unstakeTokens,
+    burnTokens,
+    claimRewardsTokens,
+    getStakedInfo,
+  };
+}
