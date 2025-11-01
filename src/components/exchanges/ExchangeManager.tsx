@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  Gift,
   LogIn,
   LogOut,
   Plus,
@@ -315,6 +316,19 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      asChild
+                      className="w-full sm:w-auto"
+                      size="sm"
+                    >
+                      <Link href={`/exchanges/${exchange.id}`}>
+                        <Gift className="w-4 h-4 mr-2" />
+                        View Exchange Wishlists
+                      </Link>
+                    </Button>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
