@@ -586,12 +586,20 @@ export const Stake: FC = () => {
               className="w-full"
               variant="destructive"
               disabled={
-                isLoadingBurnable || Number(burnableBalance) <= 0 || isBurning
+                isLoadingBurnable ||
+                Number(burnableBalance) <= 0 ||
+                isBurning ||
+                dailyBurnData?.isCapReached
               }
               onClick={handleBurn}
             >
               {isBurning ? (
                 "Burning..."
+              ) : dailyBurnData?.isCapReached ? (
+                <>
+                  <Flame className="w-4 h-4 mr-2" />
+                  Daily Burn Cap Reached
+                </>
               ) : (
                 <>
                   <Flame className="w-4 h-4 mr-2" />
