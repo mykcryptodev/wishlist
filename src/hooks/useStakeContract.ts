@@ -11,7 +11,12 @@ import {
 import { sendCalls as walletSendCalls } from "thirdweb/wallets/eip5792";
 
 import { chain, stake as stakeAddress, wish } from "@/constants";
-import { stake, withdraw, getStakeInfo } from "@/constants/contracts/stake";
+import {
+  stake,
+  withdraw,
+  getStakeInfo,
+  burnRewardTokens,
+} from "@/constants/contracts/stake";
 import { client } from "@/providers/Thirdweb";
 
 export function useStakeContract() {
@@ -231,6 +236,41 @@ export function useStakeContract() {
     }
   };
 
+  // Burn reward tokens
+  const burnTokens = async (params: { amount: string }) => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      // Get token decimals
+      const tokenDecimals = await decimals({ contract: wishContract });
+
+      // Convert amount to wei
+      const amountInWei = toUnits(params.amount, tokenDecimals);
+
+      console.log(
+        `Burning ${params.amount} tokens (${amountInWei.toString()} wei)`,
+      );
+
+      const burnTransaction = burnRewardTokens({
+        contract: stakeContract,
+        amount: amountInWei,
+      });
+
+      const result = await sendTx(burnTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Burn confirmed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error burning tokens:", error);
+      throw error;
+    }
+  };
+
   // Get staked info for an address
   const getStakedInfo = async (address: string) => {
     try {
@@ -253,6 +293,7 @@ export function useStakeContract() {
   return {
     stakeTokens,
     unstakeTokens,
+    burnTokens,
     getStakedInfo,
   };
 }

@@ -3,6 +3,7 @@
 import { FC, useState } from "react";
 import { useActiveAccount, useWalletBalance } from "thirdweb/react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,15 +21,19 @@ import { client } from "@/providers/Thirdweb";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
+import { useBurnableAmount } from "@/hooks/useBurnableAmount";
 import { shortenLargeNumber } from "thirdweb/utils";
 import { ConnectButton } from "./auth/ConnectButton";
+import { Flame } from "lucide-react";
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
+  const queryClient = useQueryClient();
   const [stakeAmount, setStakeAmount] = useState("");
   const [unstakeAmount, setUnstakeAmount] = useState("");
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
 
   const {
     data: balance,
@@ -48,14 +53,21 @@ export const Stake: FC = () => {
     refetch: refetchStaked,
   } = useStakedBalance(account?.address);
 
+  const {
+    data: burnableData,
+    isLoading: isLoadingBurnable,
+    refetch: refetchBurnable,
+  } = useBurnableAmount(account?.address);
+
   const stakedBalance = stakedData?.tokensStakedFormatted || "0";
+  const burnableBalance = burnableData?.burnableFormatted || "0";
 
   const {
     data: apy,
     isLoading: isAPYLoading,
     error: apyError,
   } = useStakingAPY();
-  const { stakeTokens, unstakeTokens } = useStakeContract();
+  const { stakeTokens, unstakeTokens, burnTokens } = useStakeContract();
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -112,7 +124,7 @@ export const Stake: FC = () => {
 
       // Reset form and refetch balances
       setStakeAmount("");
-      await Promise.all([refetchBalance(), refetchStaked()]);
+      await Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
     } catch (error) {
       console.error("Stake error:", error);
       toast.error(
@@ -138,7 +150,7 @@ export const Stake: FC = () => {
 
       // Reset form and refetch balances
       setUnstakeAmount("");
-      await Promise.all([refetchBalance(), refetchStaked()]);
+      await Promise.all([refetchBalance(), refetchStaked(), refetchBurnable()]);
     } catch (error) {
       console.error("Unstake error:", error);
       toast.error(
@@ -146,6 +158,38 @@ export const Stake: FC = () => {
       );
     } finally {
       setIsUnstaking(false);
+    }
+  };
+
+  const handleBurn = async () => {
+    if (!burnableBalance || Number(burnableBalance) <= 0) return;
+
+    const amountToBurn = burnableBalance;
+    setIsBurning(true);
+    try {
+      await burnTokens({
+        amount: amountToBurn,
+      });
+
+      // Set burnable to 0 after successful transaction
+      queryClient.setQueryData(["burnableAmount", chain.id, account?.address], {
+        burnable: BigInt(0),
+        burnableFormatted: "0",
+      });
+
+      toast.success(
+        `Successfully burned ${shortenLargeNumber(Number(amountToBurn)).toLocaleString()} WISH from supply!`,
+      );
+
+      // Refetch to get the accurate new burnable amount
+      await refetchBurnable();
+    } catch (error) {
+      console.error("Burn error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to burn tokens",
+      );
+    } finally {
+      setIsBurning(false);
     }
   };
 
@@ -251,6 +295,48 @@ export const Stake: FC = () => {
             )}
           </span>
         </div>
+
+        {/* Burn Section - Show if user has staked tokens */}
+        {Number(stakedBalance) > 0 && (
+          <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                <span className="text-sm font-medium">Burnable Tokens</span>
+              </div>
+              <span className="text-lg font-bold text-orange-500">
+                {isLoadingBurnable ? (
+                  <span className="text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                ) : (
+                  `${shortenLargeNumber(Number(burnableBalance)).toLocaleString()} WISH`
+                )}
+              </span>
+            </div>
+            <Button
+              className="w-full"
+              variant="destructive"
+              onClick={handleBurn}
+              disabled={
+                isLoadingBurnable || Number(burnableBalance) <= 0 || isBurning
+              }
+            >
+              {isBurning ? (
+                "Burning..."
+              ) : (
+                <>
+                  <Flame className="w-4 h-4 mr-2" />
+                  Burn WISH from supply
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Burns WISH from supply based on your staking duration. This does
+              not affect your WISH balance.
+            </p>
+          </div>
+        )}
 
         <Tabs defaultValue="stake" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
