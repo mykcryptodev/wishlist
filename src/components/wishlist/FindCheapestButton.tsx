@@ -54,36 +54,26 @@ export function FindCheapestButton({
       return;
     }
 
-    const toastId = toast.loading("Finding cheapest prices...");
+    const toastId = toast.loading("Finding cheapest prices...", {
+      description: "You may be prompted to approve a payment",
+    });
 
     try {
+      // This will automatically handle x402 payment flow via wrapFetchWithPayment
       const result = await findCheapestPriceAsync(item);
 
       toast.dismiss(toastId);
 
-      if (result.needsPayment) {
-        // Payment required
-        toast.info("Payment required: $0.05 to find prices", {
-          description: "You'll be prompted to pay with your wallet",
-          duration: 5000,
+      if (result.cached) {
+        toast.success("Price comparison retrieved!", {
+          description: "Showing previously cached results",
         });
-        // TODO: Implement x402 payment flow with Thirdweb SDK
-        // For now, user needs to retry after payment is made
-        return;
+      } else {
+        toast.success("Price comparison complete!", {
+          description: "Found the best prices for you",
+        });
       }
-
-      if (result.success) {
-        if (result.cached) {
-          toast.success("Price comparison retrieved!", {
-            description: "Showing previously cached results",
-          });
-        } else {
-          toast.success("Price comparison complete!", {
-            description: "Found the best prices for you",
-          });
-        }
-        setModalOpen(true);
-      }
+      setModalOpen(true);
     } catch (error) {
       toast.dismiss(toastId);
       toast.error("Failed to find prices", {
@@ -109,9 +99,10 @@ export function FindCheapestButton({
         size={size}
         onClick={handleClick}
         disabled={isLoading}
+        className="w-full"
       >
         <Search className="mr-2 h-4 w-4" />
-        Find Cheapest
+        Find Cheapest Store
       </Button>
 
       <PriceComparisonModal

@@ -2,10 +2,14 @@
  * Hook for finding cheapest prices using x402-gated API
  *
  * Uses React Query for state management and caching
+ * Integrates with Thirdweb's x402 payment flow
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { useActiveAccount } from "thirdweb/react";
+import { useActiveAccount, useActiveWallet } from "thirdweb/react";
+import { wrapFetchWithPayment } from "thirdweb/x402";
+
+import { client } from "@/providers/Thirdweb";
 
 import { useAuthToken } from "./useAuthToken";
 
@@ -21,11 +25,9 @@ export interface PriceComparisonResults {
 }
 
 export interface FindCheapestResult {
-  success?: boolean;
-  needsPayment?: boolean;
-  paymentData?: unknown;
-  results?: PriceComparisonResults;
-  cached?: boolean;
+  success: true;
+  results: PriceComparisonResults;
+  cached: boolean;
 }
 
 interface WishlistItem {
@@ -42,6 +44,7 @@ interface WishlistItem {
 
 export function useFindCheapestPrice() {
   const account = useActiveAccount();
+  const wallet = useActiveWallet();
   const { token } = useAuthToken();
 
   const mutation = useMutation({
@@ -51,12 +54,20 @@ export function useFindCheapestPrice() {
         throw new Error("Wallet not connected");
       }
 
+      if (!wallet) {
+        throw new Error("No active wallet found");
+      }
+
       if (!token) {
         throw new Error("Not authenticated. Please sign in.");
       }
 
-      // Make request to x402 endpoint
-      const response = await fetch("/api/wishlist/find-cheapest", {
+      // Wrap fetch with x402 payment handling
+      // This will automatically prompt for payment if 402 is returned
+      const fetchWithPay = wrapFetchWithPayment(fetch, client, wallet);
+
+      // Make request to x402 endpoint with payment wrapper
+      const response = await fetchWithPay("/api/wishlist/find-cheapest", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,22 +76,18 @@ export function useFindCheapestPrice() {
         body: JSON.stringify({ item }),
       });
 
-      const data = await response.json();
-
-      if (response.status === 402) {
-        // Payment required - return payment data
-        return { needsPayment: true, paymentData: data };
-      }
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to find cheapest prices");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to find cheapest prices");
       }
+
+      const data = await response.json();
 
       // Success - return results
       return {
         success: true,
         results: data.results,
-        cached: data.cached,
+        cached: data.cached || false,
       };
     },
     retry: false, // Don't retry payment requests
