@@ -3,8 +3,15 @@
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import {
+  AccountAvatar,
+  AccountName,
+  AccountProvider,
+  Blobbie,
+} from "thirdweb/react";
 
 import { useWishlistFeed } from "@/hooks/useWishlistFeed";
+import { client } from "@/providers/Thirdweb";
 
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -17,8 +24,8 @@ export function WishlistFeed() {
     20,
   );
 
-  // Truncate wallet address
-  const truncateAddress = (address: string) => {
+  // Helper to shorten address for fallback
+  const shortenAddress = (address: string) => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -82,16 +89,36 @@ export function WishlistFeed() {
         <div className="space-y-6">
           {data.items.map(item => (
             <div key={`${item.transactionHash}-${item.itemId}`}>
-              {/* Attribution Header */}
-              <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+              {/* Attribution Header with Account Info */}
+              <AccountProvider address={item.owner} client={client}>
                 <Link
-                  href={`/users/${item.owner}`}
-                  className="hover:text-foreground transition-colors font-mono font-semibold"
+                  href={`/wishlist/${item.owner}`}
+                  className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity group"
                 >
-                  {truncateAddress(item.owner)}
+                  <AccountAvatar
+                    className="h-8 w-8 rounded-full ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all"
+                    fallbackComponent={
+                      <Blobbie
+                        address={item.owner}
+                        className="h-8 w-8 rounded-full"
+                      />
+                    }
+                  />
+                  <div className="flex items-baseline gap-2 text-sm">
+                    <AccountName
+                      className="font-semibold text-foreground"
+                      fallbackComponent={
+                        <span className="font-semibold text-foreground">
+                          {shortenAddress(item.owner)}
+                        </span>
+                      }
+                    />
+                    <span className="text-muted-foreground">
+                      wished for this
+                    </span>
+                  </div>
                 </Link>
-                <span>wished for this</span>
-              </div>
+              </AccountProvider>
 
               {/* Wishlist Item Card */}
               <WishlistItemCard
