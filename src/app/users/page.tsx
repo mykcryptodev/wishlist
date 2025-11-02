@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSearch } from "@/components/user-search";
+import { WishlistFeed } from "@/components/wishlist/feed";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
 interface User {
@@ -48,12 +50,27 @@ export default function UsersPage() {
         </div>
 
         {!isSearching && (
-          <WishlistDirectory
-            showAll
-            description="Discover wishlists from the Farcaster community."
-            itemsPerPage={12}
-            title="All Wishlists"
-          />
+          <Tabs className="w-full" defaultValue="feed">
+            <div className="flex justify-center mb-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="feed">Wish Feed</TabsTrigger>
+                <TabsTrigger value="all">All Wishlists</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent className="max-w-4xl mx-auto" value="feed">
+              <WishlistFeed />
+            </TabsContent>
+
+            <TabsContent value="all">
+              <WishlistDirectory
+                showAll
+                description="Discover wishlists from the Farcaster community."
+                itemsPerPage={12}
+                title="All Wishlists"
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </main>
     </div>

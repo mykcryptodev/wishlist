@@ -39,8 +39,18 @@ export const getWishlistAddressesCacheKey = (chainId: number) => {
   return `wishlist-addresses:${chainId}`;
 };
 
+export const getFeedCacheKey = (
+  chainId: number,
+  page: string,
+  limit: string,
+  includeDetails: boolean,
+) => {
+  return `feed:${chainId}:p${page}:l${limit}:d${includeDetails}`;
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
+  ONE_MINUTE: 60, // 1 minute in seconds (frequently changing feed data)
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
   ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently)
 } as const;
