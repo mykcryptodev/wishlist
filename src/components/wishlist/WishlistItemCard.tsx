@@ -15,10 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
-import {
-  getCryptoPurchaseUrl,
-  supportsCryptoPurchase,
-} from "@/lib/crypto-purchase";
+import { getCryptoPurchaseUrl } from "@/lib/crypto-purchase";
 
 interface WishlistItemCardProps {
   item: {
