@@ -17,6 +17,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 import { getCryptoPurchaseUrl } from "@/lib/crypto-purchase";
 
+import { FindCheapestButton } from "./FindCheapestButton";
+
 interface WishlistItemCardProps {
   item: {
     id: string;
@@ -189,6 +191,9 @@ export function WishlistItemCard({
                 {isDeleting ? "Deleting..." : "Delete"}
               </Button>
             </div>
+
+            {/* Price Comparison - Available to owner */}
+            <FindCheapestButton item={item} variant="outline" size="sm" />
           </>
         ) : (
           <>
@@ -234,6 +239,9 @@ export function WishlistItemCard({
                 </>
               )}
             </Button>
+
+            {/* Price Comparison - Available to viewers */}
+            <FindCheapestButton item={item} variant="outline" size="sm" />
           </>
         )}
       </CardFooter>
