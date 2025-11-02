@@ -1,10 +1,25 @@
 "use client";
 
-import { Edit, ExternalLink, ShoppingCart, Trash2, Users } from "lucide-react";
+import { sdk } from "@farcaster/miniapp-sdk";
+import {
+  Coins,
+  Edit,
+  ExternalLink,
+  ShoppingCart,
+  Trash2,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
+import {
+  extractAmazonProductId,
+  getWorldstoreUrl,
+  isAmazonUrl,
+} from "@/lib/amazon";
 
 interface WishlistItemCardProps {
   item: {
@@ -39,6 +54,9 @@ export function WishlistItemCard({
   purchaserCount = 0,
   isUserPurchaser = false,
 }: WishlistItemCardProps) {
+  const { isInMiniApp, isLoading: isMiniAppLoading } = useIsInMiniApp();
+  const [isOpeningMiniApp, setIsOpeningMiniApp] = useState(false);
+
   const formatPrice = (priceInWei: string) => {
     const price = parseFloat(priceInWei) / 1e18;
     if (price === 0) return "Price not specified";
@@ -51,6 +69,26 @@ export function WishlistItemCard({
       month: "short",
       day: "numeric",
     });
+  };
+
+  // Check if this is an Amazon product
+  const isAmazon = isAmazonUrl(item.url);
+  const amazonProductId = isAmazon ? extractAmazonProductId(item.url) : null;
+  const canBuyWithCrypto = isInMiniApp && amazonProductId && !isMiniAppLoading;
+
+  const handleBuyWithCrypto = async () => {
+    if (!amazonProductId) return;
+
+    setIsOpeningMiniApp(true);
+    try {
+      const worldstoreUrl = getWorldstoreUrl(amazonProductId);
+      await sdk.actions.openMiniApp({ url: worldstoreUrl });
+    } catch (error) {
+      console.error("Failed to open Worldstore:", error);
+      // Optionally show error toast here
+    } finally {
+      setIsOpeningMiniApp(false);
+    }
   };
 
   return (
@@ -160,15 +198,29 @@ export function WishlistItemCard({
         ) : (
           <>
             {/* Public View - Actions */}
-            <Button
-              className="w-full"
-              size="sm"
-              variant="default"
-              onClick={() => window.open(item.url, "_blank")}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Item
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                className="flex-1"
+                size="sm"
+                variant="default"
+                onClick={() => window.open(item.url, "_blank")}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Item
+              </Button>
+              {canBuyWithCrypto && (
+                <Button
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  disabled={isOpeningMiniApp}
+                  size="sm"
+                  variant="default"
+                  onClick={handleBuyWithCrypto}
+                >
+                  <Coins className="w-4 h-4 mr-2" />
+                  {isOpeningMiniApp ? "Opening..." : "Buy with Crypto"}
+                </Button>
+              )}
+            </div>
             <Button
               className="w-full"
               size="sm"
