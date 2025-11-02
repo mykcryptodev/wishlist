@@ -55,7 +55,7 @@ export function FindCheapestButton({
     }
 
     const toastId = toast.loading("Finding cheapest prices...", {
-      description: "You may be prompted to approve a payment",
+      description: "You may be prompted to pay $0.05 USDC",
     });
 
     try {

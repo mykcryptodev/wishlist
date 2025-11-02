@@ -10,9 +10,11 @@ The Price Comparison feature allows users to pay $0.05 in crypto to find the che
 
 ### 🔒 x402 Paywall
 
-- Users pay $0.05 (in any supported token) to access price comparison
+- Users pay $0.05 USD **in $WISH tokens** to access price comparison
+- Payment amount calculated dynamically based on real-time WISH price
 - Payment verified before expensive work (two-phase verification)
 - Automatic payment settlement via Thirdweb facilitator
+- Payments automatically forwarded from server wallet to personal wallet
 
 ### 💾 Smart Caching
 
@@ -44,14 +46,35 @@ useFindCheapestPrice hook
     ↓
 POST /api/wishlist/find-cheapest
     ↓
-settlePayment (x402) - VERIFY & SETTLE
+calculateWishPaymentAmount() - Get real-time WISH price
+    ↓
+settlePayment (x402) - VERIFY & SETTLE (to server wallet)
     ↓
 Check cache (Supabase)
     ↓
 Generate results (or return cached)
     ↓
+forwardPaymentToPersonalWallet() - Transfer WISH to personal wallet
+    ↓
 Display in PriceComparisonModal
 ```
+
+### Payment Flow Details
+
+**Dynamic Pricing**:
+
+1. Fetches current WISH token price from Thirdweb `/v1/tokens` API
+2. Calculates tokens needed: `$0.05 / priceUsd`
+3. Converts to wei (18 decimals for WISH)
+4. Example: If WISH = $0.000004, then ~12,500 WISH tokens needed
+
+**Payment Forwarding**:
+
+1. Payment received at server wallet in WISH tokens
+2. Price comparison work completed
+3. Background transfer initiated (fire-and-forget)
+4. Transfers exact WISH amount to `0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb`
+5. Uses Thirdweb HTTP API for the transfer
 
 ## Implementation
 
@@ -87,7 +110,10 @@ CREATE TABLE IF NOT EXISTS price_comparisons (
 
 **Authentication**: Required (JWT token)
 
-**Payment**: $0.05 USD (via x402)
+**Payment**: $0.05 USD in $WISH tokens (via x402)
+
+- Amount calculated dynamically based on real-time WISH price
+- Uses Thirdweb `/v1/tokens` API to get current price
 
 **Request Body**:
 

@@ -16,6 +16,8 @@ import { settlePayment } from "thirdweb/x402";
 import { base } from "thirdweb/chains";
 import { x402Facilitator } from "@/lib/x402-facilitator";
 
+const MYK_DOT_ETH = "0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb";
+
 export async function GET(request: NextRequest) {
   try {
     // Get payment data from request headers
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest) {
       resourceUrl: request.url,
       method: "GET",
       paymentData,
-      payTo: process.env.THIRDWEB_PROJECT_WALLET!,
+      payTo: MYK_DOT_ETH,
       network: base,
       price: "$0.01", // Price in USD (will be converted to appropriate token amount)
       facilitator: x402Facilitator,

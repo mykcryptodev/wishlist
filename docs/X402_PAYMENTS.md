@@ -227,6 +227,8 @@ The wishlist app includes a production x402 implementation for finding the cheap
 3. **Toast Notifications**: User feedback during the payment and search process
 4. **Results Modal**: Clean UI for displaying price comparison results
 5. **React Query Integration**: Modern state management with automatic retry and caching
+6. **Dynamic WISH Token Pricing**: Payment amount calculated from real-time token price
+7. **Automatic Payment Forwarding**: Payments auto-forward from server wallet to personal wallet
 
 ### Usage
 
