@@ -68,7 +68,7 @@ export function WishlistFeed() {
 
   // Pagination controls component
   const PaginationControls = () => (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-4 sm:flex-nowrap sm:justify-between">
       <Button
         disabled={page === 1 || isLoading}
         variant="outline"
@@ -77,7 +77,7 @@ export function WishlistFeed() {
         Previous
       </Button>
 
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-center gap-1 text-center">
         <span className="text-sm font-medium">
           Page {page}
           {data?.pagination.totalPages && data.pagination.totalPages > 0
