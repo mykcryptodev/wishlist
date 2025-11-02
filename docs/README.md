@@ -11,6 +11,7 @@ Welcome to the Wishlist app documentation! This directory contains guides and re
 - **[Edit Functionality](./EDIT_FUNCTIONALITY_SUMMARY.md)** - How to edit wishlist items
 - **[Purchaser Signup](./PURCHASER_SIGNUP_FEATURE.md)** - Technical details of the purchaser signup feature
 - **[Purchaser Signup Usage](./PURCHASER_SIGNUP_USAGE.md)** - User guide for signing up as a purchaser
+- **[Price Comparison Feature](./PRICE_COMPARISON_FEATURE.md)** - x402-gated price comparison to find cheapest places to buy items
 
 #### 🎄 Gift Exchanges
 
@@ -29,6 +30,7 @@ Welcome to the Wishlist app documentation! This directory contains guides and re
 
 - **[Thirdweb API Guide](./THIRDWEB_API.md)** - Complete reference for blockchain interactions via Thirdweb API
 - **[Smart Account Auth Fix](./SMART_ACCOUNT_AUTH_FIX.md)** - Important fix for smart account wallet authentication
+- **[x402 Payments](./X402_PAYMENTS.md)** - Implement payable API endpoints with on-chain crypto payments
 
 #### 🔐 Authentication
 
@@ -78,7 +80,8 @@ Welcome to the Wishlist app documentation! This directory contains guides and re
 ✅ **Directory** - Browse all wishlists with social profiles  
 ✅ **OG Images** - Dynamic social sharing images  
 ✅ **Redis Caching** - Performance optimization  
-✅ **SIWE Auth** - Secure wallet-based authentication
+✅ **SIWE Auth** - Secure wallet-based authentication  
+✅ **x402 Payments** - Payable API endpoints with on-chain payments
 
 ### Tech Stack
 

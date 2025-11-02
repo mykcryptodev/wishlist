@@ -95,3 +95,23 @@ CREATE POLICY "Users can leave exchanges"
 -- ALTER TABLE exchanges DISABLE ROW LEVEL SECURITY;
 -- ALTER TABLE exchange_memberships DISABLE ROW LEVEL SECURITY;
 
+-- Price Comparisons Table
+-- Stores cached results from x402-gated price comparison API
+CREATE TABLE IF NOT EXISTS price_comparisons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    item_id TEXT NOT NULL,
+    wallet_address TEXT NOT NULL,
+    item_data JSONB NOT NULL,
+    results JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() + INTERVAL '7 days'
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_price_comparisons_item_wallet 
+    ON price_comparisons(item_id, wallet_address);
+CREATE INDEX IF NOT EXISTS idx_price_comparisons_wallet 
+    ON price_comparisons(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_price_comparisons_expires 
+    ON price_comparisons(expires_at);
+
