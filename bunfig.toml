@@ -1,0 +1,10 @@
+# Bun configuration file
+# Documentation: https://bun.sh/docs/runtime/bunfig
+
+[test]
+# Test configuration
+
+# Configure path aliases for tests (matching tsconfig.json)
+[test.resolve]
+"@/*" = "./src/*"
+
