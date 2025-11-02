@@ -193,7 +193,7 @@ export function WishlistItemCard({
             </div>
 
             {/* Price Comparison - Available to owner */}
-            <FindCheapestButton item={item} variant="outline" size="sm" />
+            <FindCheapestButton item={item} size="sm" variant="outline" />
           </>
         ) : (
           <>
@@ -241,7 +241,7 @@ export function WishlistItemCard({
             </Button>
 
             {/* Price Comparison - Available to viewers */}
-            <FindCheapestButton item={item} variant="outline" size="sm" />
+            <FindCheapestButton item={item} size="sm" variant="outline" />
           </>
         )}
       </CardFooter>

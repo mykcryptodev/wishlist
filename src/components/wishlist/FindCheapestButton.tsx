@@ -95,21 +95,21 @@ export function FindCheapestButton({
   return (
     <>
       <Button
-        variant={variant}
-        size={size}
-        onClick={handleClick}
-        disabled={isLoading}
         className="w-full hidden" // TODO: Remove this once we have a real implementation
+        disabled={isLoading}
+        size={size}
+        variant={variant}
+        onClick={handleClick}
       >
         <Search className="mr-2 h-4 w-4" />
-        Find Cheapest Store
+        Find Cheapest
       </Button>
 
       <PriceComparisonModal
-        open={modalOpen}
-        onOpenChange={handleModalClose}
-        results={results}
         itemTitle={item.title}
+        open={modalOpen}
+        results={results}
+        onOpenChange={handleModalClose}
       />
     </>
   );

@@ -102,11 +102,11 @@ export function PriceComparisonModal({
                     )}
                   </div>
                 </div>
-                <Button variant="outline" size="sm" asChild>
+                <Button asChild size="sm" variant="outline">
                   <a
                     href={store.url}
-                    target="_blank"
                     rel="noopener noreferrer"
+                    target="_blank"
                     onClick={e => e.stopPropagation()}
                   >
                     View

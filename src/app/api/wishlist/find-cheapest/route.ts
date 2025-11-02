@@ -11,8 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { settlePayment } from "thirdweb/x402";
 import { base } from "thirdweb/chains";
+import { settlePayment } from "thirdweb/x402";
 
 import { usdc } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
