@@ -17,6 +17,8 @@ interface FeedResponse {
     page: number;
     limit: number;
     hasMore: boolean;
+    totalItems?: number;
+    totalPages?: number;
   };
 }
 

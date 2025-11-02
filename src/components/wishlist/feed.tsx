@@ -2,7 +2,7 @@
 
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AccountAvatar,
   AccountName,
@@ -23,6 +23,20 @@ export function WishlistFeed() {
     page,
     20,
   );
+  const feedTopRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when page changes (after content renders)
+  useEffect(() => {
+    if (feedTopRef.current && page > 1) {
+      // Use requestAnimationFrame to ensure React has finished rendering
+      requestAnimationFrame(() => {
+        feedTopRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }, [page, data]); // Depend on both page AND data to handle cached results
 
   // Helper to shorten address for fallback
   const shortenAddress = (address: string) => {
@@ -43,8 +57,46 @@ export function WishlistFeed() {
     updatedAt: item.blockTimestamp,
   });
 
+  // Pagination controls component
+  const PaginationControls = () => (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Button
+        variant="outline"
+        onClick={() => setPage(p => Math.max(1, p - 1))}
+        disabled={page === 1 || isLoading}
+      >
+        Previous
+      </Button>
+
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-sm font-medium">
+          Page {page}
+          {data?.pagination.totalPages && data.pagination.totalPages > 0
+            ? ` of ${data.pagination.totalPages}`
+            : ""}
+        </span>
+        {data?.pagination.totalItems && data.pagination.totalItems > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {data.pagination.totalItems} total wishes
+          </span>
+        )}
+      </div>
+
+      <Button
+        variant="outline"
+        onClick={() => setPage(p => p + 1)}
+        disabled={!data?.pagination.hasMore || isLoading}
+      >
+        Next
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
+      {/* Scroll anchor for pagination */}
+      <div ref={feedTopRef} className="scroll-mt-4" />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -65,6 +117,9 @@ export function WishlistFeed() {
           <span className="ml-2">Refresh</span>
         </Button>
       </div>
+
+      {/* Top Pagination */}
+      {data && data.items.length > 0 && <PaginationControls />}
 
       {/* Loading State */}
       {isLoading && (
@@ -148,24 +203,10 @@ export function WishlistFeed() {
         </Card>
       )}
 
-      {/* Pagination */}
+      {/* Bottom Pagination */}
       {data && data.items.length > 0 && (
-        <div className="flex items-center justify-between pt-4">
-          <Button
-            variant="outline"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1 || isLoading}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">Page {page}</span>
-          <Button
-            variant="outline"
-            onClick={() => setPage(p => p + 1)}
-            disabled={!data.pagination.hasMore || isLoading}
-          >
-            Next
-          </Button>
+        <div className="pt-4">
+          <PaginationControls />
         </div>
       )}
     </div>

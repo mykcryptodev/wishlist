@@ -63,6 +63,34 @@ export async function GET(request: NextRequest) {
     const itemCreatedSignature =
       "0x492ed020ceefbf98fa397c98e691a930417875a66e7b5f6014018d970f13abef";
 
+    // Get total items count from contract for better pagination
+    let totalItems = 0;
+    try {
+      const totalItemsResult = await thirdwebReadContract(
+        [
+          {
+            contractAddress: wishlist[chain.id],
+            method: "function getTotalItems() external view returns (uint256)",
+            params: [],
+          },
+        ],
+        chain.id,
+      );
+
+      if (totalItemsResult.result[0]?.success) {
+        const data =
+          totalItemsResult.result[0].data || totalItemsResult.result[0].result;
+        totalItems = parseInt(data as string);
+
+        if (process.env.NODE_ENV === "development") {
+          console.log(`📊 Total items in contract: ${totalItems}`);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch total items:", error);
+      // Continue without total count
+    }
+
     // Fetch events from the Wishlist contract
     const response = await fetch(
       `${THIRDWEB_API_URL}/contracts/${chain.id}/${wishlist[chain.id]}/events?page=${page}&limit=${limit}&sortOrder=desc`,
@@ -234,13 +262,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Safely determine if there are more pages
+    // Determine pagination info based on total items from contract
     let hasMore = false;
-    if (eventsData.result?.page?.hasNextPage !== undefined) {
-      hasMore = eventsData.result.page.hasNextPage;
+    let totalPages = 0;
+
+    if (totalItems > 0) {
+      // Calculate total pages based on contract's total item count
+      totalPages = Math.ceil(totalItems / parseInt(limit));
+      // Check if there are more pages after the current one
+      hasMore = parseInt(page) < totalPages;
     } else {
-      // Fallback: assume there might be more if we got a full page
-      hasMore = feedItems.length >= parseInt(limit);
+      // Fallback: use Thirdweb's pagination if we don't have total count
+      if (eventsData.result?.page?.hasNextPage !== undefined) {
+        hasMore = eventsData.result.page.hasNextPage;
+      } else {
+        // Last resort: assume more if we got a full page of ItemCreated events
+        hasMore = itemCreatedEvents.length >= parseInt(limit);
+      }
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `📄 Pagination: Page ${page}/${totalPages > 0 ? totalPages : "?"}, hasMore: ${hasMore}`,
+      );
     }
 
     return NextResponse.json({
@@ -250,6 +294,8 @@ export async function GET(request: NextRequest) {
         page: parseInt(page),
         limit: parseInt(limit),
         hasMore,
+        totalItems,
+        totalPages,
       },
     });
   } catch (error) {
