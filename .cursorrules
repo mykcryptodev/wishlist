@@ -1,0 +1,88 @@
+# Cursor AI Rules for Wishlist Project
+
+## Documentation
+
+See `.cursorrules-docs.md` for comprehensive documentation guidelines.
+
+## Code Quality Guidelines
+
+### General Principles
+
+- Prefer TypeScript strict mode
+- Use meaningful variable names
+- Keep functions small and focused
+- Write self-documenting code with clear names
+- Add comments for complex logic only
+
+### File Organization
+
+- Components in `/src/components`
+- API routes in `/src/app/api`
+- Utilities in `/src/lib`
+- Hooks in `/src/hooks`
+- Types should be co-located with their usage
+
+### React Components
+
+- Use TypeScript for all components
+- Prefer functional components with hooks
+- Use proper prop typing
+- Extract complex logic into custom hooks
+
+### API Routes
+
+- Always validate input
+- Return structured error responses
+- Use proper HTTP status codes
+- Log errors with context
+- Include proper TypeScript types
+
+## Testing & Deployment
+
+### Before Committing
+
+- Run linting: `bun run lint`
+- Fix formatting: `bun run format`
+- Test the feature manually
+- Remove console.logs (except for important server logs)
+
+### Commit Messages
+
+- Use conventional commits format
+- Be descriptive but concise
+- Reference issue numbers when applicable
+- Examples:
+  - `feat: add gift exchange feature`
+  - `fix: resolve smart account auth issue`
+  - `docs: update Redis caching guide`
+  - `refactor: consolidate wishlist utilities`
+
+## Environment Variables
+
+### Required for Development
+
+- Always update `env.example` when adding new variables
+- Never commit `.env.local`
+- Document what each variable is for in setup guides
+- Use descriptive variable names
+
+## AI Assistant Behavior
+
+### When Working on Tasks
+
+- Read existing code before suggesting changes
+- Check for existing patterns and follow them
+- Update documentation if you change implementation
+- Clean up temporary files after debugging
+- Ask for clarification on ambiguous requirements
+
+### When Creating Documentation
+
+- Check `/docs/README.md` first to avoid duplication
+- Follow the documentation format guidelines above
+- Only create docs that will have long-term value
+- Update the index when adding new docs
+
+---
+
+**Last Updated**: November 2, 2025
