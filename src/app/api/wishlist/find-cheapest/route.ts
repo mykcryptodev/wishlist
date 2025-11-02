@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
-import { usdc } from "@/constants";
+import { wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
@@ -22,15 +22,88 @@ import {
   thirdwebWriteContract,
 } from "@/lib/thirdweb-http-api";
 import { x402Facilitator } from "@/lib/x402-facilitator";
+import { toTokens } from "thirdweb";
 
 const MYK_DOT_ETH = "0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb";
 const SERVER_WALLET = process.env.THIRDWEB_PROJECT_WALLET!;
+const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 
 // Payment configuration for x402
-// Use USDC for payments and forwarding (simple and stable)
-const USDC_TOKEN = usdc[base.id] as `0x${string}`; // USDC on Base mainnet
-const PAYMENT_AMOUNT_USDC = "50000"; // $0.05 in USDC (6 decimals) = 50,000 base units
+// Use WISH tokens for payments (creates demand for WISH)
+const WISH_TOKEN = wish[base.id] as `0x${string}`; // WISH token on Base mainnet
 const TARGET_PRICE_USD = 0.05; // $0.05 USD
+
+/**
+ * Fetch current WISH token price and calculate payment amount
+ * Uses BigInt math to avoid conversion errors
+ */
+async function calculateWishPaymentAmount(): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://api.thirdweb.com/v1/tokens?limit=1&page=1&chainId=${base.id}&tokenAddress=${WISH_TOKEN}`,
+      {
+        headers: {
+          "x-secret-key": THIRDWEB_SECRET_KEY,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch WISH token price: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const wishToken = data.result.tokens[0];
+
+    if (!wishToken || !wishToken.priceUsd) {
+      throw new Error("WISH token price not available");
+    }
+
+    const priceUsd = wishToken.priceUsd; // e.g., 0.000004273317301
+    const decimals = wishToken.decimals; // 18
+
+    console.log("WISH token data:", {
+      priceUsd,
+      decimals,
+      targetUsd: TARGET_PRICE_USD,
+    });
+
+    // Calculate amount: (targetUSD / priceUSD) to get token amount in ether
+    // Then convert to wei using BigInt
+
+    // Step 1: Calculate tokens needed in ether (regular division keeps decimals)
+    const tokensInEther = TARGET_PRICE_USD / priceUsd; // e.g., 7970.88 WISH
+
+    console.log("Tokens needed in ether:", tokensInEther);
+
+    // Step 2: Convert to wei using BigInt to avoid scientific notation
+    // Split into whole and fractional parts
+    const wholeTokens = Math.floor(tokensInEther); // e.g., 7970
+    const fractionalTokens = tokensInEther - wholeTokens; // e.g., 0.88
+
+    // Convert each part to wei separately
+    const wholeWei = BigInt(wholeTokens) * BigInt(10 ** decimals);
+    const fractionalWei = BigInt(Math.floor(fractionalTokens * 10 ** decimals));
+    const totalWei = wholeWei + fractionalWei;
+    const amountStr = totalWei.toString();
+
+    console.log("WISH payment calculation:", {
+      tokensInEther: tokensInEther.toFixed(2),
+      wholeTokens,
+      fractionalTokens: fractionalTokens.toFixed(6),
+      amountInWei: amountStr,
+      verification: `${Number(totalWei) / 10 ** decimals} WISH`,
+    });
+
+    return totalWei.toString();
+  } catch (error) {
+    console.error("Error fetching WISH price:", error);
+    // Fallback: ~12.5 WISH at $0.000004 per WISH
+    const fallback = "12500000000000000000";
+    console.log("Using fallback WISH amount:", fallback);
+    return fallback;
+  }
+}
 
 /**
  * Sweep entire token balance from server wallet to personal wallet
@@ -139,9 +212,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate WISH token payment amount based on current price
+    const wishPaymentAmount = await calculateWishPaymentAmount();
+    console.log("Wish payment amount:", wishPaymentAmount);
+
     // PHASE 1: Verify and settle payment BEFORE doing expensive work
     // This prevents wasting resources on invalid/insufficient payments
-    // Force payment in USDC so we know exactly which token to forward
+    // Force payment in WISH tokens with exact amount
     const verificationResult = await settlePayment({
       resourceUrl: request.url,
       method: "POST",
@@ -149,14 +226,15 @@ export async function POST(request: NextRequest) {
       payTo: SERVER_WALLET,
       network: base,
       price: {
-        amount: PAYMENT_AMOUNT_USDC,
+        amount: wishPaymentAmount,
         asset: {
-          address: USDC_TOKEN,
+          address: WISH_TOKEN,
+          decimals: 18,
         },
-      },
+      }, // USD pricing - x402 handles token conversion
       facilitator: x402Facilitator,
       routeConfig: {
-        description: `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} USDC)`,
+        description: `Find the cheapest place to buy this item (${wishPaymentAmount} WISH ≈ $${TARGET_PRICE_USD})`,
         mimeType: "application/json",
         maxTimeoutSeconds: 300,
       },
@@ -179,16 +257,17 @@ export async function POST(request: NextRequest) {
       JSON.stringify(verificationResult.paymentReceipt, null, 2),
     );
 
-    // Since we're forcing USDC payment, we know exactly which token and amount
-    const paymentToken = USDC_TOKEN;
-    const paymentAmount = PAYMENT_AMOUNT_USDC;
+    // Since we're forcing WISH payment, we know exactly which token was used
+    const paymentToken = WISH_TOKEN;
+    const paymentAmount = wishPaymentAmount;
 
-    console.log("Payment received in USDC:", {
+    console.log("Payment received in WISH:", {
       transactionId: verificationResult.paymentReceipt?.transaction,
       network: verificationResult.paymentReceipt?.network,
       payer: verificationResult.paymentReceipt?.payer,
       token: paymentToken,
-      amount: `${paymentAmount} (0.05 USDC)`,
+      amount: paymentAmount,
+      readableAmount: `${Number(paymentAmount) / 10 ** 18} WISH`,
       usdValue: `$${TARGET_PRICE_USD}`,
     });
 
@@ -207,8 +286,8 @@ export async function POST(request: NextRequest) {
     if (existingComparison) {
       console.log("Returning cached price comparison results");
 
-      // Sweep entire USDC balance to personal wallet
-      console.log("Sweeping USDC balance for cached result");
+      // Sweep entire WISH balance to personal wallet
+      console.log("Sweeping WISH balance for cached result");
       sweepTokenBalance(paymentToken).catch((error: Error) => {
         console.error("Background balance sweep failed:", error);
       });
@@ -266,9 +345,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if caching fails
     }
 
-    // PHASE 3: Sweep entire USDC balance to personal wallet
+    // PHASE 3: Sweep entire WISH balance to personal wallet
     // This happens in the background after the main work is done
-    console.log("Sweeping entire USDC balance to personal wallet");
+    console.log("Sweeping entire WISH balance to personal wallet");
     sweepTokenBalance(paymentToken).catch((error: Error) => {
       console.error("Background balance sweep failed:", error);
     });
