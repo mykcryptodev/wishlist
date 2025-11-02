@@ -99,7 +99,7 @@ export function FindCheapestButton({
         size={size}
         onClick={handleClick}
         disabled={isLoading}
-        className="w-full"
+        className="w-full hidden" // TODO: Remove this once we have a real implementation
       >
         <Search className="mr-2 h-4 w-4" />
         Find Cheapest Store
