@@ -10,11 +10,11 @@ import {
   Blobbie,
 } from "thirdweb/react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useWishlistFeed } from "@/hooks/useWishlistFeed";
 import { client } from "@/providers/Thirdweb";
 
-import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
 import { WishlistItemCard } from "./WishlistItemCard";
 
 export function WishlistFeed() {
@@ -45,7 +45,16 @@ export function WishlistFeed() {
   };
 
   // Transform feed items to match WishlistItemCard interface
-  const transformFeedItem = (item: any) => ({
+  const transformFeedItem = (item: {
+    itemId: string;
+    owner: string;
+    title: string;
+    description: string;
+    url: string;
+    imageUrl: string;
+    price: string;
+    blockTimestamp: string;
+  }) => ({
     id: item.itemId,
     owner: item.owner,
     title: item.title || `Item #${item.itemId}`,
@@ -61,9 +70,9 @@ export function WishlistFeed() {
   const PaginationControls = () => (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
       <Button
+        disabled={page === 1 || isLoading}
         variant="outline"
         onClick={() => setPage(p => Math.max(1, p - 1))}
-        disabled={page === 1 || isLoading}
       >
         Previous
       </Button>
@@ -83,9 +92,9 @@ export function WishlistFeed() {
       </div>
 
       <Button
+        disabled={!data?.pagination.hasMore || isLoading}
         variant="outline"
         onClick={() => setPage(p => p + 1)}
-        disabled={!data?.pagination.hasMore || isLoading}
       >
         Next
       </Button>
@@ -104,10 +113,10 @@ export function WishlistFeed() {
           <h2 className="text-2xl font-bold text-outlined">Latest Wishes</h2>
         </div>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
           disabled={isRefetching}
+          size="sm"
+          variant="outline"
+          onClick={() => refetch()}
         >
           {isRefetching ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -147,8 +156,8 @@ export function WishlistFeed() {
               {/* Attribution Header with Account Info */}
               <AccountProvider address={item.owner} client={client}>
                 <Link
-                  href={`/wishlist/${item.owner}`}
                   className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity group"
+                  href={`/wishlist/${item.owner}`}
                 >
                   <AccountAvatar
                     className="h-8 w-8 rounded-full ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all"
@@ -179,7 +188,7 @@ export function WishlistFeed() {
               <WishlistItemCard
                 item={transformFeedItem(item)}
                 viewMode="public"
-                onPurchaseInterest={itemId => {
+                onPurchaseInterest={() => {
                   // Navigate to the user's wishlist to see full details
                   window.location.href = `/users/${item.owner}`;
                 }}

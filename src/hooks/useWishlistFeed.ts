@@ -5,6 +5,9 @@ interface FeedItem {
   owner: string;
   title: string;
   url: string;
+  description: string;
+  imageUrl: string;
+  price: string;
   blockNumber: string;
   blockTimestamp: string;
   transactionHash: string;

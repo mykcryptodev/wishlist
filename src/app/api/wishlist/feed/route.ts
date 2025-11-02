@@ -23,6 +23,8 @@ interface EventLog {
   };
 }
 
+// Thirdweb API response structure (flexible to handle different formats)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ThirdwebEventsResponse {
   result?:
     | {
@@ -189,25 +191,32 @@ export async function GET(request: NextRequest) {
         // Handle params as an array
         if (Array.isArray(event.decoded.params)) {
           itemId =
-            event.decoded.params.find((p: any) => p.name === "itemId")?.value ||
-            "";
+            event.decoded.params.find(
+              (p: { name: string; value: string }) => p.name === "itemId",
+            )?.value || "";
           owner =
-            event.decoded.params.find((p: any) => p.name === "owner")?.value ||
-            "";
+            event.decoded.params.find(
+              (p: { name: string; value: string }) => p.name === "owner",
+            )?.value || "";
           title =
-            event.decoded.params.find((p: any) => p.name === "title")?.value ||
-            "";
+            event.decoded.params.find(
+              (p: { name: string; value: string }) => p.name === "title",
+            )?.value || "";
           url =
-            event.decoded.params.find((p: any) => p.name === "url")?.value ||
-            "";
+            event.decoded.params.find(
+              (p: { name: string; value: string }) => p.name === "url",
+            )?.value || "";
         }
         // Handle params as an object
         else if (typeof event.decoded.params === "object") {
-          const params = event.decoded.params as any;
-          itemId = params.itemId || params[0] || "";
-          owner = params.owner || params[1] || "";
-          title = params.title || params[2] || "";
-          url = params.url || params[3] || "";
+          const params = event.decoded.params as Record<
+            string,
+            string | number
+          >;
+          itemId = (params.itemId || params[0] || "").toString();
+          owner = (params.owner || params[1] || "").toString();
+          title = (params.title || params[2] || "").toString();
+          url = (params.url || params[3] || "").toString();
         }
       }
 

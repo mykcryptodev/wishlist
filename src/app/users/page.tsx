@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-import { UserSearch } from "@/components/user-search";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserSearch } from "@/components/user-search";
 import { WishlistFeed } from "@/components/wishlist/feed";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
@@ -50,7 +50,7 @@ export default function UsersPage() {
         </div>
 
         {!isSearching && (
-          <Tabs defaultValue="feed" className="w-full">
+          <Tabs className="w-full" defaultValue="feed">
             <div className="flex justify-center mb-6">
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="feed">Wish Feed</TabsTrigger>
@@ -58,7 +58,7 @@ export default function UsersPage() {
               </TabsList>
             </div>
 
-            <TabsContent value="feed" className="max-w-4xl mx-auto">
+            <TabsContent className="max-w-4xl mx-auto" value="feed">
               <WishlistFeed />
             </TabsContent>
 
