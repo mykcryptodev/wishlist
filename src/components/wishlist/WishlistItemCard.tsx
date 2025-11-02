@@ -15,11 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
-import {
-  extractAmazonProductId,
-  getWorldstoreUrl,
-  isAmazonUrl,
-} from "@/lib/amazon";
+import { getCryptoPurchaseUrl } from "@/lib/crypto-purchase";
 
 interface WishlistItemCardProps {
   item: {
@@ -71,20 +67,19 @@ export function WishlistItemCard({
     });
   };
 
-  // Check if this is an Amazon product
-  const isAmazon = isAmazonUrl(item.url);
-  const amazonProductId = isAmazon ? extractAmazonProductId(item.url) : null;
-  const canBuyWithCrypto = isInMiniApp && amazonProductId && !isMiniAppLoading;
+  // Check if this product supports crypto purchase
+  const cryptoPurchaseUrl = getCryptoPurchaseUrl(item.url);
+  const canBuyWithCrypto =
+    isInMiniApp && cryptoPurchaseUrl && !isMiniAppLoading;
 
   const handleBuyWithCrypto = async () => {
-    if (!amazonProductId) return;
+    if (!cryptoPurchaseUrl) return;
 
     setIsOpeningMiniApp(true);
     try {
-      const worldstoreUrl = getWorldstoreUrl(amazonProductId);
-      await sdk.actions.openMiniApp({ url: worldstoreUrl });
+      await sdk.actions.openMiniApp({ url: cryptoPurchaseUrl });
     } catch (error) {
-      console.error("Failed to open Worldstore:", error);
+      console.error("Failed to open crypto purchase mini app:", error);
       // Optionally show error toast here
     } finally {
       setIsOpeningMiniApp(false);
