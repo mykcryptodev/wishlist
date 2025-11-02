@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { chain, wishlist } from "@/constants";
+import { CACHE_TTL, getFeedCacheKey, redis, shouldUseCache } from "@/lib/redis";
 import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 const THIRDWEB_API_URL = "https://api.thirdweb.com/v1";
@@ -56,6 +57,28 @@ export async function GET(request: NextRequest) {
       100,
     ).toString();
     const includeDetails = searchParams.get("includeDetails") !== "false"; // Default to true
+
+    // Check Redis cache first
+    const useCache = shouldUseCache(chain.id);
+    const cacheKey = getFeedCacheKey(chain.id, page, limit, includeDetails);
+
+    if (useCache && redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          if (process.env.NODE_ENV === "development") {
+            console.log(`💾 Cache HIT for ${cacheKey}`);
+          }
+          return NextResponse.json(cached);
+        }
+        if (process.env.NODE_ENV === "development") {
+          console.log(`🔍 Cache MISS for ${cacheKey}`);
+        }
+      } catch (error) {
+        console.error("Redis cache read error:", error);
+        // Continue without cache
+      }
+    }
 
     // ItemCreated event signature: ItemCreated(uint256 indexed itemId, address indexed owner, string title, string url)
     // Keccak256 hash from the actual Wishlist contract
@@ -287,7 +310,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const feedResponse = {
       success: true,
       items: enrichedFeedItems,
       pagination: {
@@ -297,7 +320,26 @@ export async function GET(request: NextRequest) {
         totalItems,
         totalPages,
       },
-    });
+    };
+
+    // Cache the response in Redis
+    if (useCache && redis) {
+      try {
+        await redis.setex(
+          cacheKey,
+          CACHE_TTL.ONE_MINUTE,
+          JSON.stringify(feedResponse),
+        );
+        if (process.env.NODE_ENV === "development") {
+          console.log(`💾 Cached response for ${cacheKey} (TTL: 60s)`);
+        }
+      } catch (error) {
+        console.error("Redis cache write error:", error);
+        // Continue without caching
+      }
+    }
+
+    return NextResponse.json(feedResponse);
   } catch (error) {
     console.error("Error fetching wishlist feed:", error);
     return NextResponse.json(
