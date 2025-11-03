@@ -108,6 +108,80 @@ export function extractProductInfo(item: {
 }
 
 /**
+ * Check SerpAPI account status to ensure we can make a search
+ * Call this BEFORE taking user payment to avoid charging when quota is exhausted
+ */
+export async function checkSerpApiAvailability(): Promise<{
+  available: boolean;
+  reason?: string;
+  searchesLeft?: number;
+}> {
+  const apiKey = process.env.SERPAPI_KEY;
+
+  if (!apiKey) {
+    return {
+      available: false,
+      reason: "SERPAPI_KEY environment variable is not configured",
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `https://serpapi.com/account.json?api_key=${apiKey}`,
+    );
+
+    if (!response.ok) {
+      return {
+        available: false,
+        reason: `SerpAPI account check failed: ${response.status}`,
+      };
+    }
+
+    const accountData = await response.json();
+
+    // Check if we have searches remaining
+    const searchesLeft = accountData.total_searches_left || 0;
+
+    if (searchesLeft <= 0) {
+      return {
+        available: false,
+        reason: "SerpAPI quota exhausted. No searches remaining this month.",
+        searchesLeft: 0,
+      };
+    }
+
+    // Check hourly rate limit (conservative check - leave some buffer)
+    const hourlyLimit = accountData.account_rate_limit_per_hour || 0;
+    const lastHourSearches = accountData.last_hour_searches || 0;
+
+    if (hourlyLimit > 0 && lastHourSearches >= hourlyLimit * 0.9) {
+      return {
+        available: false,
+        reason: "SerpAPI hourly rate limit nearly reached. Try again later.",
+        searchesLeft,
+      };
+    }
+
+    console.log("✅ SerpAPI available:", {
+      searchesLeft,
+      plan: accountData.plan_name,
+      hourlyUsage: `${lastHourSearches}/${hourlyLimit}`,
+    });
+
+    return {
+      available: true,
+      searchesLeft,
+    };
+  } catch (error) {
+    console.error("Failed to check SerpAPI availability:", error);
+    return {
+      available: false,
+      reason: "Failed to verify SerpAPI account status",
+    };
+  }
+}
+
+/**
  * Search Google Shopping using SerpAPI directly
  * Requires SERPAPI_KEY environment variable
  */

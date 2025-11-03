@@ -18,6 +18,7 @@ import { settlePayment } from "thirdweb/x402";
 import { multisig, usdc, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import {
+  checkSerpApiAvailability,
   extractProductInfo,
   searchGoogleShopping,
 } from "@/lib/price-comparison";
@@ -199,6 +200,27 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // PRE-FLIGHT CHECK: Verify SerpAPI is available BEFORE taking payment
+    console.log("Pre-flight: Checking SerpAPI availability...");
+    const serpApiStatus = await checkSerpApiAvailability();
+
+    if (!serpApiStatus.available) {
+      console.error("❌ SerpAPI not available:", serpApiStatus.reason);
+      // Return 503 Service Unavailable (don't trigger payment)
+      return NextResponse.json(
+        {
+          error: "Price comparison service temporarily unavailable",
+          details: serpApiStatus.reason,
+          searchesLeft: serpApiStatus.searchesLeft,
+        },
+        { status: 503 },
+      );
+    }
+
+    console.log(
+      `✅ SerpAPI ready (${serpApiStatus.searchesLeft} searches remaining)`,
+    );
 
     // Determine payment configuration based on toggle
     let paymentToken: `0x${string}`;
