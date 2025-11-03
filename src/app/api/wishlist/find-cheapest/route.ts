@@ -329,13 +329,33 @@ export async function POST(request: NextRequest) {
       console.log(
         `Found ${comparisonResults.stores.length} stores, cheapest: $${comparisonResults.cheapestPrice}`,
       );
+
+      // Verify we have actual results
+      if (!comparisonResults.stores || comparisonResults.stores.length === 0) {
+        throw new Error("No stores found with valid URLs and prices");
+      }
     } catch (error) {
       console.error("Google Shopping search failed:", error);
+
+      // Still cache the failure so user doesn't pay again immediately for same item
+      await supabaseAdmin.from("price_comparisons").insert({
+        item_id: item.id,
+        wallet_address: walletAddress.toLowerCase(),
+        item_data: item,
+        results: {
+          cheapestPrice: 0,
+          stores: [],
+          comparedAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : "Search failed",
+        },
+      });
+
       return NextResponse.json(
         {
           error: "Failed to find prices",
           details:
             error instanceof Error ? error.message : "Price search failed",
+          note: "We've cached this failure. Try again after 7 days or with a different search term.",
         },
         { status: 500 },
       );

@@ -19,6 +19,10 @@ interface PriceResult {
   thumbnail?: string;
   shipping?: string;
   rating?: number;
+  installment?: {
+    monthlyPrice: number;
+    months: number;
+  };
 }
 
 interface ComparisonResults {
@@ -37,6 +41,7 @@ export function extractProductInfo(item: {
   description: string;
 }): ProductInfo {
   const title = item.title.trim();
+  const description = item.description?.trim() || "";
 
   // Try to extract brand from URL or title
   let brand: string | undefined;
@@ -47,12 +52,23 @@ export function extractProductInfo(item: {
     brand = brandMatch[1].trim();
   }
 
-  // Create search query - clean up common noise words and overly descriptive terms
+  // Try to extract model number from description (like "Model: ABC-123" or "SKU: XYZ")
+  const modelMatch = description.match(
+    /(?:model|sku|part\s*#?)[:\s]+([A-Z0-9-]+)/i,
+  );
+  const modelNumber = modelMatch ? modelMatch[1].trim() : "";
+
+  // Build search query starting with title
   let searchQuery = title
     .replace(/\s+/g, " ")
     .replace(/\[.*?\]/g, "") // Remove brackets
     .replace(/\(.*?\)/g, "") // Remove parentheses
     .trim();
+
+  // Append model number if found (helps with exact matches)
+  if (modelNumber && !searchQuery.includes(modelNumber)) {
+    searchQuery = `${searchQuery} ${modelNumber}`.trim();
+  }
 
   // Remove overly descriptive/generic words that hurt search quality
   const noiseWords = [
@@ -107,7 +123,7 @@ export async function searchGoogleShopping(
 
   // Build SerpAPI request
   const params = new URLSearchParams({
-    engine: "google_shopping",
+    engine: "google_shopping_light",
     q: productInfo.searchQuery,
     api_key: apiKey,
     num: "20", // Get more results for better comparison
@@ -121,6 +137,18 @@ export async function searchGoogleShopping(
   console.log("  - Original title:", productInfo.title);
   console.log("  - Optimized query:", productInfo.searchQuery);
   console.log("  - Brand:", productInfo.brand || "not detected");
+
+  // Check if model number was extracted from description
+  const hasModelInQuery =
+    productInfo.searchQuery !==
+    productInfo.title
+      .replace(/\s+/g, " ")
+      .replace(/\[.*?\]/g, "")
+      .replace(/\(.*?\)/g, "")
+      .trim();
+  if (hasModelInQuery) {
+    console.log("  - Enhanced with model number from description");
+  }
 
   const response = await fetch(url);
 
@@ -157,16 +185,33 @@ function parseShoppingResults(
     .split(" ")
     .filter((w: string) => w.length > 2);
 
+  // Store the search query for fallback URLs
+  const fallbackSearchQuery = searchQuery;
+
   // Extended type for relevance scoring
   type ScoredResult = PriceResult & { relevanceScore: number };
+
+  console.log("🔍 Shopping Results:", JSON.stringify(shoppingResults));
 
   // Convert to our format
   const stores: ScoredResult[] = shoppingResults
     .map((result: any): ScoredResult | null => {
-      // Parse price - handle different formats
+      // Parse price - handle installment pricing
       let price = 0;
-      if (typeof result.price === "string") {
-        // Remove currency symbols and parse
+      let installmentInfo: { monthlyPrice: number; months: number } | undefined;
+
+      // Check if this is an installment price
+      if (result.installment && result.installment.period) {
+        // Calculate total price: monthly payment × number of months
+        const monthlyPrice = result.installment.extracted_price || 0;
+        const months = result.installment.period || 0;
+        price = monthlyPrice * months;
+        installmentInfo = { monthlyPrice, months };
+        console.log(
+          `Installment pricing: $${monthlyPrice}/mo × ${months} months = $${price} total`,
+        );
+      } else if (typeof result.price === "string") {
+        // Regular price - remove currency symbols and parse
         price = parseFloat(result.price.replace(/[^0-9.]/g, ""));
       } else if (typeof result.extracted_price === "number") {
         price = result.extracted_price;
@@ -205,15 +250,39 @@ function parseShoppingResults(
         relevanceScore += 2;
       }
 
+      // SerpAPI can return URLs in different fields - check them all
+      let url =
+        result.link || result.product_link || result.serpapi_product_api || "";
+
+      // Ensure URL has protocol (some results might be missing it)
+      if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+        url = `https://${url}`;
+      }
+
+      // If still no URL, log the entire result to debug
+      if (!url || url.trim() === "") {
+        console.warn(
+          `No URL found for: ${result.source} - $${price}`,
+          "Available fields:",
+          Object.keys(result),
+        );
+        // Don't skip - use a fallback Google search URL
+        url = `https://www.google.com/search?q=${encodeURIComponent(
+          `${result.source} ${result.title || fallbackSearchQuery}`,
+        )}`;
+        console.log(`   → Using fallback URL: ${url.substring(0, 80)}...`);
+      }
+
       return {
         name: result.source || "Unknown Store",
         price,
-        url: result.link || "",
+        url,
         savings,
         source: result.source || "Unknown",
         thumbnail: result.thumbnail,
         shipping: result.delivery || result.shipping,
         rating: result.rating,
+        installment: installmentInfo, // Include installment info if present
         relevanceScore,
       };
     })
@@ -270,9 +339,8 @@ function parseShoppingResults(
     `✅ Returning ${topStores.length} results, cheapest: $${cheapestPrice}`,
   );
   topStores.forEach((store, idx) => {
-    console.log(
-      `   ${idx + 1}. ${store.name}: $${store.price} (score was included in sort)`,
-    );
+    console.log(`   ${idx + 1}. ${store.name}: $${store.price}`);
+    console.log(`      URL: ${store.url.substring(0, 100)}...`);
   });
 
   return {

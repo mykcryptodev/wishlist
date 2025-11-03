@@ -30,6 +30,10 @@ interface PriceComparisonModalProps {
       thumbnail?: string;
       shipping?: string;
       rating?: number;
+      installment?: {
+        monthlyPrice: number;
+        months: number;
+      };
     }>;
     comparedAt: string;
   } | null;
@@ -112,21 +116,30 @@ export function PriceComparisonModal({
                   <p className="font-medium truncate">{store.name}</p>
 
                   {/* Price and Savings */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-lg font-semibold">
-                      {formatPrice(store.price)}
-                    </p>
-                    {store.savings > 0.01 && (
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        {store.savings >= 1
-                          ? `Save ${formatPrice(store.savings)}`
-                          : "+$0.00"}
-                      </span>
-                    )}
-                    {idx === 0 && (
-                      <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
-                        Best Price
-                      </span>
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-semibold">
+                        {formatPrice(store.price)}
+                      </p>
+                      {store.savings > 0.01 && (
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                          {store.savings >= 1
+                            ? `Save ${formatPrice(store.savings)}`
+                            : "+$0.00"}
+                        </span>
+                      )}
+                      {idx === 0 && (
+                        <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
+                          Best Price
+                        </span>
+                      )}
+                    </div>
+                    {/* Show installment info if available */}
+                    {store.installment && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatPrice(store.installment.monthlyPrice)}/mo for{" "}
+                        {store.installment.months} months
+                      </p>
                     )}
                   </div>
 
@@ -158,7 +171,10 @@ export function PriceComparisonModal({
                       href={store.url}
                       rel="noopener noreferrer"
                       target="_blank"
-                      onClick={e => e.stopPropagation()}
+                      onClick={e => {
+                        e.stopPropagation();
+                        console.log("Opening store link:", store.url);
+                      }}
                     >
                       View
                       <ExternalLink className="ml-2 h-4 w-4" />

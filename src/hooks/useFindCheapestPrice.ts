@@ -24,6 +24,10 @@ export interface PriceComparisonResults {
     thumbnail?: string;
     shipping?: string;
     rating?: number;
+    installment?: {
+      monthlyPrice: number;
+      months: number;
+    };
   }>;
   comparedAt: string;
 }
