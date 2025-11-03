@@ -170,6 +170,7 @@ export async function searchGoogleShopping(
  * Parse SerpAPI Google Shopping response into our format
  */
 function parseShoppingResults(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any,
   originalPrice?: number,
 ): ComparisonResults {
@@ -195,6 +196,7 @@ function parseShoppingResults(
 
   // Convert to our format
   const stores: ScoredResult[] = shoppingResults
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((result: any): ScoredResult | null => {
       // Parse price - handle installment pricing
       let price = 0;
@@ -314,8 +316,9 @@ function parseShoppingResults(
 
   // Take top 5 results
   const topStores = filteredStores.slice(0, 5).map(store => {
-    // Remove the relevanceScore before returning
-    const { relevanceScore, ...cleanStore } = store;
+    // Remove the relevanceScore before returning (used for sorting only)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { relevanceScore: _relevanceScore, ...cleanStore } = store;
     return cleanStore;
   });
 
@@ -375,6 +378,7 @@ export async function extractOpenGraphData(url: string): Promise<{
     const html = await response.text();
 
     // Simple regex-based OG tag extraction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ogData: any = {};
 
     const titleMatch = html.match(
