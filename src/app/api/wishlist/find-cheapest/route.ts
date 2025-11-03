@@ -15,7 +15,7 @@ import { toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
-import { multisig, wish } from "@/constants";
+import { multisig, usdc, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
@@ -27,10 +27,18 @@ import { x402Facilitator } from "@/lib/x402-facilitator";
 const SERVER_WALLET = process.env.THIRDWEB_PROJECT_WALLET!;
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 
-// Payment configuration for x402
-// Use WISH tokens for payments (creates demand for WISH)
-const WISH_TOKEN = wish[base.id] as `0x${string}`; // WISH token on Base mainnet
+// ============================================================================
+// PAYMENT CONFIGURATION - Toggle between USDC and WISH
+// ============================================================================
+const USE_WISH_TOKEN = false; // Set to true for WISH, false for USDC (easier for testing)
 const TARGET_PRICE_USD = 0.05; // $0.05 USD
+
+// Token addresses
+const WISH_TOKEN = wish[base.id] as `0x${string}`;
+const USDC_TOKEN = usdc[base.id] as `0x${string}`;
+
+// USDC configuration (6 decimals)
+const USDC_AMOUNT = "50000"; // 0.05 USDC = 50,000 base units
 
 /**
  * Fetch current WISH token price and calculate payment amount
@@ -188,13 +196,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate WISH token payment amount based on current price
-    const wishPaymentAmount = await calculateWishPaymentAmount();
-    console.log("Wish payment amount:", wishPaymentAmount);
+    // Determine payment configuration based on toggle
+    let paymentToken: `0x${string}`;
+    let paymentAmount: string;
+    let paymentDescription: string;
+
+    if (USE_WISH_TOKEN) {
+      // WISH token payment - calculate based on current price
+      paymentAmount = await calculateWishPaymentAmount();
+      paymentToken = WISH_TOKEN;
+      paymentDescription = `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} in WISH)`;
+      console.log("Using WISH payment:", paymentAmount);
+    } else {
+      // USDC payment - fixed amount
+      paymentAmount = USDC_AMOUNT;
+      paymentToken = USDC_TOKEN;
+      paymentDescription = `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} USDC)`;
+      console.log("Using USDC payment:", paymentAmount);
+    }
 
     // PHASE 1: Verify and settle payment BEFORE doing expensive work
     // This prevents wasting resources on invalid/insufficient payments
-    // Force payment in WISH tokens with exact amount
     const verificationResult = await settlePayment({
       resourceUrl: request.url,
       method: "POST",
@@ -202,15 +224,15 @@ export async function POST(request: NextRequest) {
       payTo: SERVER_WALLET,
       network: base,
       price: {
-        amount: wishPaymentAmount, // Amount in wei (smallest unit)
+        amount: paymentAmount,
         asset: {
-          address: WISH_TOKEN,
-          decimals: 18, // Helps wallet display as "9,692 WISH" instead of raw wei
+          address: paymentToken,
+          decimals: USE_WISH_TOKEN ? 18 : 6,
         },
       },
       facilitator: x402Facilitator,
       routeConfig: {
-        description: `Find the cheapest place to buy this item (${wishPaymentAmount} WISH ≈ $${TARGET_PRICE_USD})`,
+        description: paymentDescription,
         mimeType: "application/json",
         maxTimeoutSeconds: 300,
       },
@@ -233,17 +255,17 @@ export async function POST(request: NextRequest) {
       JSON.stringify(verificationResult.paymentReceipt, null, 2),
     );
 
-    // Since we're forcing WISH payment, we know exactly which token was used
-    const paymentToken = WISH_TOKEN;
-    const paymentAmount = wishPaymentAmount;
+    // Log payment receipt
+    const tokenName = USE_WISH_TOKEN ? "WISH" : "USDC";
+    const tokenDecimals = USE_WISH_TOKEN ? 18 : 6;
 
-    console.log("Payment received in WISH:", {
+    console.log(`Payment received in ${tokenName}:`, {
       transactionId: verificationResult.paymentReceipt?.transaction,
       network: verificationResult.paymentReceipt?.network,
       payer: verificationResult.paymentReceipt?.payer,
       token: paymentToken,
       amount: paymentAmount,
-      readableAmount: `${Number(paymentAmount) / 10 ** 18} WISH`,
+      readableAmount: `${Number(paymentAmount) / 10 ** tokenDecimals} ${tokenName}`,
       usdValue: `$${TARGET_PRICE_USD}`,
     });
 
@@ -262,8 +284,8 @@ export async function POST(request: NextRequest) {
     if (existingComparison) {
       console.log("Returning cached price comparison results");
 
-      // Sweep entire WISH balance to personal wallet
-      console.log("Sweeping WISH balance for cached result");
+      // Sweep entire token balance to personal wallet
+      console.log(`Sweeping ${tokenName} balance for cached result`);
       sweepTokenBalance(paymentToken).catch((error: Error) => {
         console.error("Background balance sweep failed:", error);
       });
@@ -321,9 +343,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if caching fails
     }
 
-    // PHASE 3: Sweep entire WISH balance to personal wallet
+    // PHASE 3: Sweep entire token balance to personal wallet
     // This happens in the background after the main work is done
-    console.log("Sweeping entire WISH balance to personal wallet");
+    console.log(`Sweeping entire ${tokenName} balance to personal wallet`);
     sweepTokenBalance(paymentToken).catch((error: Error) => {
       console.error("Background balance sweep failed:", error);
     });
