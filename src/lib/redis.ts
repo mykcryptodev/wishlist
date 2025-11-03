@@ -48,9 +48,13 @@ export const getFeedCacheKey = (
   return `feed:${chainId}:p${page}:l${limit}:d${includeDetails}`;
 };
 
+export const getSerpApiAvailabilityCacheKey = () => {
+  return "serpapi:availability";
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
   ONE_MINUTE: 60, // 1 minute in seconds (frequently changing feed data)
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
-  ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently)
+  ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently, SerpAPI availability)
 } as const;

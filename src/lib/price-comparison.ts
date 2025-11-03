@@ -110,6 +110,8 @@ export function extractProductInfo(item: {
 /**
  * Check SerpAPI account status to ensure we can make a search
  * Call this BEFORE taking user payment to avoid charging when quota is exhausted
+ *
+ * NO CACHING - Always checks fresh to ensure accurate quota info
  */
 export async function checkSerpApiAvailability(): Promise<{
   available: boolean;

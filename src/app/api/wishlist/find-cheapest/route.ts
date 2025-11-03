@@ -22,6 +22,7 @@ import {
   extractProductInfo,
   searchGoogleShopping,
 } from "@/lib/price-comparison";
+import { CACHE_TTL, redis } from "@/lib/redis";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   thirdwebReadContract,
@@ -201,7 +202,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // CACHE CHECK: Check Redis for cached results BEFORE taking payment
+    // If we have cached results, return immediately (no payment required)
+    const cacheKey = `price-comparison:${item.id}:${walletAddress.toLowerCase()}`;
+
+    if (redis) {
+      try {
+        const cachedResults = await redis.get(cacheKey);
+        if (cachedResults) {
+          console.log(
+            "✅ Redis cache hit - returning cached results (no payment)",
+          );
+          return NextResponse.json({
+            success: true,
+            results: cachedResults,
+            cached: true,
+          });
+        }
+        console.log("Redis cache miss - will check availability and charge");
+      } catch (error) {
+        console.warn("Redis cache check failed, continuing:", error);
+      }
+    }
+
     // PRE-FLIGHT CHECK: Verify SerpAPI is available BEFORE taking payment
+    // Always check fresh (no caching) to ensure accurate quota info
     console.log("Pre-flight: Checking SerpAPI availability...");
     const serpApiStatus = await checkSerpApiAvailability();
 
@@ -296,35 +321,7 @@ export async function POST(request: NextRequest) {
     });
 
     // PHASE 2: Payment successful - now do the expensive work
-    // Check if we already have cached results for this user/item
-    const { data: existingComparison } = await supabaseAdmin
-      .from("price_comparisons")
-      .select("*")
-      .eq("item_id", item.id)
-      .eq("wallet_address", walletAddress.toLowerCase())
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingComparison) {
-      console.log("Returning cached price comparison results");
-
-      // Sweep entire token balance to personal wallet
-      console.log(`Sweeping ${tokenName} balance for cached result`);
-      sweepTokenBalance(paymentToken).catch((error: Error) => {
-        console.error("Background balance sweep failed:", error);
-      });
-
-      return NextResponse.json({
-        success: true,
-        results: existingComparison.results,
-        cached: true,
-      });
-    }
-
-    // REAL PRICE COMPARISON - Using Google Shopping API
-    console.log("Generating new price comparison results");
+    console.log("Payment verified - executing price comparison");
 
     // Parse item price - handle both regular prices and blockchain wei format
     let itemPrice: number | undefined;
@@ -359,44 +356,78 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Google Shopping search failed:", error);
 
-      // Still cache the failure so user doesn't pay again immediately for same item
-      await supabaseAdmin.from("price_comparisons").insert({
-        item_id: item.id,
-        wallet_address: walletAddress.toLowerCase(),
-        item_data: item,
-        results: {
-          cheapestPrice: 0,
-          stores: [],
-          comparedAt: new Date().toISOString(),
-          error: error instanceof Error ? error.message : "Search failed",
-        },
-      });
+      // Cache the failure in Redis (1 hour) so user doesn't pay again immediately
+      if (redis) {
+        try {
+          const failureResult = {
+            cheapestPrice: 0,
+            stores: [],
+            comparedAt: new Date().toISOString(),
+            error: error instanceof Error ? error.message : "Search failed",
+          };
+          await redis.set(cacheKey, failureResult, { ex: CACHE_TTL.ONE_HOUR });
+          console.log("Cached failure in Redis (1 hour TTL)");
+        } catch (cacheError) {
+          console.error("Failed to cache error in Redis:", cacheError);
+        }
+      }
+
+      // Also save to Supabase for tracking (non-blocking)
+      supabaseAdmin
+        .from("price_comparisons")
+        .insert({
+          item_id: item.id,
+          wallet_address: walletAddress.toLowerCase(),
+          item_data: item,
+          results: {
+            cheapestPrice: 0,
+            stores: [],
+            comparedAt: new Date().toISOString(),
+            error: error instanceof Error ? error.message : "Search failed",
+          },
+        })
+        .then(({ error: err }) => {
+          if (err) console.warn("Supabase analytics error:", err);
+        });
 
       return NextResponse.json(
         {
           error: "Failed to find prices",
           details:
             error instanceof Error ? error.message : "Price search failed",
-          note: "We've cached this failure. Try again after 7 days or with a different search term.",
+          note: "We've cached this failure. Try again in 1 hour.",
         },
         { status: 500 },
       );
     }
 
-    // Save results to Supabase for caching
-    const { error: insertError } = await supabaseAdmin
+    // Cache successful results in Redis (1 hour TTL)
+    if (redis) {
+      try {
+        await redis.set(cacheKey, comparisonResults, {
+          ex: CACHE_TTL.ONE_HOUR,
+        });
+        console.log(
+          `✅ Cached results in Redis (1 hour TTL, ${comparisonResults.stores.length} stores)`,
+        );
+      } catch (error) {
+        console.error("Failed to cache results in Redis:", error);
+        // Don't fail the request if caching fails
+      }
+    }
+
+    // Optional: Save to Supabase for analytics/history (non-blocking)
+    supabaseAdmin
       .from("price_comparisons")
       .insert({
         item_id: item.id,
         wallet_address: walletAddress.toLowerCase(),
         item_data: item,
         results: comparisonResults,
+      })
+      .then(({ error: err }) => {
+        if (err) console.warn("Supabase analytics error:", err);
       });
-
-    if (insertError) {
-      console.error("Failed to cache results:", insertError);
-      // Don't fail the request if caching fails
-    }
 
     // PHASE 3: Sweep entire token balance to personal wallet
     // This happens in the background after the main work is done

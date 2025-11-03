@@ -24,7 +24,8 @@
 
 ```typescript
 // Step 1: Check SerpAPI availability BEFORE taking user's money
-const serpApiStatus = await checkSerpApiAvailability();
+// Uses 1-hour Supabase cache to minimize API calls
+const serpApiStatus = await checkSerpApiAvailability(supabaseAdmin);
 
 if (!serpApiStatus.available) {
   // Return 503 Service Unavailable - this does NOT trigger payment
@@ -36,6 +37,41 @@ if (!serpApiStatus.available) {
 
 // Step 2: NOW proceed with x402 payment (we know we can deliver)
 const verificationResult = await settlePayment({...});
+```
+
+### Caching Strategy (1-Hour TTL)
+
+```typescript
+// Check cache first
+const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+const cachedStatus = await supabase
+  .from("serpapi_availability")
+  .select("*")
+  .gt("checked_at", oneHourAgo)
+  .order("checked_at", { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+if (cachedStatus) {
+  // Use cached data (skip Account API call)
+  return {
+    available: cachedStatus.available,
+    reason: cachedStatus.reason,
+    searchesLeft: cachedStatus.searches_left,
+  };
+}
+
+// Cache miss - call Account API and store result
+const accountData = await fetch(`https://serpapi.com/account.json?api_key=${apiKey}`);
+// ... check quota ...
+
+// Store in cache for next hour
+await supabase.from("serpapi_availability").insert({
+  available: true,
+  searches_left: searchesLeft,
+  plan_name: accountData.plan_name,
+  // ... other fields ...
+});
 ```
 
 ### What Gets Checked
@@ -76,6 +112,47 @@ According to [SerpAPI Account API docs](https://serpapi.com/account-api):
 | 402    | Payment required            | ❌ No (waiting for payment)              |
 | 500    | Search failed after payment | ✅ Yes (but cached to prevent re-charge) |
 | 503    | Service unavailable         | ❌ No (pre-flight failed)                |
+
+## Database Setup
+
+### Run the Migration
+
+Execute the SQL migration in your Supabase SQL Editor:
+
+```bash
+# File location
+supabase-migrations/serpapi_availability.sql
+
+# Or copy from supabase-schema.sql (lines 118-152)
+```
+
+The migration creates:
+- `serpapi_availability` table
+- Index on `checked_at` for fast lookups
+- RLS policies for service role access
+- Auto-cleanup function (optional)
+
+### Table Schema
+
+```sql
+CREATE TABLE serpapi_availability (
+  id UUID PRIMARY KEY,
+  available BOOLEAN NOT NULL,
+  reason TEXT,
+  searches_left INTEGER,
+  plan_name TEXT,
+  hourly_usage INTEGER,
+  hourly_limit INTEGER,
+  checked_at TIMESTAMP DEFAULT NOW()  -- 1-hour TTL
+);
+```
+
+### Verify Table Exists
+
+```sql
+-- Run in Supabase SQL Editor
+SELECT * FROM serpapi_availability ORDER BY checked_at DESC LIMIT 5;
+```
 
 ## Benefits
 

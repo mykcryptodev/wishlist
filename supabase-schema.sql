@@ -115,3 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_price_comparisons_wallet
 CREATE INDEX IF NOT EXISTS idx_price_comparisons_expires 
     ON price_comparisons(expires_at);
 
+-- Note: Price comparison results are now cached in Redis (1-hour TTL)
+-- instead of this table. The price_comparisons table is kept for
+-- historical tracking and analytics purposes only.
+
