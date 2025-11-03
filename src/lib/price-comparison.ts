@@ -305,6 +305,27 @@ function parseShoppingResults(
         return null;
       }
 
+      // Skip if price is WAY too low compared to original (probably wrong product)
+      // Example: If original is $100 and we find $10, it's likely an accessory/case
+      if (originalPrice && originalPrice > 0) {
+        const discountPercent = ((originalPrice - price) / originalPrice) * 100;
+
+        if (discountPercent > 55) {
+          console.log(
+            `Skipping unlikely match - ${discountPercent.toFixed(0)}% off: ${result.source} $${price} (original: $${originalPrice})`,
+          );
+          return null;
+        }
+
+        // Also skip if price is way HIGHER (more than 3x original)
+        if (price > originalPrice * 3) {
+          console.log(
+            `Skipping overpriced result: ${result.source} $${price} (original: $${originalPrice})`,
+          );
+          return null;
+        }
+      }
+
       // Calculate savings if original price provided
       const savings = originalPrice ? Math.max(0, originalPrice - price) : 0;
 

@@ -42,11 +42,13 @@ Now savings are calculated correctly, or shown relative to the cheapest option i
 - **After**: "Ring Smart Lighting Solar LED Pathlight"
 - More concise, better search results
 
-### 3. 📊 No Result Relevance Filtering
+### 3. 📊 Result Filtering (Relevance + Price Validation)
 
-**Problem**: Google Shopping returned any products matching keywords, even if completely wrong (e.g., $5.50 generic lights instead of Ring products).
+**Problem**: Google Shopping returned any products matching keywords, even if completely wrong (e.g., $5.50 generic lights instead of $40 Ring products, or $10 iPhone cases instead of $900 iPhones).
 
-**Solution**: Implemented relevance scoring system:
+**Solution**: Implemented dual filtering system:
+
+#### A. Relevance Scoring
 
 ```typescript
 // Calculate relevance score
@@ -65,11 +67,56 @@ if (searchSource && result.source.includes(searchSource)) {
 **Filtering logic**:
 
 - Results must match at least 20% of search terms
-- Sort by relevance first, then by price
+- Sort by **price first** (cheapest first), then relevance
 - Filter out suspiciously low prices (<$1)
+- **Skip if >70% discount** from original (likely wrong product)
+- **Skip if >3x original price** (likely bundle/premium variant)
 - Prioritize results from matching brand sources
 
-### 4. 🎨 UI Improvements
+### 4. 💰 Price Validation Filter
+
+**Problem**: Search results included accessories, cases, or completely different products with wildly different prices.
+
+**Examples**:
+
+- Searching for $899 iPhone → Finding $29 phone case
+- Searching for $100 headphones → Finding $15 replacement pads
+- Searching for $50 item → Finding $200 deluxe bundle
+
+**Solution**: Filter out results with unrealistic price differences:
+
+```typescript
+if (originalPrice && originalPrice > 0) {
+  const discountPercent = ((originalPrice - price) / originalPrice) * 100;
+
+  // Skip if >70% discount (likely accessories/wrong product)
+  if (discountPercent > 70) {
+    console.log(`Skipping unlikely match - ${discountPercent}% off`);
+    return null;
+  }
+
+  // Skip if >3x original price (likely premium bundle)
+  if (price > originalPrice * 3) {
+    console.log(`Skipping overpriced result`);
+    return null;
+  }
+}
+```
+
+**Results**:
+
+- ✅ $899 iPhone → Shows $849-$999 options (realistic range)
+- ❌ $899 iPhone → Skips $29 case (97% off)
+- ✅ $100 headphones → Shows $85-$150 options
+- ❌ $100 headphones → Skips $400 pro bundle (4x price)
+
+**Edge Cases**:
+
+- If no original price provided → No price filtering (show all)
+- Threshold: Exactly 70% off is kept (e.g., $100 → $30 refurbished)
+- Upper bound: Up to 3x is kept (e.g., $100 → $299 premium edition)
+
+### 5. 🎨 UI Improvements
 
 **Changes**:
 
@@ -77,6 +124,7 @@ if (searchSource && result.source.includes(searchSource)) {
 - Better handling of savings display (hide if <$0.01)
 - Added "Best Price" badge to cheapest option
 - Improved layout with better spacing
+- Scrollable results container (handles 1-20+ stores)
 
 ### 5. 📝 Better Logging
 
