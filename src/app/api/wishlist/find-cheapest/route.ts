@@ -62,40 +62,17 @@ async function calculateWishPaymentAmount(): Promise<string> {
     const priceUsd = wishToken.priceUsd; // e.g., 0.000004273317301
     const decimals = wishToken.decimals; // 18
 
-    console.log("WISH token data:", {
-      priceUsd,
-      decimals,
-      targetUsd: TARGET_PRICE_USD,
-    });
-
     // Calculate amount: (targetUSD / priceUSD) to get token amount in ether
-    // Then convert to wei using BigInt
+    // Round up to nearest whole token to keep it simple and avoid precision errors
 
-    // Step 1: Calculate tokens needed in ether (regular division keeps decimals)
-    const tokensInEther = TARGET_PRICE_USD / priceUsd; // e.g., 7970.88 WISH
+    const tokensInEther = TARGET_PRICE_USD / priceUsd; // e.g., 9691.537
+    const tokensRounded = Math.ceil(tokensInEther); // Round up: 9692 WISH
 
-    console.log("Tokens needed in ether:", tokensInEther);
+    // Convert to wei using BigInt (simple multiplication, no fractional parts)
+    const amountInWei = BigInt(tokensRounded) * BigInt(10 ** decimals);
 
-    // Step 2: Convert to wei using BigInt to avoid scientific notation
-    // Split into whole and fractional parts
-    const wholeTokens = Math.floor(tokensInEther); // e.g., 7970
-    const fractionalTokens = tokensInEther - wholeTokens; // e.g., 0.88
-
-    // Convert each part to wei separately
-    const wholeWei = BigInt(wholeTokens) * BigInt(10 ** decimals);
-    const fractionalWei = BigInt(Math.floor(fractionalTokens * 10 ** decimals));
-    const totalWei = wholeWei + fractionalWei;
-    const amountStr = totalWei.toString();
-
-    console.log("WISH payment calculation:", {
-      tokensInEther: tokensInEther.toFixed(2),
-      wholeTokens,
-      fractionalTokens: fractionalTokens.toFixed(6),
-      amountInWei: amountStr,
-      verification: `${Number(totalWei) / 10 ** decimals} WISH`,
-    });
-
-    return totalWei.toString();
+    // Return amount in WEI (smallest unit)
+    return toTokens(amountInWei, decimals);
   } catch (error) {
     console.error("Error fetching WISH price:", error);
     // Fallback: ~12.5 WISH at $0.000004 per WISH
@@ -226,12 +203,12 @@ export async function POST(request: NextRequest) {
       payTo: SERVER_WALLET,
       network: base,
       price: {
-        amount: wishPaymentAmount,
+        amount: wishPaymentAmount, // Amount in wei (smallest unit)
         asset: {
           address: WISH_TOKEN,
-          decimals: 18,
+          decimals: 18, // Helps wallet display as "9,692 WISH" instead of raw wei
         },
-      }, // USD pricing - x402 handles token conversion
+      },
       facilitator: x402Facilitator,
       routeConfig: {
         description: `Find the cheapest place to buy this item (${wishPaymentAmount} WISH ≈ $${TARGET_PRICE_USD})`,
