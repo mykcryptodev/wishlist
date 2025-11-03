@@ -24,6 +24,11 @@ export const stake = {
   [base.id]: "0xd78aF06a5A63e4e8E4Ab94C403C1907ebded583C",
 };
 
+export const multisig = {
+  [baseSepolia.id]: "0xFAC5F38f795BC4F39950Cca8527eea00D5Bb0EF7",
+  [base.id]: "0xFAC5F38f795BC4F39950Cca8527eea00D5Bb0EF7",
+};
+
 export const usdc = {
   [baseSepolia.id]: "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
   [base.id]: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",

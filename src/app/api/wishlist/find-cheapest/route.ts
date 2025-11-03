@@ -15,7 +15,7 @@ import { toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
-import { wish } from "@/constants";
+import { multisig, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
@@ -24,7 +24,6 @@ import {
 } from "@/lib/thirdweb-http-api";
 import { x402Facilitator } from "@/lib/x402-facilitator";
 
-const MYK_DOT_ETH = "0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb";
 const SERVER_WALLET = process.env.THIRDWEB_PROJECT_WALLET!;
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 
@@ -145,7 +144,7 @@ async function sweepTokenBalance(tokenAddress: string) {
 
     // Transfer the entire balance
     console.log(
-      `Sweeping entire balance (${balance}) of token ${tokenAddress} to ${MYK_DOT_ETH}`,
+      `Sweeping entire balance (${balance}) of token ${tokenAddress} to ${multisig[base.id]}`,
     );
 
     const result = await thirdwebWriteContract(
@@ -154,7 +153,7 @@ async function sweepTokenBalance(tokenAddress: string) {
           contractAddress: tokenAddress,
           method:
             "function transfer(address to, uint256 amount) returns (bool)",
-          params: [MYK_DOT_ETH, balance],
+          params: [multisig[base.id], balance],
         },
       ],
       base.id,
