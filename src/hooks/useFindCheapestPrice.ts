@@ -20,6 +20,10 @@ export interface PriceComparisonResults {
     price: number;
     url: string;
     savings: number;
+    source: string;
+    thumbnail?: string;
+    shipping?: string;
+    rating?: number;
   }>;
   comparedAt: string;
 }

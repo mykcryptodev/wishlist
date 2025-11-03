@@ -95,7 +95,7 @@ export function FindCheapestButton({
   return (
     <>
       <Button
-        className="w-full hidden" // TODO: Remove this once we have a real implementation
+        className="w-full" // TODO: Remove this once we have a real implementation
         disabled={isLoading}
         size={size}
         variant={variant}

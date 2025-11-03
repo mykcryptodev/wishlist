@@ -17,6 +17,10 @@ import { settlePayment } from "thirdweb/x402";
 
 import { multisig, usdc, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
+import {
+  extractProductInfo,
+  searchGoogleShopping,
+} from "@/lib/price-comparison";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   thirdwebReadContract,
@@ -297,36 +301,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // DUMMY RESPONSE - Replace with actual price comparison logic later
-    // This is where the expensive API calls or web scraping would happen
+    // REAL PRICE COMPARISON - Using Google Shopping API
     console.log("Generating new price comparison results");
 
-    const itemPrice = parseFloat(item.price) || 100;
+    const itemPrice = parseFloat(item.price) || undefined;
 
-    const dummyResults = {
-      cheapestPrice: itemPrice * 0.85,
-      stores: [
+    // Extract product info and search Google Shopping
+    const productInfo = extractProductInfo({
+      title: item.title,
+      url: item.url,
+      description: item.description || "",
+    });
+
+    console.log("Searching for product:", productInfo);
+
+    let comparisonResults;
+    try {
+      comparisonResults = await searchGoogleShopping(productInfo, itemPrice);
+      console.log(
+        `Found ${comparisonResults.stores.length} stores, cheapest: $${comparisonResults.cheapestPrice}`,
+      );
+    } catch (error) {
+      console.error("Google Shopping search failed:", error);
+
+      // Fallback to a simple response if API fails
+      return NextResponse.json(
         {
-          name: "Amazon",
-          price: itemPrice * 0.85,
-          url: item.url,
-          savings: itemPrice * 0.15,
+          error: "Failed to find prices",
+          details:
+            error instanceof Error ? error.message : "Price search failed",
         },
-        {
-          name: "Walmart",
-          price: itemPrice * 0.92,
-          url: item.url,
-          savings: itemPrice * 0.08,
-        },
-        {
-          name: "Target",
-          price: itemPrice * 0.95,
-          url: item.url,
-          savings: itemPrice * 0.05,
-        },
-      ],
-      comparedAt: new Date().toISOString(),
-    };
+        { status: 500 },
+      );
+    }
 
     // Save results to Supabase for caching
     const { error: insertError } = await supabaseAdmin
@@ -335,7 +342,7 @@ export async function POST(request: NextRequest) {
         item_id: item.id,
         wallet_address: walletAddress.toLowerCase(),
         item_data: item,
-        results: dummyResults,
+        results: comparisonResults,
       });
 
     if (insertError) {
@@ -352,7 +359,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      results: dummyResults,
+      results: comparisonResults,
       cached: false,
     });
   } catch (error) {
