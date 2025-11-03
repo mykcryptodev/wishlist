@@ -35,7 +35,7 @@ const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 // ============================================================================
 // PAYMENT CONFIGURATION - Toggle between USDC and WISH
 // ============================================================================
-const USE_WISH_TOKEN = false; // Set to true for WISH, false for USDC (easier for testing)
+const USE_WISH_TOKEN = true; // Set to true for WISH, false for USDC (easier for testing)
 const TARGET_PRICE_USD = 0.05; // $0.05 USD
 
 // Token addresses
