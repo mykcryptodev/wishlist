@@ -61,44 +61,48 @@ export const x402Facilitator = facilitator({
 
 ### Step 2: Create a Payable Endpoint
 
-Create an API route that requires payment using `settlePayment`:
+Create an API route that requires payment using `settlePayment`.
+
+**See the production implementation at**: `src/app/api/wishlist/find-cheapest/route.ts`
+
+**Quick example**:
 
 ```typescript
 // src/app/api/premium/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { settlePayment } from "thirdweb/x402";
 import { base } from "thirdweb/chains";
+import { settlePayment } from "thirdweb/x402";
+
+import { usdc } from "@/constants";
 import { x402Facilitator } from "@/lib/x402-facilitator";
 
 export async function GET(request: NextRequest) {
-  // Get payment data from request headers
   const paymentData = request.headers.get("x-payment");
 
-  // Settle the payment
   const result = await settlePayment({
     resourceUrl: request.url,
     method: "GET",
     paymentData,
     payTo: process.env.THIRDWEB_PROJECT_WALLET!,
     network: base,
-    price: "$0.01", // Price in USD, will be converted to tokens
+    price: {
+      amount: "10000", // 0.01 USDC (6 decimals)
+      asset: {
+        address: usdc[base.id] as `0x${string}`,
+      },
+    },
     facilitator: x402Facilitator,
     routeConfig: {
-      description: "Access to premium API content",
+      description: "Access to premium content ($0.01 USDC)",
       mimeType: "application/json",
       maxTimeoutSeconds: 300,
     },
   });
 
-  // If payment was successful (status 200), return content
   if (result.status === 200) {
-    return NextResponse.json({
-      data: "premium content here",
-      message: "Payment successful!",
-    });
+    return NextResponse.json({ data: "premium content" });
   }
 
-  // Otherwise, return the payment request (status 402)
   return NextResponse.json(result.responseBody, {
     status: result.status,
     headers: result.responseHeaders,
@@ -208,9 +212,9 @@ routeConfig: {
 }
 ```
 
-## Real-World Implementation: Price Comparison Feature
+## Production Implementation: Price Comparison Feature
 
-The wishlist app includes a production x402 implementation for finding the cheapest places to buy items. Users pay $0.05 to access price comparison results.
+The wishlist app includes a production x402 implementation for finding the cheapest places to buy items. Users pay $0.05 USDC to access price comparison results.
 
 ### Files
 
@@ -219,6 +223,7 @@ The wishlist app includes a production x402 implementation for finding the cheap
 - **Button Component**: `src/components/wishlist/FindCheapestButton.tsx`
 - **Results Modal**: `src/components/wishlist/PriceComparisonModal.tsx`
 - **Database Schema**: `supabase-schema.sql` (price_comparisons table)
+- **Facilitator**: `src/lib/x402-facilitator.ts`
 
 ### Key Features
 
@@ -227,22 +232,26 @@ The wishlist app includes a production x402 implementation for finding the cheap
 3. **Toast Notifications**: User feedback during the payment and search process
 4. **Results Modal**: Clean UI for displaying price comparison results
 5. **React Query Integration**: Modern state management with automatic retry and caching
-6. **Dynamic WISH Token Pricing**: Payment amount calculated from real-time token price
-7. **Automatic Payment Forwarding**: Payments auto-forward from server wallet to personal wallet
+6. **USDC Payments**: Fixed price of 0.05 USDC per request
+7. **Automatic Balance Sweeping**: All accumulated USDC automatically swept to personal wallet
+8. **Retry Logic**: Waits up to 10 seconds for payment to settle before sweeping
 
 ### Usage
 
 The "Find Cheapest" button appears on all wishlist item cards. When clicked:
 
 1. Makes request to x402 endpoint
-2. If payment required (first time), shows payment prompt
+2. If payment required, prompts for 0.05 USDC payment
 3. After payment, performs price comparison
 4. Displays results in a modal
 5. Caches results for 7 days
+6. Automatically sweeps USDC balance to `0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb`
 
-## Example: Premium Wishlist Analytics
+See `docs/PRICE_COMPARISON_FEATURE.md` for complete implementation details.
 
-Here's another example of a payable endpoint for premium analytics:
+## Additional Examples
+
+Here's a simplified example of a basic x402 payable endpoint:
 
 ```typescript
 // src/app/api/wishlist/premium-analytics/route.ts

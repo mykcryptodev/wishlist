@@ -11,10 +11,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
-import { usdc } from "@/constants";
+import { multisig, usdc, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
@@ -23,14 +24,70 @@ import {
 } from "@/lib/thirdweb-http-api";
 import { x402Facilitator } from "@/lib/x402-facilitator";
 
-const MYK_DOT_ETH = "0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb";
 const SERVER_WALLET = process.env.THIRDWEB_PROJECT_WALLET!;
+const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 
-// Payment configuration for x402
-// Use USDC for payments and forwarding (simple and stable)
-const USDC_TOKEN = usdc[base.id] as `0x${string}`; // USDC on Base mainnet
-const PAYMENT_AMOUNT_USDC = "50000"; // $0.05 in USDC (6 decimals) = 50,000 base units
+// ============================================================================
+// PAYMENT CONFIGURATION - Toggle between USDC and WISH
+// ============================================================================
+const USE_WISH_TOKEN = false; // Set to true for WISH, false for USDC (easier for testing)
 const TARGET_PRICE_USD = 0.05; // $0.05 USD
+
+// Token addresses
+const WISH_TOKEN = wish[base.id] as `0x${string}`;
+const USDC_TOKEN = usdc[base.id] as `0x${string}`;
+
+// USDC configuration (6 decimals)
+const USDC_AMOUNT = "50000"; // 0.05 USDC = 50,000 base units
+
+/**
+ * Fetch current WISH token price and calculate payment amount
+ * Uses BigInt math to avoid conversion errors
+ */
+async function calculateWishPaymentAmount(): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://api.thirdweb.com/v1/tokens?limit=1&page=1&chainId=${base.id}&tokenAddress=${WISH_TOKEN}`,
+      {
+        headers: {
+          "x-secret-key": THIRDWEB_SECRET_KEY,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch WISH token price: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const wishToken = data.result.tokens[0];
+
+    if (!wishToken || !wishToken.priceUsd) {
+      throw new Error("WISH token price not available");
+    }
+
+    const priceUsd = wishToken.priceUsd; // e.g., 0.000004273317301
+    const decimals = wishToken.decimals; // 18
+
+    // Calculate amount: (targetUSD / priceUSD) to get token amount in ether
+    // Round up to nearest whole token to keep it simple and avoid precision errors
+
+    const tokensInEther = TARGET_PRICE_USD / priceUsd; // e.g., 9691.537
+    const tokensRounded = Math.ceil(tokensInEther); // Round up: 9692 WISH
+
+    // Convert to wei using BigInt (simple multiplication, no fractional parts)
+    const amountInWei = BigInt(tokensRounded) * BigInt(10 ** decimals);
+
+    // Return amount in WEI (smallest unit)
+    return toTokens(amountInWei, decimals);
+  } catch (error) {
+    console.error("Error fetching WISH price:", error);
+    // Fallback: ~12.5 WISH at $0.000004 per WISH
+    const fallback = "12500000000000000000";
+    console.log("Using fallback WISH amount:", fallback);
+    return fallback;
+  }
+}
 
 /**
  * Sweep entire token balance from server wallet to personal wallet
@@ -95,7 +152,7 @@ async function sweepTokenBalance(tokenAddress: string) {
 
     // Transfer the entire balance
     console.log(
-      `Sweeping entire balance (${balance}) of token ${tokenAddress} to ${MYK_DOT_ETH}`,
+      `Sweeping entire balance (${balance}) of token ${tokenAddress} to ${multisig[base.id]}`,
     );
 
     const result = await thirdwebWriteContract(
@@ -104,7 +161,7 @@ async function sweepTokenBalance(tokenAddress: string) {
           contractAddress: tokenAddress,
           method:
             "function transfer(address to, uint256 amount) returns (bool)",
-          params: [MYK_DOT_ETH, balance],
+          params: [multisig[base.id], balance],
         },
       ],
       base.id,
@@ -139,9 +196,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine payment configuration based on toggle
+    let paymentToken: `0x${string}`;
+    let paymentAmount: string;
+    let paymentDescription: string;
+
+    if (USE_WISH_TOKEN) {
+      // WISH token payment - calculate based on current price
+      paymentAmount = await calculateWishPaymentAmount();
+      paymentToken = WISH_TOKEN;
+      paymentDescription = `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} in WISH)`;
+      console.log("Using WISH payment:", paymentAmount);
+    } else {
+      // USDC payment - fixed amount
+      paymentAmount = USDC_AMOUNT;
+      paymentToken = USDC_TOKEN;
+      paymentDescription = `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} USDC)`;
+      console.log("Using USDC payment:", paymentAmount);
+    }
+
     // PHASE 1: Verify and settle payment BEFORE doing expensive work
     // This prevents wasting resources on invalid/insufficient payments
-    // Force payment in USDC so we know exactly which token to forward
     const verificationResult = await settlePayment({
       resourceUrl: request.url,
       method: "POST",
@@ -149,14 +224,15 @@ export async function POST(request: NextRequest) {
       payTo: SERVER_WALLET,
       network: base,
       price: {
-        amount: PAYMENT_AMOUNT_USDC,
+        amount: paymentAmount,
         asset: {
-          address: USDC_TOKEN,
+          address: paymentToken,
+          decimals: USE_WISH_TOKEN ? 18 : 6,
         },
       },
       facilitator: x402Facilitator,
       routeConfig: {
-        description: `Find the cheapest place to buy this item ($${TARGET_PRICE_USD} USDC)`,
+        description: paymentDescription,
         mimeType: "application/json",
         maxTimeoutSeconds: 300,
       },
@@ -179,16 +255,17 @@ export async function POST(request: NextRequest) {
       JSON.stringify(verificationResult.paymentReceipt, null, 2),
     );
 
-    // Since we're forcing USDC payment, we know exactly which token and amount
-    const paymentToken = USDC_TOKEN;
-    const paymentAmount = PAYMENT_AMOUNT_USDC;
+    // Log payment receipt
+    const tokenName = USE_WISH_TOKEN ? "WISH" : "USDC";
+    const tokenDecimals = USE_WISH_TOKEN ? 18 : 6;
 
-    console.log("Payment received in USDC:", {
+    console.log(`Payment received in ${tokenName}:`, {
       transactionId: verificationResult.paymentReceipt?.transaction,
       network: verificationResult.paymentReceipt?.network,
       payer: verificationResult.paymentReceipt?.payer,
       token: paymentToken,
-      amount: `${paymentAmount} (0.05 USDC)`,
+      amount: paymentAmount,
+      readableAmount: `${Number(paymentAmount) / 10 ** tokenDecimals} ${tokenName}`,
       usdValue: `$${TARGET_PRICE_USD}`,
     });
 
@@ -207,8 +284,8 @@ export async function POST(request: NextRequest) {
     if (existingComparison) {
       console.log("Returning cached price comparison results");
 
-      // Sweep entire USDC balance to personal wallet
-      console.log("Sweeping USDC balance for cached result");
+      // Sweep entire token balance to personal wallet
+      console.log(`Sweeping ${tokenName} balance for cached result`);
       sweepTokenBalance(paymentToken).catch((error: Error) => {
         console.error("Background balance sweep failed:", error);
       });
@@ -266,9 +343,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if caching fails
     }
 
-    // PHASE 3: Sweep entire USDC balance to personal wallet
+    // PHASE 3: Sweep entire token balance to personal wallet
     // This happens in the background after the main work is done
-    console.log("Sweeping entire USDC balance to personal wallet");
+    console.log(`Sweeping entire ${tokenName} balance to personal wallet`);
     sweepTokenBalance(paymentToken).catch((error: Error) => {
       console.error("Background balance sweep failed:", error);
     });
