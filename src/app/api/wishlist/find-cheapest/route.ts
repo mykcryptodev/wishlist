@@ -23,7 +23,6 @@ import {
   searchGoogleShopping,
 } from "@/lib/price-comparison";
 import { CACHE_TTL, redis } from "@/lib/redis";
-import { supabaseAdmin } from "@/lib/supabase";
 import {
   thirdwebReadContract,
   thirdwebWriteContract,
@@ -372,24 +371,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Also save to Supabase for tracking (non-blocking)
-      supabaseAdmin
-        .from("price_comparisons")
-        .insert({
-          item_id: item.id,
-          wallet_address: walletAddress.toLowerCase(),
-          item_data: item,
-          results: {
-            cheapestPrice: 0,
-            stores: [],
-            comparedAt: new Date().toISOString(),
-            error: error instanceof Error ? error.message : "Search failed",
-          },
-        })
-        .then(({ error: err }) => {
-          if (err) console.warn("Supabase analytics error:", err);
-        });
-
       return NextResponse.json(
         {
           error: "Failed to find prices",
@@ -414,20 +395,9 @@ export async function POST(request: NextRequest) {
         console.error("Failed to cache results in Redis:", error);
         // Don't fail the request if caching fails
       }
+    } else {
+      console.warn("⚠️ Redis not configured - results will not be cached");
     }
-
-    // Optional: Save to Supabase for analytics/history (non-blocking)
-    supabaseAdmin
-      .from("price_comparisons")
-      .insert({
-        item_id: item.id,
-        wallet_address: walletAddress.toLowerCase(),
-        item_data: item,
-        results: comparisonResults,
-      })
-      .then(({ error: err }) => {
-        if (err) console.warn("Supabase analytics error:", err);
-      });
 
     // PHASE 3: Sweep entire token balance to personal wallet
     // This happens in the background after the main work is done
