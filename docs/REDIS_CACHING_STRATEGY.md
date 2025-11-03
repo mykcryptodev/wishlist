@@ -22,13 +22,6 @@ We use **Upstash Redis** for caching price comparison results with a **1-hour TT
 - Account API is free (doesn't count toward quota)
 - Fast enough (~100ms)
 
-**Supabase for Analytics** ✅
-
-- Long-term history
-- Query-able data
-- Analytics and insights
-- Non-blocking
-
 ## Flow Diagram
 
 ```
@@ -49,8 +42,7 @@ User Request
 5. Search Google Shopping
   ↓
 6. Cache in Redis (1 hour) ✅
-7. Save to Supabase (analytics) ✅
-8. Return results
+7. Return results
 ```
 
 ## Implementation
@@ -83,15 +75,10 @@ if (cachedResults) {
 ```typescript
 // Store in Redis with 1-hour TTL
 await redis.set(cacheKey, comparisonResults, {
-  ex: CACHE_TTL.ONE_HOUR  // 3600 seconds
+  ex: CACHE_TTL.ONE_HOUR, // 3600 seconds
 });
 
-// Also save to Supabase for analytics (non-blocking)
-supabaseAdmin.from("price_comparisons")
-  .insert({...})
-  .then(({ error }) => {
-    if (error) console.warn("Analytics error:", error);
-  });
+console.log("✅ Cached results in Redis (1 hour TTL)");
 ```
 
 ## Benefits
@@ -100,10 +87,10 @@ supabaseAdmin.from("price_comparisons")
 
 **Scenario**: User searches for "iPhone 15", then searches again 30 minutes later
 
-**Before** (7-day Supabase cache, checked after payment):
+**Before** (no caching before payment):
 
 - First search: Pay $0.05 ✅
-- Second search: Pay $0.05 ❌ (cache checked after payment)
+- Second search: Pay $0.05 ❌ (no cache, pay again)
 - **Total**: $0.10 for same data
 
 **After** (1-hour Redis cache, checked before payment):

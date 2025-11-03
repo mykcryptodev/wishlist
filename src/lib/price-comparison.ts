@@ -390,8 +390,8 @@ function parseShoppingResults(
     return b.relevanceScore - a.relevanceScore;
   });
 
-  // Take top 5 results
-  const topStores = filteredStores.slice(0, 5).map(store => {
+  // Return all relevant results (no arbitrary limit)
+  const topStores = filteredStores.map(store => {
     // Remove the relevanceScore before returning (used for sorting only)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { relevanceScore: _relevanceScore, ...cleanStore } = store;
@@ -415,12 +415,19 @@ function parseShoppingResults(
   });
 
   console.log(
-    `✅ Returning ${topStores.length} results, cheapest: $${cheapestPrice}`,
+    `✅ Returning ${topStores.length} results (all relevant), cheapest: $${cheapestPrice}`,
   );
-  topStores.forEach((store, idx) => {
+
+  // Log first 5 for readability
+  const storesToLog = topStores.slice(0, 5);
+  storesToLog.forEach((store, idx) => {
     console.log(`   ${idx + 1}. ${store.name}: $${store.price}`);
-    console.log(`      URL: ${store.url.substring(0, 100)}...`);
+    console.log(`      URL: ${store.url.substring(0, 80)}...`);
   });
+
+  if (topStores.length > 5) {
+    console.log(`   ... and ${topStores.length - 5} more results`);
+  }
 
   return {
     cheapestPrice,

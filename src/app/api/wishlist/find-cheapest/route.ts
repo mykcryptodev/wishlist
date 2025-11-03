@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { toTokens } from "thirdweb";
+import { toEther, toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
@@ -325,10 +325,11 @@ export async function POST(request: NextRequest) {
     // Parse item price - handle both regular prices and blockchain wei format
     let itemPrice: number | undefined;
     if (item.price) {
-      const parsed = parseFloat(item.price);
+      console.log("Item price:", item.price);
+      const parsed = toEther(item.price);
       // If price is unreasonably large (likely wei format), ignore it
-      if (parsed > 0 && parsed < 1000000) {
-        itemPrice = parsed;
+      if (!isNaN(Number(parsed)) && Number(parsed) > 0) {
+        itemPrice = Number(parsed);
       }
     }
     console.log("Original item price:", itemPrice || "not provided");

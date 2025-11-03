@@ -4,7 +4,7 @@ This document describes the implementation of the real-time price comparison fea
 
 ## Overview
 
-The price comparison feature allows users to pay a small fee ($0.05 in crypto) to search Google Shopping for the best prices on their wishlist items. The implementation uses **direct SerpAPI integration** to access Google Shopping results and returns the top 5 cheapest options.
+The price comparison feature allows users to pay a small fee ($0.05 in crypto) to search Google Shopping for the best prices on their wishlist items. The implementation uses **direct SerpAPI integration** to access Google Shopping results and returns **all relevant results** (typically 8-20 stores) sorted by price.
 
 **Implementation Choice**: We use direct SerpAPI (not x402 proxy) for simplicity, reliability, and faster response times. See [SERPAPI_DIRECT_IMPLEMENTATION.md](./SERPAPI_DIRECT_IMPLEMENTATION.md) for rationale.
 
@@ -66,10 +66,11 @@ The search:
 
 Results are:
 
+- Filtered for relevance (>20% keyword match)
 - Sorted by price (cheapest first)
-- Limited to top 5 stores
+- All relevant stores returned (no limit)
 - Enhanced with savings calculations
-- Cached in Supabase for 7 days
+- Cached in Redis for 1 hour
 
 ### 4. Response Format
 
