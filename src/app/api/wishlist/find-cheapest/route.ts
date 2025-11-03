@@ -304,17 +304,25 @@ export async function POST(request: NextRequest) {
     // REAL PRICE COMPARISON - Using Google Shopping API
     console.log("Generating new price comparison results");
 
-    const itemPrice = parseFloat(item.price) || undefined;
+    // Parse item price - handle both regular prices and blockchain wei format
+    let itemPrice: number | undefined;
+    if (item.price) {
+      const parsed = parseFloat(item.price);
+      // If price is unreasonably large (likely wei format), ignore it
+      if (parsed > 0 && parsed < 1000000) {
+        itemPrice = parsed;
+      }
+    }
+    console.log("Original item price:", itemPrice || "not provided");
 
-    // Extract product info and search Google Shopping
+    // Extract product info and search Google Shopping directly
     const productInfo = extractProductInfo({
       title: item.title,
       url: item.url,
       description: item.description || "",
     });
 
-    console.log("Searching for product:", productInfo);
-
+    // Search Google Shopping using direct SerpAPI
     let comparisonResults;
     try {
       comparisonResults = await searchGoogleShopping(productInfo, itemPrice);
@@ -323,8 +331,6 @@ export async function POST(request: NextRequest) {
       );
     } catch (error) {
       console.error("Google Shopping search failed:", error);
-
-      // Fallback to a simple response if API fails
       return NextResponse.json(
         {
           error: "Failed to find prices",

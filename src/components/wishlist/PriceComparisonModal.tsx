@@ -116,9 +116,16 @@ export function PriceComparisonModal({
                     <p className="text-lg font-semibold">
                       {formatPrice(store.price)}
                     </p>
-                    {store.savings > 0 && (
+                    {store.savings > 0.01 && (
                       <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        Save {formatPrice(store.savings)}
+                        {store.savings >= 1
+                          ? `Save ${formatPrice(store.savings)}`
+                          : "+$0.00"}
+                      </span>
+                    )}
+                    {idx === 0 && (
+                      <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
+                        Best Price
                       </span>
                     )}
                   </div>

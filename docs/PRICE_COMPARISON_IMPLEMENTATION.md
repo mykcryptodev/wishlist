@@ -4,7 +4,9 @@ This document describes the implementation of the real-time price comparison fea
 
 ## Overview
 
-The price comparison feature allows users to pay a small fee ($0.05 in crypto) to search Google Shopping for the best prices on their wishlist items. The implementation uses SerpAPI to access Google Shopping results and returns the top 5 cheapest options.
+The price comparison feature allows users to pay a small fee ($0.05 in crypto) to search Google Shopping for the best prices on their wishlist items. The implementation uses **direct SerpAPI integration** to access Google Shopping results and returns the top 5 cheapest options.
+
+**Implementation Choice**: We use direct SerpAPI (not x402 proxy) for simplicity, reliability, and faster response times. See [SERPAPI_DIRECT_IMPLEMENTATION.md](./SERPAPI_DIRECT_IMPLEMENTATION.md) for rationale.
 
 ## Architecture
 
@@ -96,22 +98,27 @@ Results are:
 
 ## Setup Instructions
 
-### 1. Get SerpAPI Key
+### 1. Configure Server Wallet (Required)
 
-1. Sign up at [https://serpapi.com/](https://serpapi.com/)
-2. Get your API key from the dashboard
-3. **Free tier**: 100 searches/month (good for testing)
-4. **Starter plan**: $50/month for 5,000 searches (recommended for production)
+**No SerpAPI subscription needed!** We use an x402-gated proxy instead.
 
-### 2. Add Environment Variable
+Your server wallet needs:
 
-Add to your `.env.local`:
+1. **USDC on Base** (~$1 for 100 searches, $10+ recommended)
+2. **Small amount of ETH on Base** for gas fees (0.001 ETH minimum)
+
+Check your balance:
 
 ```bash
-SERPAPI_KEY=your_api_key_here
+# View on BaseScan
+https://basescan.org/address/YOUR_SERVER_WALLET
 ```
 
-### 3. Configure Next.js for External Images
+**Cost per search**: $0.01 USDC (paid automatically via x402)
+
+See [X402_SERPAPI_INTEGRATION.md](./X402_SERPAPI_INTEGRATION.md) for detailed information.
+
+### 2. Configure Next.js for External Images
 
 The `next.config.ts` has been updated to allow Google Shopping product images:
 
@@ -133,7 +140,7 @@ images: {
 
 **Important**: You must restart your dev server after any `next.config.ts` changes.
 
-### 4. Test the Implementation
+### 3. Test the Implementation
 
 The feature is currently hidden in the UI (see `FindCheapestButton.tsx` line 98). To enable it for testing:
 
@@ -152,23 +159,32 @@ The feature is currently hidden in the UI (see `FindCheapestButton.tsx` line 98)
 
 ### Per-Request Costs
 
-- **SerpAPI**: ~$0.01 per search (on $50/month plan)
+- **x402 SerpAPI Proxy**: $0.01 USDC per search (paid via x402)
+- **Gas fees**: ~$0.0001 per transaction
 - **Server compute**: ~$0.001
-- **Total cost**: ~$0.011 per request
+- **Total cost**: ~$0.0111 per request
 
 ### Revenue Model
 
 - **User pays**: $0.05 per search (in WISH or USDC)
-- **Cost**: $0.011 per search
-- **Profit**: $0.039 per search (~78% margin)
+- **Cost**: $0.0111 per search
+- **Profit**: $0.0389 per search (~78% margin)
 
-### Breakeven Analysis
+### Monthly Analysis (1,000 searches)
 
-At 5,000 searches/month (SerpAPI limit):
+- Revenue: $50 (1,000 × $0.05)
+- Costs: $11.11 (1,000 × $0.0111)
+- **Profit**: $38.89 (~78% margin)
 
-- Revenue: $250
-- Costs: $50 (SerpAPI) + $5 (compute) = $55
-- Profit: $195/month
+### No Subscription Required!
+
+Unlike direct SerpAPI ($50/month minimum), the x402 proxy is **pay-per-use**:
+
+- $0 when not used
+- $0.01 per search when used
+- No commitment or minimum fees
+
+**Advantage**: Perfect for low/variable volume. Only pay for successful searches.
 
 ## Caching Strategy
 
@@ -192,7 +208,7 @@ The implementation handles several error cases:
 
 ## Alternative Implementations
 
-If you want to avoid SerpAPI costs, consider:
+The current implementation uses an x402-gated SerpAPI proxy. Other options:
 
 ### Option A: Thirdweb AI Chat
 
@@ -259,16 +275,18 @@ Check logs for:
 
 ## Troubleshooting
 
-### "SERPAPI_KEY environment variable is required"
+### "Insufficient USDC balance" or "x402 payment failed"
 
-- Add the API key to `.env.local`
-- Restart your dev server
+- Check your server wallet has USDC on Base
+- View balance at: `https://basescan.org/address/YOUR_SERVER_WALLET`
+- Minimum: $1 USDC recommended
+- Top up if needed
 
 ### "No shopping results found for this product"
 
 - The product may not be on Google Shopping
-- Try with a more generic product name
-- Check SerpAPI dashboard for query details
+- Try with a more generic or common product name
+- Check logs for the actual search query used
 
 ### Prices look wrong
 

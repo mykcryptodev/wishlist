@@ -47,16 +47,41 @@ export function extractProductInfo(item: {
     brand = brandMatch[1].trim();
   }
 
-  // Create search query - clean up common noise words
+  // Create search query - clean up common noise words and overly descriptive terms
   let searchQuery = title
     .replace(/\s+/g, " ")
     .replace(/\[.*?\]/g, "") // Remove brackets
     .replace(/\(.*?\)/g, "") // Remove parentheses
     .trim();
 
-  // If the query is too long, truncate to first 100 chars
-  if (searchQuery.length > 100) {
-    searchQuery = searchQuery.substring(0, 100).trim();
+  // Remove overly descriptive/generic words that hurt search quality
+  const noiseWords = [
+    "Activated",
+    "Integrated",
+    "Enhanced",
+    "Premium",
+    "Professional",
+    "Advanced",
+    "Ultimate",
+    "Edition",
+    "Version",
+  ];
+
+  noiseWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, "gi");
+    searchQuery = searchQuery.replace(regex, "").replace(/\s+/g, " ").trim();
+  });
+
+  // If the query is still too long, use smart truncation
+  if (searchQuery.length > 60) {
+    // Try to keep: Brand + Key Product Type + Model
+    // Example: "Ring Smart Lighting Solar LED Pathlight" instead of full title
+    const words = searchQuery.split(" ");
+
+    // Keep first 6-8 most important words
+    if (words.length > 8) {
+      searchQuery = words.slice(0, 8).join(" ");
+    }
   }
 
   return {
@@ -67,7 +92,7 @@ export function extractProductInfo(item: {
 }
 
 /**
- * Search Google Shopping using SerpAPI
+ * Search Google Shopping using SerpAPI directly
  * Requires SERPAPI_KEY environment variable
  */
 export async function searchGoogleShopping(
@@ -85,7 +110,6 @@ export async function searchGoogleShopping(
     engine: "google_shopping",
     q: productInfo.searchQuery,
     api_key: apiKey,
-    // Additional parameters for better results
     num: "20", // Get more results for better comparison
     hl: "en", // Language
     gl: "us", // Country
@@ -93,7 +117,10 @@ export async function searchGoogleShopping(
 
   const url = `https://serpapi.com/search?${params.toString()}`;
 
-  console.log("Searching Google Shopping for:", productInfo.searchQuery);
+  console.log("🔍 Google Shopping Search:");
+  console.log("  - Original title:", productInfo.title);
+  console.log("  - Optimized query:", productInfo.searchQuery);
+  console.log("  - Brand:", productInfo.brand || "not detected");
 
   const response = await fetch(url);
 
@@ -124,9 +151,18 @@ function parseShoppingResults(
     throw new Error("No shopping results found for this product");
   }
 
+  // Get search query from the response for relevance checking
+  const searchQuery = (data.search_parameters?.q || "").toLowerCase();
+  const searchWords = searchQuery
+    .split(" ")
+    .filter((w: string) => w.length > 2);
+
+  // Extended type for relevance scoring
+  type ScoredResult = PriceResult & { relevanceScore: number };
+
   // Convert to our format
-  const stores: PriceResult[] = shoppingResults
-    .map((result: any) => {
+  const stores: ScoredResult[] = shoppingResults
+    .map((result: any): ScoredResult | null => {
       // Parse price - handle different formats
       let price = 0;
       if (typeof result.price === "string") {
@@ -141,8 +177,33 @@ function parseShoppingResults(
         return null;
       }
 
+      // Skip if price is suspiciously low (likely not the right product)
+      if (price < 1) {
+        return null;
+      }
+
       // Calculate savings if original price provided
       const savings = originalPrice ? Math.max(0, originalPrice - price) : 0;
+
+      // Calculate relevance score based on title match
+      const resultTitle = (result.title || "").toLowerCase();
+      let relevanceScore = 0;
+
+      // Check how many search words appear in the result title
+      searchWords.forEach((word: string) => {
+        if (resultTitle.includes(word)) {
+          relevanceScore += 1;
+        }
+      });
+
+      // Boost score if exact source match
+      const searchSource = searchWords[0]; // Usually the brand
+      if (
+        searchSource &&
+        (result.source || "").toLowerCase().includes(searchSource)
+      ) {
+        relevanceScore += 2;
+      }
 
       return {
         name: result.source || "Unknown Store",
@@ -153,27 +214,65 @@ function parseShoppingResults(
         thumbnail: result.thumbnail,
         shipping: result.delivery || result.shipping,
         rating: result.rating,
+        relevanceScore,
       };
     })
-    .filter((r: any) => r !== null) as PriceResult[];
+    .filter((r: ScoredResult | null): r is ScoredResult => r !== null);
 
-  // Sort by price (cheapest first)
-  stores.sort((a, b) => a.price - b.price);
+  // Filter out results with very low relevance (less than 20% of search terms)
+  const minRelevance = Math.max(1, Math.floor(searchWords.length * 0.2));
+  const relevantStores = stores.filter(
+    store => store.relevanceScore >= minRelevance,
+  );
+
+  // Use relevant stores if we have enough, otherwise fall back to all
+  const filteredStores = relevantStores.length >= 3 ? relevantStores : stores;
+
+  console.log(
+    `📊 Relevance filtering: ${stores.length} total → ${relevantStores.length} relevant (min score: ${minRelevance})`,
+  );
+
+  // Sort by PRICE first (cheapest first), then by relevance as tiebreaker
+  // For a price comparison feature, users want cheapest prices!
+  filteredStores.sort((a, b) => {
+    // Prioritize price (cheapest first)
+    if (a.price !== b.price) {
+      return a.price - b.price;
+    }
+    // Use relevance as tiebreaker for same-price items
+    return b.relevanceScore - a.relevanceScore;
+  });
 
   // Take top 5 results
-  const topStores = stores.slice(0, 5);
+  const topStores = filteredStores.slice(0, 5).map(store => {
+    // Remove the relevanceScore before returning
+    const { relevanceScore, ...cleanStore } = store;
+    return cleanStore;
+  });
 
   if (topStores.length === 0) {
     throw new Error("No valid prices found in shopping results");
   }
 
-  const cheapestPrice = topStores[0].price;
+  const cheapestPrice = Math.min(...topStores.map(s => s.price));
 
-  // Recalculate savings based on cheapest price for consistency
+  // Recalculate savings based on original price if provided
   topStores.forEach(store => {
-    if (originalPrice) {
+    if (originalPrice && originalPrice > 0 && originalPrice < 1000000) {
       store.savings = Math.max(0, originalPrice - store.price);
+    } else {
+      // If no valid original price, show savings vs cheapest option
+      store.savings = store.price - cheapestPrice;
     }
+  });
+
+  console.log(
+    `✅ Returning ${topStores.length} results, cheapest: $${cheapestPrice}`,
+  );
+  topStores.forEach((store, idx) => {
+    console.log(
+      `   ${idx + 1}. ${store.name}: $${store.price} (score was included in sort)`,
+    );
   });
 
   return {
