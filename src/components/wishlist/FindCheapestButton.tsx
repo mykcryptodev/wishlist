@@ -55,7 +55,7 @@ export function FindCheapestButton({
     }
 
     const toastId = toast.loading("Finding cheapest prices...", {
-      description: "You may be prompted to pay $0.05 in WISH tokens",
+      description: "This action costs $0.05 in WISH tokens",
     });
 
     try {
@@ -95,7 +95,7 @@ export function FindCheapestButton({
   return (
     <>
       <Button
-        className="w-full hidden" // TODO: Remove this once we have a real implementation
+        className="w-full" // TODO: Remove this once we have a real implementation
         disabled={isLoading}
         size={size}
         variant={variant}

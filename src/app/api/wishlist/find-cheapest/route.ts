@@ -11,13 +11,18 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { toTokens } from "thirdweb";
+import { toEther, toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
 import { multisig, usdc, wish } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
-import { supabaseAdmin } from "@/lib/supabase";
+import {
+  checkSerpApiAvailability,
+  extractProductInfo,
+  searchGoogleShopping,
+} from "@/lib/price-comparison";
+import { CACHE_TTL, redis } from "@/lib/redis";
 import {
   thirdwebReadContract,
   thirdwebWriteContract,
@@ -30,7 +35,7 @@ const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 // ============================================================================
 // PAYMENT CONFIGURATION - Toggle between USDC and WISH
 // ============================================================================
-const USE_WISH_TOKEN = false; // Set to true for WISH, false for USDC (easier for testing)
+const USE_WISH_TOKEN = true; // Set to true for WISH, false for USDC (easier for testing)
 const TARGET_PRICE_USD = 0.05; // $0.05 USD
 
 // Token addresses
@@ -196,6 +201,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // CACHE CHECK: Check Redis for cached results BEFORE taking payment
+    // If we have cached results, return immediately (no payment required)
+    const cacheKey = `price-comparison:${item.id}:${walletAddress.toLowerCase()}`;
+
+    if (redis) {
+      try {
+        const cachedResults = await redis.get(cacheKey);
+        if (cachedResults) {
+          console.log(
+            "✅ Redis cache hit - returning cached results (no payment)",
+          );
+          return NextResponse.json({
+            success: true,
+            results: cachedResults,
+            cached: true,
+          });
+        }
+        console.log("Redis cache miss - will check availability and charge");
+      } catch (error) {
+        console.warn("Redis cache check failed, continuing:", error);
+      }
+    }
+
+    // PRE-FLIGHT CHECK: Verify SerpAPI is available BEFORE taking payment
+    // Always check fresh (no caching) to ensure accurate quota info
+    console.log("Pre-flight: Checking SerpAPI availability...");
+    const serpApiStatus = await checkSerpApiAvailability();
+
+    if (!serpApiStatus.available) {
+      console.error("❌ SerpAPI not available:", serpApiStatus.reason);
+      // Return 503 Service Unavailable (don't trigger payment)
+      return NextResponse.json(
+        {
+          error: "Price comparison service temporarily unavailable",
+          details: serpApiStatus.reason,
+          searchesLeft: serpApiStatus.searchesLeft,
+        },
+        { status: 503 },
+      );
+    }
+
+    console.log(
+      `✅ SerpAPI ready (${serpApiStatus.searchesLeft} searches remaining)`,
+    );
+
     // Determine payment configuration based on toggle
     let paymentToken: `0x${string}`;
     let paymentAmount: string;
@@ -270,77 +320,84 @@ export async function POST(request: NextRequest) {
     });
 
     // PHASE 2: Payment successful - now do the expensive work
-    // Check if we already have cached results for this user/item
-    const { data: existingComparison } = await supabaseAdmin
-      .from("price_comparisons")
-      .select("*")
-      .eq("item_id", item.id)
-      .eq("wallet_address", walletAddress.toLowerCase())
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    console.log("Payment verified - executing price comparison");
 
-    if (existingComparison) {
-      console.log("Returning cached price comparison results");
+    // Parse item price - handle both regular prices and blockchain wei format
+    let itemPrice: number | undefined;
+    if (item.price) {
+      console.log("Item price:", item.price);
+      const parsed = toEther(item.price);
+      // If price is unreasonably large (likely wei format), ignore it
+      if (!isNaN(Number(parsed)) && Number(parsed) > 0) {
+        itemPrice = Number(parsed);
+      }
+    }
+    console.log("Original item price:", itemPrice || "not provided");
 
-      // Sweep entire token balance to personal wallet
-      console.log(`Sweeping ${tokenName} balance for cached result`);
-      sweepTokenBalance(paymentToken).catch((error: Error) => {
-        console.error("Background balance sweep failed:", error);
-      });
+    // Extract product info and search Google Shopping directly
+    const productInfo = extractProductInfo({
+      title: item.title,
+      url: item.url,
+      description: item.description || "",
+    });
 
-      return NextResponse.json({
-        success: true,
-        results: existingComparison.results,
-        cached: true,
-      });
+    // Search Google Shopping using direct SerpAPI
+    let comparisonResults;
+    try {
+      comparisonResults = await searchGoogleShopping(productInfo, itemPrice);
+      console.log(
+        `Found ${comparisonResults.stores.length} stores, cheapest: $${comparisonResults.cheapestPrice}`,
+      );
+
+      // Verify we have actual results
+      if (!comparisonResults.stores || comparisonResults.stores.length === 0) {
+        throw new Error("No stores found with valid URLs and prices");
+      }
+    } catch (error) {
+      console.error("Google Shopping search failed:", error);
+
+      // Cache the failure in Redis (1 hour) so user doesn't pay again immediately
+      if (redis) {
+        try {
+          const failureResult = {
+            cheapestPrice: 0,
+            stores: [],
+            comparedAt: new Date().toISOString(),
+            error: error instanceof Error ? error.message : "Search failed",
+          };
+          await redis.set(cacheKey, failureResult, { ex: CACHE_TTL.ONE_HOUR });
+          console.log("Cached failure in Redis (1 hour TTL)");
+        } catch (cacheError) {
+          console.error("Failed to cache error in Redis:", cacheError);
+        }
+      }
+
+      return NextResponse.json(
+        {
+          error: "Failed to find prices",
+          details:
+            error instanceof Error ? error.message : "Price search failed",
+          note: "We've cached this failure. Try again in 1 hour.",
+        },
+        { status: 500 },
+      );
     }
 
-    // DUMMY RESPONSE - Replace with actual price comparison logic later
-    // This is where the expensive API calls or web scraping would happen
-    console.log("Generating new price comparison results");
-
-    const itemPrice = parseFloat(item.price) || 100;
-
-    const dummyResults = {
-      cheapestPrice: itemPrice * 0.85,
-      stores: [
-        {
-          name: "Amazon",
-          price: itemPrice * 0.85,
-          url: item.url,
-          savings: itemPrice * 0.15,
-        },
-        {
-          name: "Walmart",
-          price: itemPrice * 0.92,
-          url: item.url,
-          savings: itemPrice * 0.08,
-        },
-        {
-          name: "Target",
-          price: itemPrice * 0.95,
-          url: item.url,
-          savings: itemPrice * 0.05,
-        },
-      ],
-      comparedAt: new Date().toISOString(),
-    };
-
-    // Save results to Supabase for caching
-    const { error: insertError } = await supabaseAdmin
-      .from("price_comparisons")
-      .insert({
-        item_id: item.id,
-        wallet_address: walletAddress.toLowerCase(),
-        item_data: item,
-        results: dummyResults,
-      });
-
-    if (insertError) {
-      console.error("Failed to cache results:", insertError);
-      // Don't fail the request if caching fails
+    // Cache successful results in Redis (1 hour TTL)
+    if (redis) {
+      try {
+        await redis.set(cacheKey, comparisonResults, {
+          ex: CACHE_TTL.ONE_HOUR,
+        });
+        console.log(
+          `✅ Cached results in Redis (1 hour TTL, ${comparisonResults.stores.length} stores)`,
+        );
+      } catch (error) {
+        console.error("Failed to cache results in Redis:", error);
+        // Don't fail the request if caching fails
+      }
+    } else {
+      console.warn("⚠️ Redis not configured - results will not be cached");
     }
 
     // PHASE 3: Sweep entire token balance to personal wallet
@@ -352,7 +409,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      results: dummyResults,
+      results: comparisonResults,
       cached: false,
     });
   } catch (error) {
