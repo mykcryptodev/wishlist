@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { toTokens } from "thirdweb";
 import { base } from "thirdweb/chains";
 import { settlePayment } from "thirdweb/x402";
 
@@ -22,7 +23,6 @@ import {
   thirdwebWriteContract,
 } from "@/lib/thirdweb-http-api";
 import { x402Facilitator } from "@/lib/x402-facilitator";
-import { toTokens } from "thirdweb";
 
 const MYK_DOT_ETH = "0x653Ff253b0c7C1cc52f484e891b71f9f1F010Bfb";
 const SERVER_WALLET = process.env.THIRDWEB_PROJECT_WALLET!;
