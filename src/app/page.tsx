@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
@@ -98,6 +99,8 @@ export default function Home() {
             width={148}
           />
         </div>
+
+        <TreasuryWethBalance />
 
         {/* Wishlist Directory Section */}
         <div className="py-16">

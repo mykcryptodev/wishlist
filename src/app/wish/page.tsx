@@ -13,6 +13,7 @@ import Image from "next/image";
 
 import Buy from "@/components/buy";
 import Stake from "@/components/stake";
+import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import {
   Card,
   CardContent,
@@ -134,6 +135,8 @@ export default function WishPage() {
             </CardDescription>
           </CardHeader>
         </Card>
+
+        <TreasuryWethBalance />
 
         <section className="mt-16 space-y-8">
           <div className="text-center">
