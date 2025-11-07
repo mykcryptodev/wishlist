@@ -92,7 +92,7 @@ export default function Home() {
         <div className="relative">
           <Image
             alt="Monster"
-            className="absolute -top-20 -left-10 -z-10"
+            className="absolute -top-20 -left-10"
             height={148}
             src="/images/monster-elf.png"
             style={{ transform: "rotate(5deg)" }}
