@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
@@ -91,13 +92,15 @@ export default function Home() {
         <div className="relative">
           <Image
             alt="Monster"
-            className="absolute -top-20 -left-10 -z-10"
+            className="absolute -top-20 -left-10"
             height={148}
             src="/images/monster-elf.png"
             style={{ transform: "rotate(5deg)" }}
             width={148}
           />
         </div>
+
+        <TreasuryWethBalance />
 
         {/* Wishlist Directory Section */}
         <div className="py-16">

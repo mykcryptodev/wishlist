@@ -107,6 +107,14 @@ export function Navigation() {
 
           <div className="flex items-center space-x-2">
             {/* Mobile Search Button */}
+            <Button className="md:hidden w-16" size="icon" variant="outline">
+              <Link
+                className="w-16 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                href="/wish"
+              >
+                $WISH
+              </Link>
+            </Button>
             <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
               <DialogTrigger asChild>
                 <Button className="md:hidden" size="icon" variant="outline">
