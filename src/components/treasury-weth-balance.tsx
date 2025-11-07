@@ -2,15 +2,14 @@
 
 import { useMemo } from "react";
 import { useWalletBalance } from "thirdweb/react";
+import { resolveScheme } from "thirdweb/storage";
 import { formatUnits, isAddressEqual } from "viem";
 
-import { chain, multisig, weth } from "@/constants";
-import { client } from "@/providers/Thirdweb";
-import { useTokens } from "@/hooks/useTokens";
 import { AnimatedNumber } from "@/components/ui/animated-number";
+import { chain, multisig, weth } from "@/constants";
+import { useTokens } from "@/hooks/useTokens";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
-import { resolveScheme } from "thirdweb/storage";
+import { client } from "@/providers/Thirdweb";
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -68,9 +67,9 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
           ) : usdValue !== null ? (
             <p className="text-5xl font-black md:text-6xl">
               <AnimatedNumber
-                value={usdValue}
                 duration={800}
                 formatNumber={val => usdFormatter.format(val)}
+                value={usdValue}
               />
             </p>
           ) : (
@@ -83,21 +82,21 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
           ) : wethBalance !== null ? (
             <p className="text-sm text-muted-foreground md:text-base">
               <AnimatedNumber
-                value={Number(wethBalance?.displayValue)}
                 duration={800}
                 formatNumber={val => wethFormatter.format(val)}
+                value={Number(wethBalance?.displayValue)}
               />{" "}
               <img
+                alt="WETH Icon"
+                className="inline-block mb-1"
+                height={16}
+                width={16}
                 src={resolveScheme({
                   client,
                   uri:
                     wethTokenQuery?.tokens[0]?.iconUri ??
                     "https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332",
                 })}
-                alt="WETH Icon"
-                className="inline-block mb-1"
-                width={16}
-                height={16}
               />{" "}
               {wethBalance?.symbol ?? "WETH"}
             </p>
