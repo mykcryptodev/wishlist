@@ -34,6 +34,11 @@ export const usdc = {
   [base.id]: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 };
 
+export const weth = {
+  [baseSepolia.id]: "0x4200000000000000000000000000000000000006",
+  [base.id]: "0x4200000000000000000000000000000000000006",
+};
+
 export const multicall = {
   [baseSepolia.id]: "0xcA11bde05977b3631167028862bE2a173976CA11",
   [base.id]: "0xca11bde05977b3631167028862be2a173976ca11",

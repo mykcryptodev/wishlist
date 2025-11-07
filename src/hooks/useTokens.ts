@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 import { chain } from "@/constants";
 
@@ -24,92 +25,84 @@ export interface TokensResponse {
   };
 }
 
+async function fetchTokensPage({
+  page,
+  searchQuery,
+}: {
+  page: number;
+  searchQuery: string;
+}): Promise<TokensResponse> {
+  const searchParams = new URLSearchParams({
+    chainId: chain.id.toString(),
+    page: page.toString(),
+    limit: "20",
+  });
+
+  if (searchQuery.trim()) {
+    searchParams.set("name", searchQuery.trim());
+  }
+
+  const response = await fetch(`/api/tokens?${searchParams.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tokens: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export function useTokens(initialSearchQuery?: string) {
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery || "");
 
-  const fetchTokens = useCallback(
-    async (page: number = 1, append: boolean = false) => {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-        setCurrentPage(1);
-        setHasMore(true);
-      }
-
-      try {
-        const searchParams = new URLSearchParams({
-          chainId: chain.id.toString(),
-          page: page.toString(),
-          limit: "20",
-        });
-
-        if (searchQuery.trim()) {
-          searchParams.set("name", searchQuery.trim());
-        }
-
-        const response = await fetch(`/api/tokens?${searchParams.toString()}`);
-
-        if (response.ok) {
-          const data: TokensResponse = await response.json();
-          const newTokens = data.result.tokens;
-
-          if (append) {
-            setTokens(prev => [...prev, ...newTokens]);
-          } else {
-            setTokens(newTokens);
-          }
-
-          const hasMoreValue =
-            data.result.pagination?.hasMore ?? newTokens.length === 20;
-          setHasMore(hasMoreValue);
-          setCurrentPage(page);
-        } else {
-          throw new Error(`Failed to fetch tokens: ${response.status}`);
-        }
-      } catch (error) {
-        console.error("Error fetching tokens:", error);
-        throw error;
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["tokens", chain.id, searchQuery],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchTokensPage({ page: pageParam, searchQuery }),
+    getNextPageParam: lastPage => {
+      const { pagination, tokens } = lastPage.result;
+      const hasMore = pagination?.hasMore ?? tokens.length === 20;
+      return hasMore ? pagination.page + 1 : undefined;
     },
-    [searchQuery],
-  );
+    initialPageParam: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const loadMoreTokens = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchTokens(currentPage + 1, true);
-    }
-  }, [fetchTokens, currentPage, hasMore, loadingMore]);
+  // Flatten all pages into a single tokens array
+  const tokens = useMemo(() => {
+    return data?.pages.flatMap(page => page.result.tokens) ?? [];
+  }, [data]);
 
-  const resetTokens = useCallback(() => {
-    setTokens([]);
-    setCurrentPage(1);
-    setHasMore(true);
-  }, []);
+  const currentPage = data?.pages.length ?? 1;
 
-  const updateSearchQuery = useCallback((query: string) => {
+  const updateSearchQuery = (query: string) => {
     setSearchQuery(query);
-    setTokens([]);
-    setCurrentPage(1);
-    setHasMore(true);
-  }, []);
+  };
+
+  const resetTokens = () => {
+    setSearchQuery("");
+  };
+
+  const loadMoreTokens = () => {
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  };
 
   return {
     tokens,
-    loading,
-    loadingMore,
-    hasMore,
+    loading: isLoading,
+    loadingMore: isFetchingNextPage,
+    hasMore: hasNextPage ?? false,
     currentPage,
     searchQuery,
-    fetchTokens,
+    fetchTokens: refetch,
     loadMoreTokens,
     resetTokens,
     updateSearchQuery,
