@@ -7,6 +7,7 @@ import { formatUnits, isAddressEqual } from "viem";
 import { chain, multisig, weth } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 import { useTokens } from "@/hooks/useTokens";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -60,7 +61,11 @@ export function TreasuryWethBalance() {
             <div className="mx-auto h-16 w-64 animate-pulse rounded-full bg-muted" />
           ) : usdValue !== null ? (
             <p className="text-5xl font-black md:text-6xl">
-              {usdFormatter.format(usdValue)}
+              <AnimatedNumber
+                value={usdValue}
+                duration={800}
+                formatNumber={val => usdFormatter.format(val)}
+              />
             </p>
           ) : (
             <p className="text-5xl font-black md:text-6xl">--</p>
@@ -71,7 +76,11 @@ export function TreasuryWethBalance() {
             <div className="mx-auto h-4 w-48 animate-pulse rounded-full bg-muted" />
           ) : wethBalance !== null ? (
             <p className="text-sm text-muted-foreground md:text-base">
-              {wethFormatter.format(Number(wethBalance?.displayValue))}{" "}
+              <AnimatedNumber
+                value={Number(wethBalance?.displayValue)}
+                duration={800}
+                formatNumber={val => wethFormatter.format(val)}
+              />{" "}
               {wethBalance?.symbol ?? "WETH"}
             </p>
           ) : isError ? (
