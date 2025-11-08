@@ -116,7 +116,7 @@ export async function GET(request: Request) {
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[Admin] Neynar bulk-by-address error:`, errorText);
+            console.error("[Admin] Neynar bulk-by-address error:", errorText);
             // Continue with cached data if API fails
             continue;
           }
@@ -138,7 +138,7 @@ export async function GET(request: Request) {
             }
           }
         } catch (error) {
-          console.error(`[Admin] Error fetching batch:`, error);
+          console.error("[Admin] Error fetching batch:", error);
           // Continue with other batches
         }
       }
@@ -180,7 +180,7 @@ export async function GET(request: Request) {
 
         if (!scoreResp.ok) {
           const errorText = await scoreResp.text();
-          console.error(`[Admin] Neynar score API error:`, errorText);
+          console.error("[Admin] Neynar score API error:", errorText);
           continue;
         }
 
@@ -208,7 +208,7 @@ export async function GET(request: Request) {
           }
         }
       } catch (error) {
-        console.error(`[Admin] Error fetching scores:`, error);
+        console.error("[Admin] Error fetching scores:", error);
       }
     }
 
