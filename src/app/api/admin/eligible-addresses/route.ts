@@ -81,7 +81,8 @@ export async function GET(request: Request) {
 
         try {
           const cached = await redis?.get<NeynarUser>(cacheKey);
-          if (cached && typeof cached.score === "number") {
+          // Accept cached users even without scores - we'll fetch scores separately
+          if (cached && cached.fid) {
             cachedUsers.set(normalizedAddr, cached);
           } else {
             uncachedAddresses.push(addr);
@@ -213,6 +214,7 @@ export async function GET(request: Request) {
 
     // Step 4: Deduplicate by FID and filter by score
     const eligibleAddresses: string[] = [];
+    const eligibleUsers: NeynarUser[] = [];
     const processedFids = new Set<number>();
 
     for (const [addr, user] of addressToUser.entries()) {
@@ -234,12 +236,13 @@ export async function GET(request: Request) {
       // Prefer primary eth address if available
       const primaryAddress =
         user.verified_addresses?.primary?.eth_address?.toLowerCase();
-      if (primaryAddress && addresses.includes(primaryAddress)) {
-        eligibleAddresses.push(primaryAddress);
-      } else {
-        // Otherwise use first address
-        eligibleAddresses.push(addresses[0]);
-      }
+      const selectedAddress =
+        primaryAddress && addresses.includes(primaryAddress)
+          ? primaryAddress
+          : addresses[0];
+
+      eligibleAddresses.push(selectedAddress);
+      eligibleUsers.push({ ...user, custody_address: selectedAddress });
     }
 
     console.log(
@@ -248,6 +251,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       addresses: eligibleAddresses,
+      users: eligibleUsers,
       totalAddresses: allAddresses.length,
       eligibleAddresses: eligibleAddresses.length,
       uniqueFids: processedFids.size,
