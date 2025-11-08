@@ -38,7 +38,7 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
   const usdValue = useMemo(() => {
     if (!wethBalance) return null;
     return (
-      Number(formatUnits(wethBalance.value, 18)) * (ethereumPrice?.price ?? 0)
+      Number(formatUnits(wethBalance.value, 18)) * (ethereumPrice.price ?? 0)
     );
   }, [wethBalance, ethereumPrice]);
 
@@ -61,6 +61,7 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
               <AnimatedNumber
                 duration={800}
                 formatNumber={val => usdFormatter.format(val)}
+                trend={ethereumPrice.trend}
                 value={usdValue}
               />
             </p>
@@ -82,7 +83,9 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
                 alt="WETH Icon"
                 className="inline-block mb-1"
                 height={16}
-                src={"https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332"}
+                src={
+                  "https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332"
+                }
                 width={16}
               />{" "}
               {wethBalance?.symbol ?? "WETH"}

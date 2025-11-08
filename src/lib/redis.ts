@@ -59,6 +59,7 @@ export const getEthereumPriceCacheKey = () => {
 // Cache TTL constants
 export const CACHE_TTL = {
   FIVE_SECONDS: 5, // 5 seconds (real-time price data)
+  FIFTEEN_SECONDS: 15, // 15 seconds (price data)
   THIRTY_SECONDS: 30, // 30 seconds (price data)
   ONE_MINUTE: 60, // 1 minute in seconds (frequently changing feed data)
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)

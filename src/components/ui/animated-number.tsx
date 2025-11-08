@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
+export type PriceTrend = "up" | "down" | "neutral";
+
 interface AnimatedNumberProps {
   value: number;
   className?: string;
   decimals?: number;
   duration?: number;
   formatNumber?: (value: number) => string;
+  trend?: PriceTrend;
 }
 
 export function AnimatedNumber({
@@ -18,6 +21,7 @@ export function AnimatedNumber({
   decimals = 0,
   duration = 500,
   formatNumber,
+  trend,
 }: AnimatedNumberProps) {
   const [displayValue, setDisplayValue] = useState(value);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -61,8 +65,10 @@ export function AnimatedNumber({
   return (
     <span
       className={cn(
-        "tabular-nums transition-all duration-150",
-        isAnimating && "scale-105",
+        "tabular-nums transition-all duration-300",
+        isAnimating && "scale-150",
+        isAnimating && trend === "up" && "text-green-500",
+        isAnimating && trend === "down" && "text-red-500",
         className,
       )}
     >

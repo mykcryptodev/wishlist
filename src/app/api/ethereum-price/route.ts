@@ -121,11 +121,11 @@ export async function GET() {
       source,
     };
 
-    // Store in Redis with 30 second TTL
+    // Store in Redis with 15 second TTL
     if (redis) {
-      await redis.setex(CACHE_KEY, CACHE_TTL.THIRTY_SECONDS, result);
+      await redis.setex(CACHE_KEY, CACHE_TTL.FIFTEEN_SECONDS, result);
       console.log(
-        `[Ethereum Price] Cached price $${price} from ${source} with ${CACHE_TTL.THIRTY_SECONDS}s TTL`,
+        `[Ethereum Price] Cached price $${price} from ${source} with ${CACHE_TTL.FIFTEEN_SECONDS}s TTL`,
       );
     }
 
