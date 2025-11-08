@@ -83,10 +83,10 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
                 alt="WETH Icon"
                 className="inline-block mb-1"
                 height={16}
+                width={16}
                 src={
                   "https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332"
                 }
-                width={16}
               />{" "}
               {wethBalance?.symbol ?? "WETH"}
             </p>
