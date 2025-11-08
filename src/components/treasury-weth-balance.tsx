@@ -2,12 +2,11 @@
 
 import { useMemo } from "react";
 import { useWalletBalance } from "thirdweb/react";
-import { resolveScheme } from "thirdweb/storage";
-import { formatUnits, isAddressEqual } from "viem";
+import { formatUnits } from "viem";
 
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { chain, multisig, weth } from "@/constants";
-import { useTokens } from "@/hooks/useTokens";
+import { useEthereumPrice } from "@/hooks/useEthereumPrice";
 import { cn } from "@/lib/utils";
 import { client } from "@/providers/Thirdweb";
 
@@ -34,21 +33,14 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
     tokenAddress: weth[chain.id],
   });
 
-  const wethTokenQuery = useTokens(weth[chain.id]);
+  const ethereumPrice = useEthereumPrice();
 
   const usdValue = useMemo(() => {
     if (!wethBalance) return null;
-    const wethToken = wethTokenQuery?.tokens.find(token =>
-      isAddressEqual(
-        token.address as `0x${string}`,
-        weth[chain.id] as `0x${string}`,
-      ),
-    );
     return (
-      Number(formatUnits(wethBalance.value, wethToken?.decimals ?? 0)) *
-      (wethToken?.priceUsd ?? 0)
+      Number(formatUnits(wethBalance.value, 18)) * (ethereumPrice?.price ?? 0)
     );
-  }, [wethBalance, wethTokenQuery]);
+  }, [wethBalance, ethereumPrice]);
 
   const showSkeleton = isLoading || isFetching;
 
@@ -90,13 +82,8 @@ export function TreasuryWethBalance({ className }: { className?: string }) {
                 alt="WETH Icon"
                 className="inline-block mb-1"
                 height={16}
+                src={"https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332"}
                 width={16}
-                src={resolveScheme({
-                  client,
-                  uri:
-                    wethTokenQuery?.tokens[0]?.iconUri ??
-                    "https://assets.coingecko.com/coins/images/2518/standard/weth.png?1696503332",
-                })}
               />{" "}
               {wethBalance?.symbol ?? "WETH"}
             </p>

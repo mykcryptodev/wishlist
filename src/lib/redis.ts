@@ -52,8 +52,14 @@ export const getSerpApiAvailabilityCacheKey = () => {
   return "serpapi:availability";
 };
 
+export const getEthereumPriceCacheKey = () => {
+  return "ethereum:price:usd";
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
+  FIVE_SECONDS: 5, // 5 seconds (real-time price data)
+  THIRTY_SECONDS: 30, // 30 seconds (price data)
   ONE_MINUTE: 60, // 1 minute in seconds (frequently changing feed data)
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
   ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently, SerpAPI availability)

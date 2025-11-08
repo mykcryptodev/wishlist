@@ -12,6 +12,9 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const { connect } = useConnect();
 
   const connectWallet = useCallback(async () => {
+    if (!isSDKLoaded || !sdk.wallet) {
+      return;
+    }
     try {
       await connect(async () => {
         const wallet = EIP1193.fromProvider({
