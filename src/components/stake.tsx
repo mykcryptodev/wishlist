@@ -32,6 +32,7 @@ import { useUserRewardsClaimed } from "@/hooks/useUserRewardsClaimed";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
+import { ShareStakeDialog } from "./stake/ShareStakeDialog";
 
 const isStakingComingSoon = false;
 
@@ -45,6 +46,16 @@ export const Stake: FC = () => {
   const [isBurning, setIsBurning] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isCompounding, setIsCompounding] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareStats, setShareStats] = useState<{
+    type: "compound" | "claim" | "burn";
+    amountClaimed?: string;
+    amountCompounded?: string;
+    amountBurned?: string;
+    userTotalRewards: string;
+    userTotalBurned: string;
+    globalTotalBurned: string;
+  } | null>(null);
 
   const {
     data: balance,
@@ -85,12 +96,16 @@ export const Stake: FC = () => {
   const { data: totalBurnedData, isLoading: isTotalBurnedLoading } =
     useTotalBurned();
 
-  const { data: userBurnedData, isLoading: isUserBurnedLoading } =
-    useUserBurnedAmount(account?.address);
+  const {
+    data: userBurnedData,
+    isLoading: isUserBurnedLoading,
+    refetch: refetchUserBurned,
+  } = useUserBurnedAmount(account?.address);
 
   const {
     data: userRewardsClaimedData,
     isLoading: isUserRewardsClaimedLoading,
+    refetch: refetchUserRewards,
   } = useUserRewardsClaimed(account?.address);
 
   const {
@@ -207,7 +222,7 @@ export const Stake: FC = () => {
     const amountToBurn = burnableBalance;
     setIsBurning(true);
     try {
-      await burnTokens({
+      const result = await burnTokens({
         amount: amountToBurn,
       });
 
@@ -219,8 +234,49 @@ export const Stake: FC = () => {
 
       toast.success("Burn transaction successful! Tokens removed from supply.");
 
-      // Let the automatic refetch interval (10s) handle the next update
-      // This prevents flashing by not immediately overwriting the optimistic update
+      // Refetch stats and show share dialog
+      setTimeout(async () => {
+        // Refetch all user stats to get latest data
+        await Promise.all([
+          refetchBurnable(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual burn amount from transaction receipt
+        let actualBurnAmount = "0";
+        if (result.receipt?.logs) {
+          // Look for StakedWishesBurned event
+          // Event signature: StakedWishesBurned(address indexed staker, uint256 amount)
+          const burnEvent = result.receipt.logs.find(
+            (log: any) =>
+              log.topics[0] ===
+              "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+          );
+          if (burnEvent) {
+            const burnedAmount = BigInt(burnEvent.data);
+            actualBurnAmount = (Number(burnedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "burn",
+          amountBurned: actualBurnAmount || amountToBurn,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
     } catch (error) {
       console.error("Burn error:", error);
       toast.error(
@@ -239,7 +295,7 @@ export const Stake: FC = () => {
     const amountToClaim = rewardsBalance;
     setIsClaiming(true);
     try {
-      await claimRewardsTokens();
+      const result = await claimRewardsTokens();
 
       // Optimistically set rewards to 0 after successful transaction
       queryClient.setQueryData<{
@@ -263,22 +319,52 @@ export const Stake: FC = () => {
         };
       });
 
-      toast.success(
-        `Successfully claimed ${
-          Number(amountToClaim) < 1000
-            ? Number(amountToClaim).toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })
-            : shortenLargeNumber(Number(amountToClaim)).toLocaleString()
-        } WISH rewards!`,
-      );
+      toast.success("Rewards claimed successfully!");
 
-      // Delay refetch to allow blockchain to propagate
-      // This prevents the flash of old data overwriting our optimistic update
-      setTimeout(() => {
-        Promise.all([refetchStaked(), refetchBalance()]);
-      }, 2000);
+      // Delay refetch and show share dialog
+      setTimeout(async () => {
+        // Refetch all stats to get latest data
+        await Promise.all([
+          refetchStaked(),
+          refetchBalance(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual claimed amount from transaction receipt
+        let actualClaimedAmount = amountToClaim;
+        if (result.receipt?.logs) {
+          // Look for RewardsClaimed event
+          // Event signature: RewardsClaimed(address indexed staker, uint256 rewardAmount)
+          const claimEvent = result.receipt.logs.find(
+            (log: any) =>
+              log.topics[0] ===
+              "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+          );
+          if (claimEvent) {
+            const claimedAmount = BigInt(claimEvent.data);
+            actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "claim",
+          amountClaimed: actualClaimedAmount,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
     } catch (error) {
       console.error("Claim error:", error);
       toast.error(
@@ -299,7 +385,7 @@ export const Stake: FC = () => {
 
     setIsCompounding(true);
     try {
-      await compoundTokens();
+      const result = await compoundTokens();
 
       // Optimistically update: rewards to 0, increase staked balance, burnable to 0
       queryClient.setQueryData<{
@@ -331,10 +417,64 @@ export const Stake: FC = () => {
         "Compound successful! Rewards claimed, tokens burned, and re-staked.",
       );
 
-      // Delay refetch to allow blockchain to propagate
-      setTimeout(() => {
-        Promise.all([refetchStaked(), refetchBalance(), refetchBurnable()]);
-      }, 2000);
+      // Delay refetch and show share dialog
+      setTimeout(async () => {
+        // Refetch all stats to get latest data
+        await Promise.all([
+          refetchStaked(),
+          refetchBalance(),
+          refetchBurnable(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual amounts from transaction receipt
+        let actualBurnedAmount = "0";
+        let actualClaimedAmount = rewardsToClaim;
+
+        if (result.receipt?.logs) {
+          // Look for StakedWishesBurned event
+          const burnEvent = result.receipt.logs.find(
+            (log: any) =>
+              log.topics[0] ===
+              "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+          );
+          if (burnEvent) {
+            const burnedAmount = BigInt(burnEvent.data);
+            actualBurnedAmount = (Number(burnedAmount) / 10 ** 18).toString();
+          }
+
+          // Look for RewardsClaimed event
+          const claimEvent = result.receipt.logs.find(
+            (log: any) =>
+              log.topics[0] ===
+              "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+          );
+          if (claimEvent) {
+            const claimedAmount = BigInt(claimEvent.data);
+            actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "compound",
+          amountCompounded: actualClaimedAmount,
+          amountBurned: actualBurnedAmount,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
     } catch (error) {
       console.error("Compound error:", error);
       toast.error(
@@ -859,6 +999,13 @@ export const Stake: FC = () => {
           )}
         </CardContent>
       </div>
+
+      {/* Share Dialog */}
+      <ShareStakeDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        stats={shareStats}
+      />
     </Card>
   );
 };
