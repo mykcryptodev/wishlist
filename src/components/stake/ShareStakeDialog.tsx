@@ -1,5 +1,6 @@
 "use client";
 
+import { sdk } from "@farcaster/miniapp-sdk";
 import { Flame, Gift, Share2, X, Zap } from "lucide-react";
 import { FC } from "react";
 import { shortenLargeNumber } from "thirdweb/utils";
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 interface TransactionStats {
   type: "compound" | "claim" | "burn";
@@ -34,6 +36,8 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
   onOpenChange,
   stats,
 }) => {
+  const { isInMiniApp } = useIsInMiniApp();
+
   if (!stats) return null;
 
   const getTitle = () => {
@@ -88,12 +92,59 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
       `🌍 Global: ${shortenLargeNumber(Number(stats.globalTotalBurned)).toLocaleString()} WISH burned`,
     );
     lines.push("");
-    lines.push("Stake your $WISH at wishlist.lol");
+    lines.push("Stake your $WISH at wishlist.holiday");
 
     return lines.join("\n");
   };
 
   const handleShare = async () => {
+    // If in Farcaster miniapp, compose a cast with OG image
+    if (isInMiniApp) {
+      try {
+        // Build OG image URL
+        const baseUrl =
+          typeof window !== "undefined"
+            ? window.location.origin
+            : "https://wishlist.lol";
+
+        const ogParams = new URLSearchParams({
+          type: stats.type,
+          claimed: stats.amountClaimed || stats.amountCompounded || "0",
+          burned: stats.amountBurned || "0",
+          totalEarned: stats.userTotalRewards,
+          totalBurned: stats.userTotalBurned,
+          globalBurned: stats.globalTotalBurned,
+        });
+
+        const ogImageUrl = `${baseUrl}/api/og/stake-share?${ogParams.toString()}`;
+
+        // Generate cast text
+        let castText = "";
+        if (stats.type === "compound") {
+          castText = `Just compounded ${formatNumber(stats.amountCompounded || "0")} WISH and burned ${formatNumber(stats.amountBurned || "0")} WISH! 🚀\n\nStake your $WISH at wishlist.lol`;
+        } else if (stats.type === "claim") {
+          castText = `Just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.lol`;
+        } else if (stats.type === "burn") {
+          castText = `Just burned ${formatNumber(stats.amountBurned || "0")} WISH from supply! 🔥\n\nStake your $WISH at wishlist.lol`;
+        }
+
+        // Compose cast with OG image
+        await sdk.actions.openUrl(
+          `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(ogImageUrl)}`,
+        );
+
+        onOpenChange(false);
+      } catch (error) {
+        console.error("Error composing cast:", error);
+        // Fallback to regular share
+        shareViaDefault();
+      }
+    } else {
+      shareViaDefault();
+    }
+  };
+
+  const shareViaDefault = async () => {
     const text = generateShareText();
 
     if (navigator.share) {
