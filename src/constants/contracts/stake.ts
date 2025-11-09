@@ -1259,6 +1259,57 @@ export async function getTotalBurnedAllTime(options: BaseTransactionOptions) {
 }
 
 /**
+ * Represents the parameters for the "getUserTotalRewardsClaimed" function.
+ */
+export type GetUserTotalRewardsClaimedParams = {
+  staker: AbiParameterToPrimitiveType<{
+    internalType: "address";
+    name: "staker";
+    type: "address";
+  }>;
+};
+
+/**
+ * Calls the "getUserTotalRewardsClaimed" function on the contract.
+ * @param options - The options for the getUserTotalRewardsClaimed function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getUserTotalRewardsClaimed } from "TODO";
+ *
+ * const result = await getUserTotalRewardsClaimed({
+ *  staker: ...,
+ * });
+ *
+ * ```
+ */
+export async function getUserTotalRewardsClaimed(
+  options: BaseTransactionOptions<GetUserTotalRewardsClaimedParams>,
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x3ad51d30",
+      [
+        {
+          internalType: "address",
+          name: "staker",
+          type: "address",
+        },
+      ],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [options.staker],
+  });
+}
+
+/**
  * Represents the parameters for the "hasRole" function.
  */
 export type HasRoleParams = {
@@ -1783,6 +1834,57 @@ export async function totalBurnedAllTime(options: BaseTransactionOptions) {
       ],
     ],
     params: [],
+  });
+}
+
+/**
+ * Represents the parameters for the "totalRewardsClaimed" function.
+ */
+export type TotalRewardsClaimedParams = {
+  arg_0: AbiParameterToPrimitiveType<{
+    internalType: "address";
+    name: "";
+    type: "address";
+  }>;
+};
+
+/**
+ * Calls the "totalRewardsClaimed" function on the contract.
+ * @param options - The options for the totalRewardsClaimed function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { totalRewardsClaimed } from "TODO";
+ *
+ * const result = await totalRewardsClaimed({
+ *  arg_0: ...,
+ * });
+ *
+ * ```
+ */
+export async function totalRewardsClaimed(
+  options: BaseTransactionOptions<TotalRewardsClaimedParams>,
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xf6ce9004",
+      [
+        {
+          internalType: "address",
+          name: "",
+          type: "address",
+        },
+      ],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [options.arg_0],
   });
 }
 

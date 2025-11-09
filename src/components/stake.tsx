@@ -28,6 +28,7 @@ import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
 import { useTotalBurned } from "@/hooks/useTotalBurned";
 import { useUserBurnedAmount } from "@/hooks/useUserBurnedAmount";
+import { useUserRewardsClaimed } from "@/hooks/useUserRewardsClaimed";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
@@ -86,6 +87,11 @@ export const Stake: FC = () => {
 
   const { data: userBurnedData, isLoading: isUserBurnedLoading } =
     useUserBurnedAmount(account?.address);
+
+  const {
+    data: userRewardsClaimedData,
+    isLoading: isUserRewardsClaimedLoading,
+  } = useUserRewardsClaimed(account?.address);
 
   const {
     stakeTokens,
@@ -446,29 +452,56 @@ export const Stake: FC = () => {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
             {/* APY Display */}
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 bg-primary/10 rounded-lg border border-primary/20 space-y-2 md:space-y-0">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <Gift className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium">Current APY:</span>
+            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Gift className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium">Current APY:</span>
+                </div>
+                <span className="text-lg font-bold text-primary">
+                  {isAPYLoading ? (
+                    <span className="text-muted-foreground">Loading...</span>
+                  ) : apyError ? (
+                    <span className="text-destructive text-sm">
+                      Failed to load
+                    </span>
+                  ) : apy !== undefined ? (
+                    <>
+                      <SplitFlipNumber
+                        value={shortenLargeNumber(apy).toLocaleString()}
+                      />
+                      %
+                    </>
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
               </div>
-              <span className="text-lg font-bold text-primary">
-                {isAPYLoading ? (
-                  <span className="text-muted-foreground">Loading...</span>
-                ) : apyError ? (
-                  <span className="text-destructive text-sm">
-                    Failed to load
+
+              {/* User's Total Rewards Claimed - Inside same box */}
+              {account && (
+                <div className="flex justify-between items-center pt-2 border-t border-primary/20">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Total Earned:
                   </span>
-                ) : apy !== undefined ? (
-                  <>
-                    <SplitFlipNumber
-                      value={shortenLargeNumber(apy).toLocaleString()}
-                    />
-                    %
-                  </>
-                ) : (
-                  "N/A"
-                )}
-              </span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {isUserRewardsClaimedLoading ? (
+                      <span className="text-muted-foreground">Loading...</span>
+                    ) : userRewardsClaimedData ? (
+                      <>
+                        {shortenLargeNumber(
+                          Number(
+                            userRewardsClaimedData.rewardsClaimedFormatted,
+                          ),
+                        ).toLocaleString()}{" "}
+                        WISH
+                      </>
+                    ) : (
+                      "0 WISH"
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Total Burned All Time Display */}

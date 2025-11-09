@@ -20,7 +20,7 @@ export const wish = {
 };
 
 export const stake = {
-  [baseSepolia.id]: "0x5199c6aa2750C33F049d29F7b7E175515DFC47Bf",
+  [baseSepolia.id]: "0x5f47f93a2FDE77C78454b8b27F3Ae2A4bae8768A",
   [base.id]: "0xd78aF06a5A63e4e8E4Ab94C403C1907ebded583C",
 };
 

@@ -47,6 +47,9 @@ contract StakeAWish is Staking20, Permissions {
     // Track total amount burned per day (day number => amount burned that day)
     mapping(uint256 => uint256) public dailyBurnedAmount;
 
+    // Track total rewards claimed per user (for analytics)
+    mapping(address => uint256) public totalRewardsClaimed;
+
     // Track total amount burned across all time and all users
     uint256 public totalBurnedAllTime;
 
@@ -248,6 +251,9 @@ contract StakeAWish is Staking20, Permissions {
         
         // Deduct from reward pool reserve
         rewardPoolReserve -= _rewards;
+        
+        // Track total rewards claimed by this user
+        totalRewardsClaimed[_staker] += _rewards;
         
         // Transfer rewards to staker
         IERC20(rewardToken).transfer(_staker, _rewards);
@@ -469,6 +475,15 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
+     * @dev Get total rewards claimed by a specific user
+     * @param staker The address to check
+     * @return The total amount of rewards claimed by this user all time
+     */
+    function getUserTotalRewardsClaimed(address staker) external view returns (uint256) {
+        return totalRewardsClaimed[staker];
+    }
+
+    /**
      * @dev Claim rewards, burn available allowance, and compound rewards back into staking
      * This is a convenience function that performs all three operations atomically:
      * 1. Burns any available burn allowance (based on staking duration)
@@ -498,6 +513,9 @@ contract StakeAWish is Staking20, Permissions {
             
             // Deduct from reward pool reserve
             rewardPoolReserve -= rewardsClaimed;
+            
+            // Track total rewards claimed by this user
+            totalRewardsClaimed[msg.sender] += rewardsClaimed;
             
             // Reset unclaimed rewards
             stakers[msg.sender].unclaimedRewards = 0;

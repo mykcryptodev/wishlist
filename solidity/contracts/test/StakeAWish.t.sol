@@ -953,6 +953,99 @@ contract StakeAWishTest is Test {
     }
 
     // ========================================
+    // Rewards Claimed Tracking Tests
+    // ========================================
+
+    function testRewardsClaimedStartsAtZero() public {
+        // Verify rewards claimed starts at 0 for new user
+        assertEq(stakeContract.getUserTotalRewardsClaimed(alice), 0, "Should start at 0");
+    }
+
+    function testRewardsClaimedIncrementsOnClaim() public {
+        // Test that rewards claimed increments when user claims
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait to accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (,uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Should have rewards");
+        
+        // Claim rewards
+        stakeContract.claimRewards();
+        
+        // Check total rewards claimed updated
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewards,
+            "Total rewards claimed should equal claimed amount"
+        );
+        
+        vm.stopPrank();
+    }
+
+    function testRewardsClaimedAccumulatesOverTime() public {
+        // Test that rewards claimed accumulates over multiple claims
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // First claim after 10 days
+        vm.warp(block.timestamp + 10 days);
+        (,uint256 rewards1) = stakeContract.getStakeInfo(alice);
+        stakeContract.claimRewards();
+        
+        assertEq(stakeContract.getUserTotalRewardsClaimed(alice), rewards1, "First claim tracked");
+        
+        // Second claim after another 10 days
+        vm.warp(block.timestamp + 20 days);
+        (,uint256 rewards2) = stakeContract.getStakeInfo(alice);
+        stakeContract.claimRewards();
+        
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewards1 + rewards2,
+            "Should accumulate both claims"
+        );
+        
+        vm.stopPrank();
+    }
+
+    function testRewardsClaimedWithCompound() public {
+        // Test that compound also tracks rewards claimed
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait for rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (,uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have rewards");
+        
+        // Compound
+        (uint256 rewardsClaimed,) = stakeContract.claimBurnAndCompound();
+        
+        // Total rewards claimed should be updated
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewardsClaimed,
+            "Compound should track rewards"
+        );
+        assertEq(rewardsClaimed, rewardsBefore, "Should equal pending rewards");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
     // Reserve Accounting Tests
     // ========================================
 
