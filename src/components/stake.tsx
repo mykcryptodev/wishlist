@@ -26,6 +26,7 @@ import { useDailyBurn } from "@/hooks/useDailyBurn";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
+import { useTotalBurned } from "@/hooks/useTotalBurned";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
@@ -78,6 +79,10 @@ export const Stake: FC = () => {
     isLoading: isAPYLoading,
     error: apyError,
   } = useStakingAPY();
+
+  const { data: totalBurnedData, isLoading: isTotalBurnedLoading } =
+    useTotalBurned();
+
   const {
     stakeTokens,
     unstakeTokens,
@@ -435,25 +440,58 @@ export const Stake: FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* APY Display */}
-          <div className="flex justify-between items-center p-4 bg-primary/10 rounded-lg border border-primary/20">
-            <span className="text-sm font-medium">Current APY:</span>
-            <span className="text-lg font-bold text-primary">
-              {isAPYLoading ? (
-                <span className="text-muted-foreground">Loading...</span>
-              ) : apyError ? (
-                <span className="text-destructive text-sm">Failed to load</span>
-              ) : apy !== undefined ? (
-                <>
-                  <SplitFlipNumber
-                    value={shortenLargeNumber(apy).toLocaleString()}
-                  />
-                  %
-                </>
-              ) : (
-                "N/A"
-              )}
-            </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            {/* APY Display */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 bg-primary/10 rounded-lg border border-primary/20 space-y-2 md:space-y-0">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Gift className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium">Current APY:</span>
+              </div>
+              <span className="text-lg font-bold text-primary">
+                {isAPYLoading ? (
+                  <span className="text-muted-foreground">Loading...</span>
+                ) : apyError ? (
+                  <span className="text-destructive text-sm">
+                    Failed to load
+                  </span>
+                ) : apy !== undefined ? (
+                  <>
+                    <SplitFlipNumber
+                      value={shortenLargeNumber(apy).toLocaleString()}
+                    />
+                    %
+                  </>
+                ) : (
+                  "N/A"
+                )}
+              </span>
+            </div>
+
+            {/* Total Burned All Time Display */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 bg-orange-500/10 rounded-lg border border-orange-500/20 space-y-2 md:space-y-0">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                <span className="text-sm font-medium">Total Burned:</span>
+              </div>
+              <span className="text-lg font-bold text-orange-500 text-center md:text-right">
+                {isTotalBurnedLoading ? (
+                  <span className="text-muted-foreground text-sm">
+                    Loading...
+                  </span>
+                ) : totalBurnedData ? (
+                  <>
+                    <SplitFlipNumber
+                      value={shortenLargeNumber(
+                        Number(totalBurnedData.totalBurnedFormatted),
+                      ).toLocaleString()}
+                    />
+                    <span className="ml-1 text-sm">WISH</span>
+                  </>
+                ) : (
+                  "0 WISH"
+                )}
+              </span>
+            </div>
           </div>
 
           <Tabs className="w-full" defaultValue="stake">
