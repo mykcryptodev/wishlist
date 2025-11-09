@@ -249,11 +249,12 @@ export const Stake: FC = () => {
           // Look for StakedWishesBurned event
           // Event signature: StakedWishesBurned(address indexed staker, uint256 amount)
           const burnEvent = result.receipt.logs.find(
-            (log: any) =>
+            log =>
+              log.topics &&
               log.topics[0] ===
-              "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+                "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
           );
-          if (burnEvent) {
+          if (burnEvent && burnEvent.data) {
             const burnedAmount = BigInt(burnEvent.data);
             actualBurnAmount = (Number(burnedAmount) / 10 ** 18).toString();
           }
@@ -337,11 +338,12 @@ export const Stake: FC = () => {
           // Look for RewardsClaimed event
           // Event signature: RewardsClaimed(address indexed staker, uint256 rewardAmount)
           const claimEvent = result.receipt.logs.find(
-            (log: any) =>
+            log =>
+              log.topics &&
               log.topics[0] ===
-              "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+                "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
           );
-          if (claimEvent) {
+          if (claimEvent && claimEvent.data) {
             const claimedAmount = BigInt(claimEvent.data);
             actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
           }
@@ -381,7 +383,6 @@ export const Stake: FC = () => {
     if (!rewardsBalance || Number(rewardsBalance) <= 0) return;
 
     const rewardsToClaim = rewardsBalance;
-    const burnableAmount = burnableBalance;
 
     setIsCompounding(true);
     try {
@@ -435,22 +436,24 @@ export const Stake: FC = () => {
         if (result.receipt?.logs) {
           // Look for StakedWishesBurned event
           const burnEvent = result.receipt.logs.find(
-            (log: any) =>
+            log =>
+              log.topics &&
               log.topics[0] ===
-              "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+                "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
           );
-          if (burnEvent) {
+          if (burnEvent && burnEvent.data) {
             const burnedAmount = BigInt(burnEvent.data);
             actualBurnedAmount = (Number(burnedAmount) / 10 ** 18).toString();
           }
 
           // Look for RewardsClaimed event
           const claimEvent = result.receipt.logs.find(
-            (log: any) =>
+            log =>
+              log.topics &&
               log.topics[0] ===
-              "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+                "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
           );
-          if (claimEvent) {
+          if (claimEvent && claimEvent.data) {
             const claimedAmount = BigInt(claimEvent.data);
             actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
           }

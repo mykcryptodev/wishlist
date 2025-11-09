@@ -152,7 +152,7 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
         await navigator.share({
           text,
         });
-      } catch (error) {
+      } catch {
         // User cancelled or share failed
         console.log("Share cancelled");
       }
