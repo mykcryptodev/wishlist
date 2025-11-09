@@ -9,8 +9,9 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 
 /**
  * @title StakeAWish
- * @dev A staking contract that rewards stakers and allows burning from reward pool based on stake duration
- * @notice Users earn rewards from staking AND can burn tokens from the reward pool for every 24h they stake
+ * @dev A staking contract that rewards stakers and allows burning from a separate burn pool based on stake duration
+ * @notice Users earn rewards from staking AND can burn tokens from a separate burn pool for every 24h they stake
+ * The reward pool and burn pool are completely isolated to ensure staking rewards are always claimable
  */
 contract StakeAWish is Staking20, Permissions {
     // Custom errors
@@ -18,17 +19,24 @@ contract StakeAWish is Staking20, Permissions {
     error NoBurnableTokens();
     error InvalidAmount();
     error DailyBurnCapExceeded();
+    error InsufficientRewardPool();
+    error InsufficientBurnPool();
 
     // Permission role for managing stake conditions
     bytes32 public constant STAKE_CONDITIONS_MANAGER_ROLE = keccak256("STAKE_CONDITIONS_MANAGER_ROLE");
 
     address public rewardToken;
+    address public burnToken;
 
     // Burn period (24 hours in production)
     uint256 public constant BURN_PERIOD = 1 days;
 
-    // Global daily burn cap to protect reward pool burns 222M WISH/day
+    // Global daily burn cap to protect burn pool - 222M WISH/day
     uint256 public constant DAILY_BURN_CAP = 222_000_000 * 10**18;
+
+    // Reserve tracking for true pool separation (even with same token)
+    uint256 public rewardPoolReserve;  // Amount reserved for staking rewards
+    uint256 public burnPoolReserve;    // Amount reserved for burning
 
     // Track how much burn allowance has been used per user
     mapping(address => uint256) public burnedAmount;
@@ -43,6 +51,8 @@ contract StakeAWish is Staking20, Permissions {
     event StakedWishesBurned(address indexed staker, uint256 amount);
     event BurnTrackingStarted(address indexed staker, uint256 timestamp);
     event DailyBurnCapReached(uint256 day, uint256 amount);
+    event RewardPoolFunded(address indexed funder, uint256 amount, uint256 newReserve);
+    event BurnPoolFunded(address indexed funder, uint256 amount, uint256 newReserve);
 
     constructor(
         uint80 _timeUnit,
@@ -50,6 +60,7 @@ contract StakeAWish is Staking20, Permissions {
         uint256 _rewardRatioDenominator,
         address _stakingToken,
         address _rewardToken,
+        address _burnToken,
         address _nativeTokenWrapper
     ) Staking20(
             _nativeTokenWrapper,
@@ -59,6 +70,7 @@ contract StakeAWish is Staking20, Permissions {
     ) {
         _setStakingCondition(_timeUnit, _rewardRatioNumerator, _rewardRatioDenominator);
         rewardToken = _rewardToken;
+        burnToken = _burnToken;
         
         // Setup permissions - grant deployer the stake conditions manager role
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -116,11 +128,55 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
+     * @dev Fund the reward pool with tokens
+     * @param amount Amount of reward tokens to add to the reserve
+     * @notice Only callable by contract owner/admin. Increases the reward pool reserve.
+     */
+    function fundRewardPool(uint256 amount) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can fund reward pool");
+        if (amount == 0) revert InvalidAmount();
+        
+        // Transfer tokens from sender to contract
+        IERC20(rewardToken).transferFrom(msg.sender, address(this), amount);
+        
+        // Increase reward pool reserve
+        rewardPoolReserve += amount;
+        
+        emit RewardPoolFunded(msg.sender, amount, rewardPoolReserve);
+    }
+
+    /**
+     * @dev Fund the burn pool with tokens
+     * @param amount Amount of burn tokens to add to the reserve
+     * @notice Only callable by contract owner/admin. Increases the burn pool reserve.
+     */
+    function fundBurnPool(uint256 amount) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can fund burn pool");
+        if (amount == 0) revert InvalidAmount();
+        
+        // Transfer tokens from sender to contract
+        IERC20(burnToken).transferFrom(msg.sender, address(this), amount);
+        
+        // Increase burn pool reserve
+        burnPoolReserve += amount;
+        
+        emit BurnPoolFunded(msg.sender, amount, burnPoolReserve);
+    }
+
+    /**
      *  @dev    Returns the available reward token balance in the contract.
      *  @return _rewardsAvailableInContract The amount of reward tokens available.
      */
     function getRewardTokenBalance() external view virtual override returns (uint256 _rewardsAvailableInContract) {
-        return IERC20(rewardToken).balanceOf(address(this));
+        return rewardPoolReserve;
+    }
+
+    /**
+     *  @dev    Returns the available burn token balance in the contract.
+     *  @return _burnTokensAvailableInContract The amount of burn tokens available.
+     */
+    function getBurnTokenBalance() external view returns (uint256 _burnTokensAvailableInContract) {
+        return burnPoolReserve;
     }
 
     /**
@@ -130,6 +186,13 @@ contract StakeAWish is Staking20, Permissions {
      *  @param _rewards   Amount of tokens to be given out as reward.
      */
     function _mintRewards(address _staker, uint256 _rewards) internal override {
+        // Check that reward pool has sufficient reserve
+        if (rewardPoolReserve < _rewards) revert InsufficientRewardPool();
+        
+        // Deduct from reward pool reserve
+        rewardPoolReserve -= _rewards;
+        
+        // Transfer rewards to staker
         IERC20(rewardToken).transfer(_staker, _rewards);
     }
 
@@ -142,7 +205,7 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
-     * @dev Calculate how many tokens a staker can burn from the reward pool
+     * @dev Calculate how many tokens a staker can burn from the burn pool
      * Formula: (stakedAmount * completePeriods) - alreadyBurned
      * @param staker The address to check
      * @return burnableAmount The amount that can be burned
@@ -171,11 +234,11 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
-     * @dev Burn tokens from the reward pool based on staking duration
+     * @dev Burn tokens from the burn pool based on staking duration
      * For every 24 hours staked, user can burn an amount equal to their staked balance
-     * Subject to global daily burn cap to protect reward pool
+     * Subject to global daily burn cap to protect burn pool
      * If requested amount exceeds remaining daily cap, burns up to the cap instead of reverting
-     * @param amount The maximum amount of reward tokens to burn
+     * @param amount The maximum amount of burn tokens to burn
      */
     function burnRewardTokens(uint256 amount) external {
         if (amount == 0) revert InvalidAmount();
@@ -212,26 +275,24 @@ contract StakeAWish is Staking20, Permissions {
     }
 
     /**
-     * @dev Internal function to burn reward tokens
+     * @dev Internal function to burn tokens from the burn pool
      * @param staker Address of the staker
-     * @param amount Amount of tokens to burn from reward pool
+     * @param amount Amount of tokens to burn from burn pool
      */
     function _burnRewardTokens(address staker, uint256 amount) internal {
+        // Check that burn pool has sufficient reserve
+        if (burnPoolReserve < amount) revert InsufficientBurnPool();
+        
         // Update burned amount tracker
         burnedAmount[staker] += amount;
         
-        // Get reward pool balance
-        uint256 rewardPoolBalance = IERC20(rewardToken).balanceOf(address(this));
+        // Deduct from burn pool reserve
+        burnPoolReserve -= amount;
         
         // Burn the tokens using ERC20Burnable
-        // Only burn what's available in the pool
-        uint256 amountToBurn = amount > rewardPoolBalance ? rewardPoolBalance : amount;
+        ERC20Burnable(burnToken).burn(amount);
         
-        if (amountToBurn > 0) {
-            ERC20Burnable(rewardToken).burn(amountToBurn);
-        }
-        
-        emit StakedWishesBurned(staker, amountToBurn);
+        emit StakedWishesBurned(staker, amount);
     }
 
     /**
