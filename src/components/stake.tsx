@@ -218,7 +218,14 @@ export const Stake: FC = () => {
       });
 
       toast.success(
-        `Successfully burned ${shortenLargeNumber(Number(amountToBurn)).toLocaleString()} WISH from supply!`,
+        `Successfully burned ${
+          Number(amountToBurn) < 1000
+            ? Number(amountToBurn).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })
+            : shortenLargeNumber(Number(amountToBurn)).toLocaleString()
+        } WISH from supply!`,
       );
 
       // Let the automatic refetch interval (10s) handle the next update
@@ -266,7 +273,14 @@ export const Stake: FC = () => {
       });
 
       toast.success(
-        `Successfully claimed ${shortenLargeNumber(Number(amountToClaim)).toLocaleString()} WISH rewards!`,
+        `Successfully claimed ${
+          Number(amountToClaim) < 1000
+            ? Number(amountToClaim).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })
+            : shortenLargeNumber(Number(amountToClaim)).toLocaleString()
+        } WISH rewards!`,
       );
 
       // Delay refetch to allow blockchain to propagate
@@ -323,7 +337,21 @@ export const Stake: FC = () => {
       });
 
       toast.success(
-        `Compounded ${shortenLargeNumber(Number(rewardsToClaim)).toLocaleString()} WISH + burned ${shortenLargeNumber(Number(burnableAmount)).toLocaleString()} WISH!`,
+        `Compounded ${
+          Number(rewardsToClaim) < 1000
+            ? Number(rewardsToClaim).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })
+            : shortenLargeNumber(Number(rewardsToClaim)).toLocaleString()
+        } WISH + burned ${
+          Number(burnableAmount) < 1000
+            ? Number(burnableAmount).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })
+            : shortenLargeNumber(Number(burnableAmount)).toLocaleString()
+        } WISH!`,
       );
 
       // Delay refetch to allow blockchain to propagate
@@ -370,7 +398,10 @@ export const Stake: FC = () => {
               </div>
               {Number(balance.displayValue) >= 1000 && (
                 <span className="text-xs text-muted-foreground">
-                  {Number(balance.displayValue).toLocaleString()}
+                  {Number(balance.displayValue).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               )}
             </div>
@@ -391,16 +422,26 @@ export const Stake: FC = () => {
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-lg font-bold">
                   <SplitFlipNumber
-                    value={shortenLargeNumber(
-                      Number(stakedBalance),
-                    ).toLocaleString()}
+                    value={
+                      Number(stakedBalance) < 1000
+                        ? Number(stakedBalance).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })
+                        : shortenLargeNumber(
+                            Number(stakedBalance),
+                          ).toLocaleString()
+                    }
                   />
                 </span>
                 <span className="text-xs text-muted-foreground ml-1">WISH</span>
               </div>
               {Number(stakedBalance) >= 1000 && (
                 <span className="text-xs text-muted-foreground">
-                  {Number(stakedBalance).toLocaleString()}
+                  {Number(stakedBalance).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               )}
             </div>
@@ -482,18 +523,19 @@ export const Stake: FC = () => {
               {account && (
                 <div className="flex justify-between items-center pt-2 border-t border-primary/20">
                   <span className="text-xs font-medium text-muted-foreground">
-                    Total Earned:
+                    Total Earned By You:
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground">
                     {isUserRewardsClaimedLoading ? (
                       <span className="text-muted-foreground">Loading...</span>
                     ) : userRewardsClaimedData ? (
                       <>
-                        {shortenLargeNumber(
-                          Number(
-                            userRewardsClaimedData.rewardsClaimedFormatted,
-                          ),
-                        ).toLocaleString()}{" "}
+                        {Number(
+                          userRewardsClaimedData.rewardsClaimedFormatted,
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}{" "}
                         WISH
                       </>
                     ) : (
@@ -542,9 +584,12 @@ export const Stake: FC = () => {
                       <span className="text-muted-foreground">Loading...</span>
                     ) : userBurnedData ? (
                       <>
-                        {shortenLargeNumber(
-                          Number(userBurnedData.burnedAmountFormatted),
-                        ).toLocaleString()}{" "}
+                        {Number(
+                          userBurnedData.burnedAmountFormatted,
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}{" "}
                         WISH
                       </>
                     ) : (
@@ -671,9 +716,16 @@ export const Stake: FC = () => {
                   ) : (
                     <>
                       <SplitFlipNumber
-                        value={shortenLargeNumber(
-                          Number(rewardsBalance),
-                        ).toLocaleString()}
+                        value={
+                          Number(rewardsBalance) < 1000
+                            ? Number(rewardsBalance).toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })
+                            : shortenLargeNumber(
+                                Number(rewardsBalance),
+                              ).toLocaleString()
+                        }
                       />
                       <span className="ml-1">WISH</span>
                     </>
