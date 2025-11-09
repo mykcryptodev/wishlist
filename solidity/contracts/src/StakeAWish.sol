@@ -29,7 +29,7 @@ contract StakeAWish is Staking20, Permissions {
     address public burnToken;
 
     // Burn period (24 hours in production)
-    uint256 public constant BURN_PERIOD = 1 minutes;
+    uint256 public constant BURN_PERIOD = 1 days;
 
     // Global daily burn cap to protect burn pool - 222M WISH/day
     uint256 public constant DAILY_BURN_CAP = 222_000_000 * 10**18;
@@ -46,6 +46,9 @@ contract StakeAWish is Staking20, Permissions {
 
     // Track total amount burned per day (day number => amount burned that day)
     mapping(uint256 => uint256) public dailyBurnedAmount;
+
+    // Track total amount burned across all time and all users
+    uint256 public totalBurnedAllTime;
 
     // Events
     event StakedWishesBurned(address indexed staker, uint256 amount);
@@ -380,8 +383,11 @@ contract StakeAWish is Staking20, Permissions {
         // Check that burn pool has sufficient reserve
         if (burnPoolReserve < amount) revert InsufficientBurnPool();
         
-        // Update burned amount tracker
+        // Update burned amount tracker (per user)
         burnedAmount[staker] += amount;
+        
+        // Update total burned all time (global counter)
+        totalBurnedAllTime += amount;
         
         // Deduct from burn pool reserve
         burnPoolReserve -= amount;
@@ -452,6 +458,14 @@ contract StakeAWish is Staking20, Permissions {
     function isDailyBurnCapReached() external view returns (bool) {
         uint256 today = block.timestamp / 1 days;
         return dailyBurnedAmount[today] >= DAILY_BURN_CAP;
+    }
+
+    /**
+     * @dev Get total amount burned across all time and all users
+     * @return The total amount of tokens burned since contract deployment
+     */
+    function getTotalBurnedAllTime() external view returns (uint256) {
+        return totalBurnedAllTime;
     }
 
     /**

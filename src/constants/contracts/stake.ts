@@ -1229,6 +1229,36 @@ export async function getTimeUnit(options: BaseTransactionOptions) {
 }
 
 /**
+ * Calls the "getTotalBurnedAllTime" function on the contract.
+ * @param options - The options for the getTotalBurnedAllTime function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getTotalBurnedAllTime } from "TODO";
+ *
+ * const result = await getTotalBurnedAllTime();
+ *
+ * ```
+ */
+export async function getTotalBurnedAllTime(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x9b0952be",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
  * Represents the parameters for the "hasRole" function.
  */
 export type HasRoleParams = {
@@ -1719,6 +1749,36 @@ export async function stakingTokenDecimals(options: BaseTransactionOptions) {
           internalType: "uint16",
           name: "",
           type: "uint16",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
+ * Calls the "totalBurnedAllTime" function on the contract.
+ * @param options - The options for the totalBurnedAllTime function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { totalBurnedAllTime } from "TODO";
+ *
+ * const result = await totalBurnedAllTime();
+ *
+ * ```
+ */
+export async function totalBurnedAllTime(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x4ed1ec0c",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
         },
       ],
     ],

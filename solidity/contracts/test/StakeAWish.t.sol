@@ -833,6 +833,126 @@ contract StakeAWishTest is Test {
     }
 
     // ========================================
+    // Total Burned Tracking Tests
+    // ========================================
+
+    function testTotalBurnedStartsAtZero() public {
+        // Verify total burned starts at 0
+        assertEq(stakeContract.getTotalBurnedAllTime(), 0, "Total burned should start at 0");
+    }
+
+    function testTotalBurnedIncrementsOnBurn() public {
+        // Test that total burned increments when users burn
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertEq(burnable, stakeAmount, "Should have 1000 burnable");
+        
+        // Burn
+        stakeContract.burnRewardTokens(burnable);
+        
+        // Check total burned increased
+        assertEq(stakeContract.getTotalBurnedAllTime(), burnable, "Total burned should equal burned amount");
+        
+        vm.stopPrank();
+    }
+
+    function testTotalBurnedAccumulatesAcrossUsers() public {
+        // Test that total burned accumulates across multiple users
+        uint256 aliceStake = 1000 * 10**18;
+        uint256 bobStake = 2000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        stakeContract.stake(aliceStake);
+        vm.stopPrank();
+        
+        // Bob stakes
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), bobStake);
+        stakeContract.stake(bobStake);
+        vm.stopPrank();
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        // Alice burns
+        vm.prank(alice);
+        stakeContract.burnRewardTokens(aliceStake);
+        
+        assertEq(stakeContract.getTotalBurnedAllTime(), aliceStake, "Total should be Alice's burn");
+        
+        // Bob burns
+        vm.prank(bob);
+        stakeContract.burnRewardTokens(bobStake);
+        
+        // Total should be sum of both
+        assertEq(
+            stakeContract.getTotalBurnedAllTime(),
+            aliceStake + bobStake,
+            "Total should be sum of both burns"
+        );
+    }
+
+    function testTotalBurnedAccumulatesOverTime() public {
+        // Test that total burned accumulates over multiple burn sessions
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Day 1: Burn
+        vm.warp(block.timestamp + 1 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount, "Day 1 burn");
+        
+        // Day 2: Burn again
+        vm.warp(block.timestamp + 2 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount * 2, "Day 2 cumulative");
+        
+        // Day 3: Burn again
+        vm.warp(block.timestamp + 3 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount * 3, "Day 3 cumulative");
+        
+        vm.stopPrank();
+    }
+
+    function testTotalBurnedWithCompound() public {
+        // Test that compound function also updates total burned
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 10 days
+        vm.warp(block.timestamp + 10 days);
+        
+        uint256 burnableBefore = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableBefore, stakeAmount * 10, "Should have 10 days burnable");
+        
+        // Compound (which burns + claims + stakes)
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        // Total burned should equal amount burned from compound
+        assertEq(stakeContract.getTotalBurnedAllTime(), amountBurned, "Total burned from compound");
+        assertEq(amountBurned, burnableBefore, "Should have burned all burnable");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
     // Reserve Accounting Tests
     // ========================================
 

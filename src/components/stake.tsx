@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Flame, Gift } from "lucide-react";
+import { Flame, Gift, Zap } from "lucide-react";
 import { FC, useState } from "react";
 import { toast } from "sonner";
 import { useActiveAccount, useWalletBalance } from "thirdweb/react";
@@ -41,6 +41,7 @@ export const Stake: FC = () => {
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isCompounding, setIsCompounding] = useState(false);
 
   const {
     data: balance,
@@ -77,8 +78,13 @@ export const Stake: FC = () => {
     isLoading: isAPYLoading,
     error: apyError,
   } = useStakingAPY();
-  const { stakeTokens, unstakeTokens, burnTokens, claimRewardsTokens } =
-    useStakeContract();
+  const {
+    stakeTokens,
+    unstakeTokens,
+    burnTokens,
+    claimRewardsTokens,
+    compoundTokens,
+  } = useStakeContract();
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -262,6 +268,62 @@ export const Stake: FC = () => {
       await Promise.all([refetchStaked(), refetchBalance()]);
     } finally {
       setIsClaiming(false);
+    }
+  };
+
+  const handleCompound = async () => {
+    if (!rewardsBalance || Number(rewardsBalance) <= 0) return;
+
+    const rewardsToClaim = rewardsBalance;
+    const burnableAmount = burnableBalance;
+
+    setIsCompounding(true);
+    try {
+      await compoundTokens();
+
+      // Optimistically update: rewards to 0, increase staked balance, burnable to 0
+      queryClient.setQueryData<{
+        tokensStaked: bigint;
+        tokensStakedFormatted: string;
+        rewards: bigint;
+        rewardsFormatted: string;
+      }>(["stakedBalance", chain.id, account?.address], oldData => {
+        if (!oldData) return oldData;
+
+        // Calculate new staked amount (old staked + rewards)
+        const newStaked = oldData.tokensStaked + oldData.rewards;
+
+        return {
+          tokensStaked: newStaked,
+          tokensStakedFormatted: (Number(newStaked) / 10 ** 18).toFixed(2),
+          rewards: BigInt(0),
+          rewardsFormatted: "0",
+        };
+      });
+
+      // Reset burnable amount to 0 (optimistic)
+      queryClient.setQueryData(["burnableAmount", chain.id, account?.address], {
+        burnable: BigInt(0),
+        burnableFormatted: "0",
+      });
+
+      toast.success(
+        `Compounded ${shortenLargeNumber(Number(rewardsToClaim)).toLocaleString()} WISH + burned ${shortenLargeNumber(Number(burnableAmount)).toLocaleString()} WISH!`,
+      );
+
+      // Delay refetch to allow blockchain to propagate
+      setTimeout(() => {
+        Promise.all([refetchStaked(), refetchBalance(), refetchBurnable()]);
+      }, 2000);
+    } catch (error) {
+      console.error("Compound error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to compound",
+      );
+      // On error, immediately refetch to restore correct state
+      await Promise.all([refetchStaked(), refetchBalance(), refetchBurnable()]);
+    } finally {
+      setIsCompounding(false);
     }
   };
 
@@ -518,26 +580,53 @@ export const Stake: FC = () => {
                   )}
                 </span>
               </div>
-              <Button
-                className="w-full"
-                variant="default"
-                disabled={
-                  isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
-                }
-                onClick={handleClaimRewards}
-              >
-                {isClaiming ? (
-                  "Claiming..."
-                ) : (
-                  <>
-                    <Gift className="w-4 h-4 mr-2" />
-                    Claim Rewards
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Claim your earned staking rewards and add them to your wallet
-              </p>
+              <div className="space-y-2 mt-4">
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  variant="default"
+                  disabled={
+                    isLoadingStaked ||
+                    Number(rewardsBalance) <= 0 ||
+                    isCompounding
+                  }
+                  onClick={handleCompound}
+                >
+                  {isCompounding ? (
+                    "Compounding..."
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Compound Rewards
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Automatically claim rewards, burn tokens, and re-stake
+                </p>
+
+                <div className="h-1" />
+
+                <Button
+                  className="w-full"
+                  variant="default"
+                  disabled={
+                    isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
+                  }
+                  onClick={handleClaimRewards}
+                >
+                  {isClaiming ? (
+                    "Claiming..."
+                  ) : (
+                    <>
+                      <Gift className="w-4 h-4 mr-2" />
+                      Claim Rewards
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Claim your staking rewards and add them to your wallet
+                </p>
+              </div>
             </div>
           )}
 
