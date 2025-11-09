@@ -1003,8 +1003,8 @@ export const Stake: FC = () => {
       {/* Share Dialog */}
       <ShareStakeDialog
         open={shareDialogOpen}
-        onOpenChange={setShareDialogOpen}
         stats={shareStats}
+        onOpenChange={setShareDialogOpen}
       />
     </Card>
   );

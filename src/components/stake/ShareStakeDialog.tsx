@@ -1,7 +1,7 @@
 "use client";
 
+import { Flame, Gift, Share2, X, Zap } from "lucide-react";
 import { FC } from "react";
-import { Flame, Gift, Share2, Zap, X } from "lucide-react";
 import { shortenLargeNumber } from "thirdweb/utils";
 
 import { Button } from "@/components/ui/button";
@@ -209,8 +209,8 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
               Share
             </Button>
             <Button
-              variant="outline"
               size="icon"
+              variant="outline"
               onClick={() => onOpenChange(false)}
             >
               <X className="w-4 h-4" />
