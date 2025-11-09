@@ -105,7 +105,7 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
         const baseUrl =
           typeof window !== "undefined"
             ? window.location.origin
-            : "https://wishlist.lol";
+            : "https://wishlist.holiday";
 
         const ogParams = new URLSearchParams({
           type: stats.type,
@@ -123,15 +123,15 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
         if (stats.type === "compound") {
           castText = `Just compounded ${formatNumber(stats.amountCompounded || "0")} WISH and burned ${formatNumber(stats.amountBurned || "0")} WISH! 🚀\n\nStake your $WISH at wishlist.lol`;
         } else if (stats.type === "claim") {
-          castText = `Just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.lol`;
+          castText = `Just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.holiday`;
         } else if (stats.type === "burn") {
           castText = `Just burned ${formatNumber(stats.amountBurned || "0")} WISH from supply! 🔥\n\nStake your $WISH at wishlist.lol`;
         }
 
-        // Compose cast with OG image
-        await sdk.actions.openUrl(
-          `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(ogImageUrl)}`,
-        );
+        await sdk.actions.composeCast({
+          text: castText,
+          embeds: [ogImageUrl],
+        });
 
         onOpenChange(false);
       } catch (error) {

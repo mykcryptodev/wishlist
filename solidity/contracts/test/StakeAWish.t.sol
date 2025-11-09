@@ -1522,6 +1522,329 @@ contract StakeAWishTest is Test {
         
         vm.stopPrank();
     }
+
+    // ========================================
+    // Emergency Withdrawal Tests
+    // ========================================
+
+    function testEmergencyWithdrawInitiallyEnabled() public {
+        // Verify emergency withdrawal is enabled by default
+        assertFalse(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be enabled initially");
+    }
+
+    function testAdminCanEmergencyWithdraw() public {
+        // Test that admin can withdraw tokens in emergency
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        uint256 ownerBalanceBefore = stakingToken.balanceOf(owner);
+        uint256 contractBalanceBefore = stakingToken.balanceOf(address(stakeContract));
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        uint256 ownerBalanceAfter = stakingToken.balanceOf(owner);
+        uint256 contractBalanceAfter = stakingToken.balanceOf(address(stakeContract));
+        
+        assertEq(ownerBalanceAfter - ownerBalanceBefore, withdrawAmount, "Owner should receive tokens");
+        assertEq(contractBalanceBefore - contractBalanceAfter, withdrawAmount, "Contract balance should decrease");
+    }
+
+    function testUnauthorizedCannotEmergencyWithdraw() public {
+        // Test that non-admin cannot withdraw tokens
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(attacker);
+        vm.expectRevert();
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, attacker);
+    }
+
+    function testAliceCannotEmergencyWithdraw() public {
+        // Test that regular user Alice cannot withdraw tokens
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(alice);
+        vm.expectRevert();
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, alice);
+    }
+
+    function testEmergencyWithdrawProportionalDeductionSameToken() public {
+        // Test proportional deduction when reward and burn tokens are the same
+        // In our setup, all tokens are the same (WISH)
+        
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        uint256 totalReserve = initialRewardReserve + initialBurnReserve;
+        
+        uint256 withdrawAmount = 100_000_000 * 10**18;
+        
+        // Calculate expected proportional deduction
+        uint256 expectedFromReward = (withdrawAmount * initialRewardReserve) / totalReserve;
+        uint256 expectedFromBurn = withdrawAmount - expectedFromReward;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Check reserves were deducted proportionally
+        uint256 finalRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 finalBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        assertEq(finalRewardReserve, initialRewardReserve - expectedFromReward, "Reward reserve deducted proportionally");
+        assertEq(finalBurnReserve, initialBurnReserve - expectedFromBurn, "Burn reserve deducted proportionally");
+    }
+
+    function testEmergencyWithdrawZeroingOutReserves() public {
+        // Test withdrawing more than reserves zeroes them out
+        uint256 totalReserve = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        // Withdraw exactly the total reserves (can't withdraw more than contract has)
+        uint256 withdrawAmount = totalReserve;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Both reserves should be zeroed (or close to zero due to proportional math)
+        assertLt(stakeContract.getRewardTokenBalance(), 10, "Reward reserve zeroed");
+        assertLt(stakeContract.getBurnTokenBalance(), 10, "Burn reserve zeroed");
+    }
+
+    function testEmergencyWithdrawInvalidRecipient() public {
+        // Test that zero address as recipient is rejected
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(owner);
+        vm.expectRevert("Invalid recipient");
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, address(0));
+    }
+
+    function testEmergencyWithdrawZeroAmount() public {
+        // Test that zero amount is rejected
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.InvalidAmount.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), 0, owner);
+    }
+
+    function testEmergencyWithdrawEvent() public {
+        // Test that emergency withdrawal emits correct event
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.expectEmit(true, true, true, true);
+        emit StakeAWish.EmergencyWithdrawal(owner, address(stakingToken), withdrawAmount, owner);
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+    }
+
+    function testPermanentlyDisableEmergencyWithdrawal() public {
+        // Test permanently disabling emergency withdrawal
+        assertFalse(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be enabled initially");
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        assertTrue(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be disabled after calling");
+    }
+
+    function testDisableEmergencyWithdrawalEvent() public {
+        // Test that disabling emits correct event
+        vm.expectEmit(true, true, true, true);
+        emit StakeAWish.EmergencyWithdrawalPermanentlyDisabled(owner, block.timestamp);
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+    }
+
+    function testCannotDisableEmergencyWithdrawalTwice() public {
+        // Test that disable can only be called once
+        vm.startPrank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        vm.expectRevert("Already disabled");
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        vm.stopPrank();
+    }
+
+    function testUnauthorizedCannotDisableEmergencyWithdrawal() public {
+        // Test that non-admin cannot disable
+        vm.prank(attacker);
+        vm.expectRevert();
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+    }
+
+    function testEmergencyWithdrawFailsWhenDisabled() public {
+        // Test that emergency withdrawal fails after being disabled
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.EmergencyWithdrawalDisabled.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+    }
+
+    function testEmergencyWithdrawDoesNotAffectStakers() public {
+        // Test that emergency withdrawal doesn't affect stakers' balances
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Wait and accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (uint256 stakedBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        
+        // Admin performs emergency withdrawal
+        uint256 withdrawAmount = 50_000_000 * 10**18;
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Alice's stake info should be unchanged
+        (uint256 stakedAfter, uint256 rewardsAfter) = stakeContract.getStakeInfo(alice);
+        assertEq(stakedAfter, stakedBefore, "Alice's stake unchanged");
+        assertEq(rewardsAfter, rewardsBefore, "Alice's rewards unchanged");
+        
+        // Alice can still unstake
+        vm.prank(alice);
+        stakeContract.withdraw(stakeAmount);
+        
+        // Alice should receive her original stake
+        assertGe(stakingToken.balanceOf(alice), stakeAmount, "Alice receives her stake");
+    }
+
+    function testEmergencyWithdrawPartialAmount() public {
+        // Test withdrawing partial amounts
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Withdraw 10% of total reserves
+        uint256 totalReserve = initialRewardReserve + initialBurnReserve;
+        uint256 withdrawAmount = totalReserve / 10;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Reserves should be reduced proportionally by 10%
+        uint256 finalRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 finalBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Total reserve should be reduced by exactly the withdrawn amount
+        assertEq(finalRewardReserve + finalBurnReserve, totalReserve - withdrawAmount, "Total reserve reduced correctly");
+    }
+
+    function testEmergencyWithdrawMultipleTimes() public {
+        // Test multiple emergency withdrawals
+        uint256 firstWithdraw = 10_000_000 * 10**18;
+        uint256 secondWithdraw = 5_000_000 * 10**18;
+        uint256 thirdWithdraw = 2_000_000 * 10**18;
+        
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        uint256 initialTotal = initialRewardReserve + initialBurnReserve;
+        
+        vm.startPrank(owner);
+        
+        stakeContract.emergencyWithdraw(address(stakingToken), firstWithdraw, owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), secondWithdraw, owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), thirdWithdraw, owner);
+        
+        vm.stopPrank();
+        
+        uint256 finalTotal = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        uint256 totalWithdrawn = firstWithdraw + secondWithdraw + thirdWithdraw;
+        
+        assertEq(finalTotal, initialTotal - totalWithdrawn, "Total withdrawn matches");
+    }
+
+    function testEmergencyWithdrawWithDifferentRecipient() public {
+        // Test withdrawing to a different address (not owner)
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        uint256 bobBalanceBefore = stakingToken.balanceOf(bob);
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, bob);
+        
+        uint256 bobBalanceAfter = stakingToken.balanceOf(bob);
+        assertEq(bobBalanceAfter - bobBalanceBefore, withdrawAmount, "Bob receives tokens");
+    }
+
+    function testCannotReEnableEmergencyWithdrawal() public {
+        // Verify that once disabled, emergency withdrawal can NEVER be re-enabled
+        // This is the key security feature
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        assertTrue(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be disabled");
+        
+        // Even owner cannot re-enable it (there's no function to do so)
+        // Try to withdraw - should fail
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.EmergencyWithdrawalDisabled.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), 1, owner);
+    }
+
+    function testEmergencyWithdrawProportionalityMath() public {
+        // Test the proportional deduction math in detail
+        uint256 rewardReserve = 700_000_000 * 10**18; // 70%
+        uint256 burnReserve = 300_000_000 * 10**18;   // 30%
+        
+        // Setup specific reserves by first draining
+        vm.startPrank(owner);
+        uint256 currentReward = stakeContract.getRewardTokenBalance();
+        uint256 currentBurn = stakeContract.getBurnTokenBalance();
+        
+        // Drain current reserves
+        stakeContract.emergencyWithdraw(address(stakingToken), currentReward + currentBurn, owner);
+        
+        // Fund to specific amounts
+        stakingToken.approve(address(stakeContract), rewardReserve);
+        stakeContract.fundRewardPool(rewardReserve);
+        stakingToken.approve(address(stakeContract), burnReserve);
+        stakeContract.fundBurnPool(burnReserve);
+        vm.stopPrank();
+        
+        // Verify setup
+        assertEq(stakeContract.getRewardTokenBalance(), rewardReserve, "Reward reserve set");
+        assertEq(stakeContract.getBurnTokenBalance(), burnReserve, "Burn reserve set");
+        
+        // Withdraw 100M (10% of total)
+        uint256 withdrawAmount = 100_000_000 * 10**18;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Should withdraw 70M from reward pool, 30M from burn pool
+        assertEq(stakeContract.getRewardTokenBalance(), 630_000_000 * 10**18, "70M deducted from reward");
+        assertEq(stakeContract.getBurnTokenBalance(), 270_000_000 * 10**18, "30M deducted from burn");
+    }
+
+    function testEmergencyWithdrawPreservesStakingFunctionality() public {
+        // Test that after emergency withdrawal, staking still works
+        uint256 withdrawAmount = 50_000_000 * 10**18;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Alice can still stake
+        uint256 stakeAmount = 1000 * 10**18;
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and verify rewards accumulate
+        vm.warp(block.timestamp + 10 days);
+        (, uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Alice earns rewards after emergency withdrawal");
+        
+        // Alice can claim rewards
+        stakeContract.claimRewards();
+        assertGt(stakingToken.balanceOf(alice), 0, "Alice receives rewards");
+        
+        vm.stopPrank();
+    }
 }
 
 

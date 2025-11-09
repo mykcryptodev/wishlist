@@ -21,6 +21,7 @@ contract StakeAWish is Staking20, Permissions {
     error DailyBurnCapExceeded();
     error InsufficientRewardPool();
     error InsufficientBurnPool();
+    error EmergencyWithdrawalDisabled();
 
     // Permission role for managing stake conditions
     bytes32 public constant STAKE_CONDITIONS_MANAGER_ROLE = keccak256("STAKE_CONDITIONS_MANAGER_ROLE");
@@ -53,12 +54,17 @@ contract StakeAWish is Staking20, Permissions {
     // Track total amount burned across all time and all users
     uint256 public totalBurnedAllTime;
 
+    /// @dev Flag to permanently disable emergency withdrawals - can never be re-enabled
+    bool public emergencyWithdrawalPermanentlyDisabled;
+
     // Events
     event StakedWishesBurned(address indexed staker, uint256 amount);
     event BurnTrackingStarted(address indexed staker, uint256 timestamp);
     event DailyBurnCapReached(uint256 day, uint256 amount);
     event RewardPoolFunded(address indexed funder, uint256 amount, uint256 newReserve);
     event BurnPoolFunded(address indexed funder, uint256 amount, uint256 newReserve);
+    event EmergencyWithdrawal(address indexed admin, address indexed token, uint256 amount, address indexed to);
+    event EmergencyWithdrawalPermanentlyDisabled(address indexed admin, uint256 timestamp);
 
     constructor(
         uint80 _timeUnit,
@@ -533,5 +539,72 @@ contract StakeAWish is Staking20, Permissions {
         }
         
         return (rewardsClaimed, amountBurned);
+    }
+
+    /**
+     * @dev Emergency withdraw tokens from contract with proportional accounting
+     * @param token Address of token to withdraw (rewardToken, burnToken, or other)
+     * @param amount Amount to withdraw
+     * @param to Address to send tokens to
+     * @notice Only callable by admin. Handles proportional deduction when reward/burn tokens are same.
+     * @notice Can be permanently disabled via permanentlyDisableEmergencyWithdrawal()
+     */
+    function emergencyWithdraw(
+        address token,
+        uint256 amount,
+        address to
+    ) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin");
+        if (emergencyWithdrawalPermanentlyDisabled) revert EmergencyWithdrawalDisabled();
+        require(to != address(0), "Invalid recipient");
+        if (amount == 0) revert InvalidAmount();
+        
+        // Handle accounting based on which token is being withdrawn
+        if (rewardToken == burnToken && token == rewardToken) {
+            // Same token for both pools - deduct proportionally from reserves
+            uint256 totalReserve = rewardPoolReserve + burnPoolReserve;
+            
+            if (totalReserve > 0 && amount <= totalReserve) {
+                // Proportional deduction based on pool sizes
+                uint256 fromReward = (amount * rewardPoolReserve) / totalReserve;
+                uint256 fromBurn = amount - fromReward;
+                
+                rewardPoolReserve -= fromReward;
+                burnPoolReserve -= fromBurn;
+            } else if (amount > totalReserve) {
+                // Withdrawing more than in reserves - zero them out
+                rewardPoolReserve = 0;
+                burnPoolReserve = 0;
+            }
+        } else {
+            // Different tokens - deduct from appropriate reserve
+            if (token == rewardToken) {
+                uint256 deduction = amount > rewardPoolReserve ? rewardPoolReserve : amount;
+                rewardPoolReserve -= deduction;
+            }
+            if (token == burnToken) {
+                uint256 deduction = amount > burnPoolReserve ? burnPoolReserve : amount;
+                burnPoolReserve -= deduction;
+            }
+            // If token is neither (e.g., accidentally sent tokens), just withdraw without reserve update
+        }
+        
+        // Transfer tokens
+        IERC20(token).transfer(to, amount);
+        
+        emit EmergencyWithdrawal(msg.sender, token, amount, to);
+    }
+
+    /**
+     * @dev Permanently disable emergency withdrawal functionality
+     * @notice THIS ACTION IS IRREVERSIBLE. Once called, emergency withdrawals can never be re-enabled.
+     */
+    function permanentlyDisableEmergencyWithdrawal() external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin");
+        require(!emergencyWithdrawalPermanentlyDisabled, "Already disabled");
+        
+        emergencyWithdrawalPermanentlyDisabled = true;
+        
+        emit EmergencyWithdrawalPermanentlyDisabled(msg.sender, block.timestamp);
     }
 }

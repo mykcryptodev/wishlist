@@ -51,6 +51,12 @@ export async function GET(request: NextRequest) {
       }
     };
 
+    // Get base URL for images
+    const baseUrl =
+      process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL
+        ? `https://${process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL}`
+        : "http://localhost:3000";
+
     return new ImageResponse(
       (
         <div
@@ -61,114 +67,144 @@ export async function GET(request: NextRequest) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, #1a1a1a 0%, #2d1b1b 100%)",
+            background: "linear-gradient(180deg, #D94A7A 0%, #E87BA3 100%)",
             fontFamily: "system-ui, sans-serif",
+            position: "relative",
           }}
         >
-          {/* Header */}
+          {/* Monster Image - Only show if burned */}
+          {Number(amountBurned) > 0 && (
+            <div
+              style={{
+                display: "flex",
+                position: "absolute",
+                bottom: "30px",
+                left: "50px",
+              }}
+            >
+              <img
+                alt="Monster"
+                height="200"
+                src={`${baseUrl}/images/monster-santa-burn.png`}
+                width="200"
+                style={{
+                  objectFit: "contain",
+                  opacity: 0.7,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Wishlist Logo at Top */}
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "16px",
               marginBottom: "40px",
             }}
           >
-            <div style={{ fontSize: "80px" }}>{getEmoji()}</div>
-            <div
+            <img
+              alt="Wishlist"
+              height="88"
+              src={`${baseUrl}/images/lockup.png`}
+              width="350"
               style={{
-                fontSize: "48px",
-                fontWeight: "bold",
-                color: "white",
+                objectFit: "contain",
               }}
-            >
-              {getTitle()}
-            </div>
+            />
           </div>
 
           {/* This Transaction */}
-          {(amountClaimed !== "0" || amountBurned !== "0") && (
+          {(Number(amountClaimed) > 0 || Number(amountBurned) > 0) && (
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
-                background: "rgba(255, 255, 255, 0.05)",
-                padding: "24px 40px",
+                background: "rgba(0, 0, 0, 0.6)",
                 borderRadius: "16px",
-                marginBottom: "24px",
-                width: "600px",
+                padding: "20px 36px",
+                backdropFilter: "blur(10px)",
+                border: "4px solid rgba(255, 255, 255, 0.5)",
+                width: "700px",
+                marginBottom: "12px",
               }}
             >
               <div
                 style={{
+                  display: "flex",
                   fontSize: "24px",
-                  color: "#999",
-                  marginBottom: "8px",
+                  color: "rgba(255, 255, 255, 0.95)",
+                  marginBottom: "14px",
+                  fontWeight: "700",
                 }}
               >
                 This Transaction
               </div>
-              {type === "compound" && amountClaimed !== "0" && (
+              {Number(amountClaimed) > 0 && (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontSize: "28px",
+                    fontSize: "30px",
                   }}
                 >
-                  <span style={{ color: "#ccc" }}>Compounded:</span>
+                  <span style={{ color: "white", fontWeight: "500" }}>
+                    {type === "compound" ? "Compounded:" : "Claimed:"}
+                  </span>
                   <span
-                    style={{ color: "#8b5cf6", fontWeight: "bold" }}
+                    style={{
+                      color: "#C4B5FD",
+                      fontWeight: "bold",
+                      textShadow: "0px 0px 20px rgba(167, 139, 250, 0.6)",
+                    }}
                   >{`${formatNumber(amountClaimed)} WISH`}</span>
                 </div>
               )}
-              {type === "claim" && amountClaimed !== "0" && (
+              {Number(amountBurned) > 0 && (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontSize: "28px",
+                    fontSize: "30px",
+                    marginTop: "8px",
                   }}
                 >
-                  <span style={{ color: "#ccc" }}>Claimed:</span>
+                  <span style={{ color: "white", fontWeight: "500" }}>
+                    Burned:
+                  </span>
                   <span
-                    style={{ color: "#22c55e", fontWeight: "bold" }}
-                  >{`${formatNumber(amountClaimed)} WISH`}</span>
-                </div>
-              )}
-              {amountBurned !== "0" && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "28px",
-                  }}
-                >
-                  <span style={{ color: "#ccc" }}>Burned:</span>
-                  <span
-                    style={{ color: "#f97316", fontWeight: "bold" }}
+                    style={{
+                      color: "#FCD34D",
+                      fontWeight: "bold",
+                      textShadow: "0px 0px 20px rgba(251, 146, 60, 0.8)",
+                    }}
                   >{`${formatNumber(amountBurned)} WISH`}</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* All-Time Stats */}
+          {/* My Stats */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "12px",
-              background: "rgba(139, 92, 246, 0.1)",
-              padding: "24px 40px",
+              background: "rgba(0, 0, 0, 0.55)",
               borderRadius: "16px",
-              width: "600px",
-              marginBottom: "16px",
+              padding: "20px 36px",
+              backdropFilter: "blur(10px)",
+              border: "4px solid rgba(167, 139, 250, 0.7)",
+              width: "700px",
+              marginBottom: "12px",
             }}
           >
             <div
-              style={{ fontSize: "24px", color: "#999", marginBottom: "8px" }}
+              style={{
+                display: "flex",
+                fontSize: "24px",
+                color: "rgba(255, 255, 255, 0.95)",
+                marginBottom: "14px",
+                fontWeight: "700",
+              }}
             >
               My All-Time Stats
             </div>
@@ -176,24 +212,37 @@ export async function GET(request: NextRequest) {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: "24px",
+                fontSize: "28px",
               }}
             >
-              <span style={{ color: "#ccc" }}>Total Earned:</span>
+              <span style={{ color: "white", fontWeight: "500" }}>
+                Total Earned:
+              </span>
               <span
-                style={{ color: "#8b5cf6", fontWeight: "bold" }}
+                style={{
+                  color: "#C4B5FD",
+                  fontWeight: "bold",
+                  textShadow: "0px 0px 20px rgba(167, 139, 250, 0.6)",
+                }}
               >{`${formatNumber(totalEarned)} WISH`}</span>
             </div>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: "24px",
+                fontSize: "28px",
+                marginTop: "8px",
               }}
             >
-              <span style={{ color: "#ccc" }}>Total Burned:</span>
+              <span style={{ color: "white", fontWeight: "500" }}>
+                Total Burned:
+              </span>
               <span
-                style={{ color: "#f97316", fontWeight: "bold" }}
+                style={{
+                  color: "#FCD34D",
+                  fontWeight: "bold",
+                  textShadow: "0px 0px 20px rgba(251, 146, 60, 0.8)",
+                }}
               >{`${formatNumber(totalBurned)} WISH`}</span>
             </div>
           </div>
@@ -202,29 +251,43 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              background: "rgba(249, 115, 22, 0.1)",
-              padding: "20px 40px",
+              background: "rgba(0, 0, 0, 0.55)",
               borderRadius: "16px",
-              width: "600px",
-              fontSize: "24px",
+              padding: "20px 36px",
+              backdropFilter: "blur(10px)",
+              border: "4px solid rgba(251, 146, 60, 0.7)",
+              width: "700px",
+              justifyContent: "space-between",
             }}
           >
-            <span style={{ color: "#ccc" }}>Global Total Burned:</span>
             <span
-              style={{ color: "#f97316", fontWeight: "bold" }}
+              style={{ color: "white", fontWeight: "500", fontSize: "28px" }}
+            >
+              Global Burned:
+            </span>
+            <span
+              style={{
+                color: "#FCD34D",
+                fontWeight: "bold",
+                textShadow: "0px 0px 20px rgba(251, 146, 60, 0.8)",
+                fontSize: "28px",
+              }}
             >{`${formatNumber(globalBurned)} WISH`}</span>
           </div>
 
-          {/* Footer */}
+          {/* Footer - wishlist.holiday with stroke */}
           <div
             style={{
-              marginTop: "40px",
+              marginTop: "28px",
               fontSize: "28px",
-              color: "#666",
+              fontWeight: "900",
+              color: "white",
+              textShadow:
+                "3px 3px 0px #7C3AED, -1px -1px 0px #7C3AED, 1px -1px 0px #7C3AED, -1px 1px 0px #7C3AED",
+              display: "flex",
             }}
           >
-            wishlist.lol
+            wishlist.holiday
           </div>
         </div>
       ),
