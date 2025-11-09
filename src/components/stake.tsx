@@ -30,7 +30,7 @@ import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
 
-const isStakingComingSoon = true;
+const isStakingComingSoon = false;
 
 export const Stake: FC = () => {
   const account = useActiveAccount();

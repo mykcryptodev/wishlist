@@ -1,14 +1,53 @@
 import {
-  type AbiParameterToPrimitiveType,
-  type BaseTransactionOptions,
-  prepareContractCall,
   prepareEvent,
+  prepareContractCall,
   readContract,
+  type BaseTransactionOptions,
+  type AbiParameterToPrimitiveType,
 } from "thirdweb";
 
 /**
  * Contract events
  */
+
+/**
+ * Represents the filters for the "BurnPoolFunded" event.
+ */
+export type BurnPoolFundedEventFilters = Partial<{
+  funder: AbiParameterToPrimitiveType<{
+    indexed: true;
+    internalType: "address";
+    name: "funder";
+    type: "address";
+  }>;
+}>;
+
+/**
+ * Creates an event object for the BurnPoolFunded event.
+ * @param filters - Optional filters to apply to the event.
+ * @returns The prepared event object.
+ * @example
+ * ```
+ * import { getContractEvents } from "thirdweb";
+ * import { burnPoolFundedEvent } from "TODO";
+ *
+ * const events = await getContractEvents({
+ * contract,
+ * events: [
+ *  burnPoolFundedEvent({
+ *  funder: ...,
+ * })
+ * ],
+ * });
+ * ```
+ */
+export function burnPoolFundedEvent(filters: BurnPoolFundedEventFilters = {}) {
+  return prepareEvent({
+    signature:
+      "event BurnPoolFunded(address indexed funder, uint256 amount, uint256 newReserve)",
+    filters,
+  });
+}
 
 /**
  * Represents the filters for the "BurnTrackingStarted" event.
@@ -47,6 +86,69 @@ export function burnTrackingStartedEvent(
   return prepareEvent({
     signature:
       "event BurnTrackingStarted(address indexed staker, uint256 timestamp)",
+    filters,
+  });
+}
+
+/**
+ * Creates an event object for the DailyBurnCapReached event.
+ * @returns The prepared event object.
+ * @example
+ * ```
+ * import { getContractEvents } from "thirdweb";
+ * import { dailyBurnCapReachedEvent } from "TODO";
+ *
+ * const events = await getContractEvents({
+ * contract,
+ * events: [
+ *  dailyBurnCapReachedEvent()
+ * ],
+ * });
+ * ```
+ */
+export function dailyBurnCapReachedEvent() {
+  return prepareEvent({
+    signature: "event DailyBurnCapReached(uint256 day, uint256 amount)",
+  });
+}
+
+/**
+ * Represents the filters for the "RewardPoolFunded" event.
+ */
+export type RewardPoolFundedEventFilters = Partial<{
+  funder: AbiParameterToPrimitiveType<{
+    indexed: true;
+    internalType: "address";
+    name: "funder";
+    type: "address";
+  }>;
+}>;
+
+/**
+ * Creates an event object for the RewardPoolFunded event.
+ * @param filters - Optional filters to apply to the event.
+ * @returns The prepared event object.
+ * @example
+ * ```
+ * import { getContractEvents } from "thirdweb";
+ * import { rewardPoolFundedEvent } from "TODO";
+ *
+ * const events = await getContractEvents({
+ * contract,
+ * events: [
+ *  rewardPoolFundedEvent({
+ *  funder: ...,
+ * })
+ * ],
+ * });
+ * ```
+ */
+export function rewardPoolFundedEvent(
+  filters: RewardPoolFundedEventFilters = {},
+) {
+  return prepareEvent({
+    signature:
+      "event RewardPoolFunded(address indexed funder, uint256 amount, uint256 newReserve)",
     filters,
   });
 }
@@ -474,6 +576,36 @@ export async function BURN_PERIOD(options: BaseTransactionOptions) {
 }
 
 /**
+ * Calls the "DAILY_BURN_CAP" function on the contract.
+ * @param options - The options for the DAILY_BURN_CAP function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { DAILY_BURN_CAP } from "TODO";
+ *
+ * const result = await DAILY_BURN_CAP();
+ *
+ * ```
+ */
+export async function DAILY_BURN_CAP(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xc8ecf7bf",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
  * Calls the "DEFAULT_ADMIN_ROLE" function on the contract.
  * @param options - The options for the DEFAULT_ADMIN_ROLE function.
  * @returns The parsed result of the function call.
@@ -536,6 +668,66 @@ export async function STAKE_CONDITIONS_MANAGER_ROLE(
 }
 
 /**
+ * Calls the "burnPoolReserve" function on the contract.
+ * @param options - The options for the burnPoolReserve function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { burnPoolReserve } from "TODO";
+ *
+ * const result = await burnPoolReserve();
+ *
+ * ```
+ */
+export async function burnPoolReserve(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xa974c6cb",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
+ * Calls the "burnToken" function on the contract.
+ * @param options - The options for the burnToken function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { burnToken } from "TODO";
+ *
+ * const result = await burnToken();
+ *
+ * ```
+ */
+export async function burnToken(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xfaa0a264",
+      [],
+      [
+        {
+          internalType: "address",
+          name: "",
+          type: "address",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
  * Represents the parameters for the "burnedAmount" function.
  */
 export type BurnedAmountParams = {
@@ -572,6 +764,57 @@ export async function burnedAmount(
           internalType: "address",
           name: "",
           type: "address",
+        },
+      ],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [options.arg_0],
+  });
+}
+
+/**
+ * Represents the parameters for the "dailyBurnedAmount" function.
+ */
+export type DailyBurnedAmountParams = {
+  arg_0: AbiParameterToPrimitiveType<{
+    internalType: "uint256";
+    name: "";
+    type: "uint256";
+  }>;
+};
+
+/**
+ * Calls the "dailyBurnedAmount" function on the contract.
+ * @param options - The options for the dailyBurnedAmount function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { dailyBurnedAmount } from "TODO";
+ *
+ * const result = await dailyBurnedAmount({
+ *  arg_0: ...,
+ * });
+ *
+ * ```
+ */
+export async function dailyBurnedAmount(
+  options: BaseTransactionOptions<DailyBurnedAmountParams>,
+) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x06c6d27c",
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
         },
       ],
       [
@@ -663,6 +906,36 @@ export async function getBurnInfo(
 }
 
 /**
+ * Calls the "getBurnTokenBalance" function on the contract.
+ * @param options - The options for the getBurnTokenBalance function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getBurnTokenBalance } from "TODO";
+ *
+ * const result = await getBurnTokenBalance();
+ *
+ * ```
+ */
+export async function getBurnTokenBalance(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xaa84a4b5",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "_burnTokensAvailableInContract",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
  * Represents the parameters for the "getBurnableAmount" function.
  */
 export type GetBurnableAmountParams = {
@@ -710,6 +983,46 @@ export async function getBurnableAmount(
       ],
     ],
     params: [options.staker],
+  });
+}
+
+/**
+ * Calls the "getDailyBurnCapInfo" function on the contract.
+ * @param options - The options for the getDailyBurnCapInfo function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { getDailyBurnCapInfo } from "TODO";
+ *
+ * const result = await getDailyBurnCapInfo();
+ *
+ * ```
+ */
+export async function getDailyBurnCapInfo(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0xafc450ec",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "remaining",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "total",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "used",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
   });
 }
 
@@ -1034,6 +1347,66 @@ export async function hasRoleWithSwitch(
       ],
     ],
     params: [options.role, options.account],
+  });
+}
+
+/**
+ * Calls the "isDailyBurnCapReached" function on the contract.
+ * @param options - The options for the isDailyBurnCapReached function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { isDailyBurnCapReached } from "TODO";
+ *
+ * const result = await isDailyBurnCapReached();
+ *
+ * ```
+ */
+export async function isDailyBurnCapReached(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x61182ceb",
+      [],
+      [
+        {
+          internalType: "bool",
+          name: "",
+          type: "bool",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
+ * Calls the "rewardPoolReserve" function on the contract.
+ * @param options - The options for the rewardPoolReserve function.
+ * @returns The parsed result of the function call.
+ * @example
+ * ```
+ * import { rewardPoolReserve } from "TODO";
+ *
+ * const result = await rewardPoolReserve();
+ *
+ * ```
+ */
+export async function rewardPoolReserve(options: BaseTransactionOptions) {
+  return readContract({
+    contract: options.contract,
+    method: [
+      "0x21bb588e",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
   });
 }
 
@@ -1406,6 +1779,44 @@ export function burnRewardTokens(
 }
 
 /**
+ * Calls the "claimBurnAndCompound" function on the contract.
+ * @param options - The options for the "claimBurnAndCompound" function.
+ * @returns A prepared transaction object.
+ * @example
+ * ```
+ * import { claimBurnAndCompound } from "TODO";
+ *
+ * const transaction = claimBurnAndCompound();
+ *
+ * // Send the transaction
+ * ...
+ *
+ * ```
+ */
+export function claimBurnAndCompound(options: BaseTransactionOptions) {
+  return prepareContractCall({
+    contract: options.contract,
+    method: [
+      "0x6cc34269",
+      [],
+      [
+        {
+          internalType: "uint256",
+          name: "rewardsClaimed",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "amountBurned",
+          type: "uint256",
+        },
+      ],
+    ],
+    params: [],
+  });
+}
+
+/**
  * Calls the "claimRewards" function on the contract.
  * @param options - The options for the "claimRewards" function.
  * @returns A prepared transaction object.
@@ -1425,6 +1836,102 @@ export function claimRewards(options: BaseTransactionOptions) {
     contract: options.contract,
     method: ["0x372500ab", [], []],
     params: [],
+  });
+}
+
+/**
+ * Represents the parameters for the "fundBurnPool" function.
+ */
+export type FundBurnPoolParams = {
+  amount: AbiParameterToPrimitiveType<{
+    internalType: "uint256";
+    name: "amount";
+    type: "uint256";
+  }>;
+};
+
+/**
+ * Calls the "fundBurnPool" function on the contract.
+ * @param options - The options for the "fundBurnPool" function.
+ * @returns A prepared transaction object.
+ * @example
+ * ```
+ * import { fundBurnPool } from "TODO";
+ *
+ * const transaction = fundBurnPool({
+ *  amount: ...,
+ * });
+ *
+ * // Send the transaction
+ * ...
+ *
+ * ```
+ */
+export function fundBurnPool(
+  options: BaseTransactionOptions<FundBurnPoolParams>,
+) {
+  return prepareContractCall({
+    contract: options.contract,
+    method: [
+      "0x24a97d43",
+      [
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      [],
+    ],
+    params: [options.amount],
+  });
+}
+
+/**
+ * Represents the parameters for the "fundRewardPool" function.
+ */
+export type FundRewardPoolParams = {
+  amount: AbiParameterToPrimitiveType<{
+    internalType: "uint256";
+    name: "amount";
+    type: "uint256";
+  }>;
+};
+
+/**
+ * Calls the "fundRewardPool" function on the contract.
+ * @param options - The options for the "fundRewardPool" function.
+ * @returns A prepared transaction object.
+ * @example
+ * ```
+ * import { fundRewardPool } from "TODO";
+ *
+ * const transaction = fundRewardPool({
+ *  amount: ...,
+ * });
+ *
+ * // Send the transaction
+ * ...
+ *
+ * ```
+ */
+export function fundRewardPool(
+  options: BaseTransactionOptions<FundRewardPoolParams>,
+) {
+  return prepareContractCall({
+    contract: options.contract,
+    method: [
+      "0x1d583e0d",
+      [
+        {
+          internalType: "uint256",
+          name: "amount",
+          type: "uint256",
+        },
+      ],
+      [],
+    ],
+    params: [options.amount],
   });
 }
 
@@ -1482,6 +1989,65 @@ export function grantRole(options: BaseTransactionOptions<GrantRoleParams>) {
       [],
     ],
     params: [options.role, options.account],
+  });
+}
+
+/**
+ * Represents the parameters for the "recoverUnaccountedTokens" function.
+ */
+export type RecoverUnaccountedTokensParams = {
+  amountForRewardPool: AbiParameterToPrimitiveType<{
+    internalType: "uint256";
+    name: "amountForRewardPool";
+    type: "uint256";
+  }>;
+  amountForBurnPool: AbiParameterToPrimitiveType<{
+    internalType: "uint256";
+    name: "amountForBurnPool";
+    type: "uint256";
+  }>;
+};
+
+/**
+ * Calls the "recoverUnaccountedTokens" function on the contract.
+ * @param options - The options for the "recoverUnaccountedTokens" function.
+ * @returns A prepared transaction object.
+ * @example
+ * ```
+ * import { recoverUnaccountedTokens } from "TODO";
+ *
+ * const transaction = recoverUnaccountedTokens({
+ *  amountForRewardPool: ...,
+ *  amountForBurnPool: ...,
+ * });
+ *
+ * // Send the transaction
+ * ...
+ *
+ * ```
+ */
+export function recoverUnaccountedTokens(
+  options: BaseTransactionOptions<RecoverUnaccountedTokensParams>,
+) {
+  return prepareContractCall({
+    contract: options.contract,
+    method: [
+      "0xa7aa9fcf",
+      [
+        {
+          internalType: "uint256",
+          name: "amountForRewardPool",
+          type: "uint256",
+        },
+        {
+          internalType: "uint256",
+          name: "amountForBurnPool",
+          type: "uint256",
+        },
+      ],
+      [],
+    ],
+    params: [options.amountForRewardPool, options.amountForBurnPool],
   });
 }
 

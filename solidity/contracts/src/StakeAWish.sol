@@ -29,7 +29,7 @@ contract StakeAWish is Staking20, Permissions {
     address public burnToken;
 
     // Burn period (24 hours in production)
-    uint256 public constant BURN_PERIOD = 1 days;
+    uint256 public constant BURN_PERIOD = 1 minutes;
 
     // Global daily burn cap to protect burn pool - 222M WISH/day
     uint256 public constant DAILY_BURN_CAP = 222_000_000 * 10**18;
@@ -98,8 +98,9 @@ contract StakeAWish is Staking20, Permissions {
         uint256 burnable = getBurnableAmount(msg.sender);
         
         // Burn available tokens if any (before unstaking)
+        // Use graceful mode to ensure withdrawal never fails due to empty burn pool
         if (burnable > 0) {
-            _burnRewardTokens(msg.sender, burnable);
+            _executeBurnWithCapCheck(msg.sender, burnable, burnable, true);
         }
         
         // Call parent withdraw function
@@ -161,6 +162,59 @@ contract StakeAWish is Staking20, Permissions {
         burnPoolReserve += amount;
         
         emit BurnPoolFunded(msg.sender, amount, burnPoolReserve);
+    }
+
+    /**
+     * @dev Recover unaccounted tokens that were sent directly to the contract
+     * This allows admin to allocate tokens that were sent via direct transfer (not using fund functions)
+     * @param amountForRewardPool Amount to allocate to reward pool reserve
+     * @param amountForBurnPool Amount to allocate to burn pool reserve
+     * @notice Only callable by admin. Use to recover from accidental direct transfers.
+     */
+    function recoverUnaccountedTokens(uint256 amountForRewardPool, uint256 amountForBurnPool) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can recover tokens");
+        
+        // Calculate actual token balances in contract
+        uint256 actualRewardBalance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 actualBurnBalance = IERC20(burnToken).balanceOf(address(this));
+        
+        // If same token, balances will be the same - need to account for that
+        if (rewardToken == burnToken) {
+            // Same token - total unaccounted is difference between actual and sum of reserves
+            uint256 totalReserved = rewardPoolReserve + burnPoolReserve + stakingTokenBalance;
+            uint256 unaccounted = actualRewardBalance > totalReserved ? actualRewardBalance - totalReserved : 0;
+            
+            // Verify we're not over-allocating
+            require(amountForRewardPool + amountForBurnPool <= unaccounted, "Cannot allocate more than unaccounted");
+            
+            // Allocate to reserves
+            if (amountForRewardPool > 0) {
+                rewardPoolReserve += amountForRewardPool;
+                emit RewardPoolFunded(msg.sender, amountForRewardPool, rewardPoolReserve);
+            }
+            
+            if (amountForBurnPool > 0) {
+                burnPoolReserve += amountForBurnPool;
+                emit BurnPoolFunded(msg.sender, amountForBurnPool, burnPoolReserve);
+            }
+        } else {
+            // Different tokens - calculate separately
+            uint256 unaccountedReward = actualRewardBalance > rewardPoolReserve ? actualRewardBalance - rewardPoolReserve : 0;
+            uint256 unaccountedBurn = actualBurnBalance > burnPoolReserve ? actualBurnBalance - burnPoolReserve : 0;
+            
+            require(amountForRewardPool <= unaccountedReward, "Exceeds unaccounted reward tokens");
+            require(amountForBurnPool <= unaccountedBurn, "Exceeds unaccounted burn tokens");
+            
+            if (amountForRewardPool > 0) {
+                rewardPoolReserve += amountForRewardPool;
+                emit RewardPoolFunded(msg.sender, amountForRewardPool, rewardPoolReserve);
+            }
+            
+            if (amountForBurnPool > 0) {
+                burnPoolReserve += amountForBurnPool;
+                emit BurnPoolFunded(msg.sender, amountForBurnPool, burnPoolReserve);
+            }
+        }
     }
 
     /**
@@ -246,22 +300,62 @@ contract StakeAWish is Staking20, Permissions {
         uint256 burnable = getBurnableAmount(msg.sender);
         if (burnable == 0) revert NoBurnableTokens();
         
+        // Check if daily cap is already reached before attempting burn
+        uint256 today = block.timestamp / 1 days;
+        uint256 burnedToday = dailyBurnedAmount[today];
+        uint256 remainingCap = DAILY_BURN_CAP > burnedToday ? DAILY_BURN_CAP - burnedToday : 0;
+        if (remainingCap == 0) revert DailyBurnCapExceeded();
+        
+        // Execute burn with cap checking (strict mode - will revert if pool insufficient)
+        _executeBurnWithCapCheck(msg.sender, amount, burnable, false);
+    }
+
+    /**
+     * @dev Internal function to calculate and execute burn respecting daily cap
+     * @param staker Address of the staker
+     * @param requestedAmount Maximum amount user wants to burn
+     * @param burnableAllowance Maximum amount user is allowed to burn (from staking duration)
+     * @param gracefulFail If true, returns 0 when pool empty; if false, reverts with InsufficientBurnPool
+     * @return actualBurnAmount The actual amount burned (may be less due to cap)
+     */
+    function _executeBurnWithCapCheck(
+        address staker,
+        uint256 requestedAmount,
+        uint256 burnableAllowance,
+        bool gracefulFail
+    ) internal returns (uint256 actualBurnAmount) {
+        if (burnableAllowance == 0) return 0;
+        
         // Check daily burn cap
         uint256 today = block.timestamp / 1 days;
         uint256 burnedToday = dailyBurnedAmount[today];
         uint256 remainingCap = DAILY_BURN_CAP > burnedToday ? DAILY_BURN_CAP - burnedToday : 0;
         
-        // If cap is already reached, revert
-        if (remainingCap == 0) revert DailyBurnCapExceeded();
+        // If cap already reached, return 0
+        if (remainingCap == 0) return 0;
         
-        // Calculate actual amount to burn (minimum of: requested, burnable allowance, remaining cap)
-        uint256 actualBurnAmount = amount;
-        if (actualBurnAmount > burnable) {
-            actualBurnAmount = burnable;
+        // Calculate actual amount to burn (minimum of: requested, burnable allowance, remaining cap, burn pool reserve)
+        actualBurnAmount = requestedAmount;
+        if (actualBurnAmount > burnableAllowance) {
+            actualBurnAmount = burnableAllowance;
         }
         if (actualBurnAmount > remainingCap) {
             actualBurnAmount = remainingCap;
         }
+        
+        // Check burn pool reserve
+        if (actualBurnAmount > burnPoolReserve) {
+            if (gracefulFail) {
+                // Gracefully burn what's available
+                actualBurnAmount = burnPoolReserve;
+            } else {
+                // Revert if not enough in pool (explicit burn attempt)
+                if (burnPoolReserve < actualBurnAmount) revert InsufficientBurnPool();
+            }
+        }
+        
+        // If nothing to burn after all checks, return 0
+        if (actualBurnAmount == 0) return 0;
         
         // Update daily burn tracking
         dailyBurnedAmount[today] += actualBurnAmount;
@@ -271,7 +365,10 @@ contract StakeAWish is Staking20, Permissions {
             emit DailyBurnCapReached(today, dailyBurnedAmount[today]);
         }
         
-        _burnRewardTokens(msg.sender, actualBurnAmount);
+        // Execute the burn
+        _burnRewardTokens(staker, actualBurnAmount);
+        
+        return actualBurnAmount;
     }
 
     /**
@@ -355,5 +452,54 @@ contract StakeAWish is Staking20, Permissions {
     function isDailyBurnCapReached() external view returns (bool) {
         uint256 today = block.timestamp / 1 days;
         return dailyBurnedAmount[today] >= DAILY_BURN_CAP;
+    }
+
+    /**
+     * @dev Claim rewards, burn available allowance, and compound rewards back into staking
+     * This is a convenience function that performs all three operations atomically:
+     * 1. Burns any available burn allowance (based on staking duration)
+     * 2. Claims pending staking rewards
+     * 3. Re-stakes the claimed rewards to compound returns
+     * 
+     * @notice This is more gas efficient than doing these operations separately
+     * @return rewardsClaimed Amount of rewards that were claimed and re-staked
+     * @return amountBurned Amount of tokens burned from burn pool
+     */
+    function claimBurnAndCompound() external returns (uint256 rewardsClaimed, uint256 amountBurned) {
+        // SECURITY: Verify that reward token matches staking token
+        // Compounding only makes sense if rewards are in the same token as staking
+        require(rewardToken == address(stakingToken), "Cannot compound different tokens");
+        
+        // Step 1: Get burnable amount and burn if any (graceful mode - continue even if pool empty)
+        uint256 burnable = getBurnableAmount(msg.sender);
+        amountBurned = _executeBurnWithCapCheck(msg.sender, burnable, burnable, true);
+        
+        // Step 2: Claim rewards (this updates internal accounting)
+        _updateUnclaimedRewardsForStaker(msg.sender);
+        rewardsClaimed = stakers[msg.sender].unclaimedRewards;
+        
+        if (rewardsClaimed > 0) {
+            // Check that reward pool has sufficient reserve
+            if (rewardPoolReserve < rewardsClaimed) revert InsufficientRewardPool();
+            
+            // Deduct from reward pool reserve
+            rewardPoolReserve -= rewardsClaimed;
+            
+            // Reset unclaimed rewards
+            stakers[msg.sender].unclaimedRewards = 0;
+            stakers[msg.sender].timeOfLastUpdate = uint80(block.timestamp);
+            
+            // Step 3: Compound by directly increasing staked amount
+            // Don't call _stake() as that would try to transfer tokens from user
+            // The rewards are already in the contract, so just update the accounting
+            // This is safe because we verified rewardToken == stakingToken above
+            stakers[msg.sender].amountStaked += uint128(rewardsClaimed);
+            stakingTokenBalance += rewardsClaimed;
+            
+            emit RewardsClaimed(msg.sender, rewardsClaimed);
+            emit TokensStaked(msg.sender, rewardsClaimed);
+        }
+        
+        return (rewardsClaimed, amountBurned);
     }
 }

@@ -6,7 +6,7 @@ export const appDescription =
   "Create your perfect holiday wishlist. Collaborate with family and friends!";
 
 // CHAINS
-export const chain = base;
+export const chain = baseSepolia;
 
 // ADDRESSES
 export const wishlist = {
@@ -20,7 +20,7 @@ export const wish = {
 };
 
 export const stake = {
-  [baseSepolia.id]: "0xb21d9c50aedd37e530085a0bc206fba316d3a000",
+  [baseSepolia.id]: "0x9ce92028a6aBE428C247E2aBEcE5a4B2B3534959",
   [base.id]: "0xd78aF06a5A63e4e8E4Ab94C403C1907ebded583C",
 };
 
