@@ -1045,6 +1045,34 @@ contract StakeAWishTest is Test {
         vm.stopPrank();
     }
 
+    function testCompoundResetsRewards() public {
+        // Test that compound properly resets rewards after claiming
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (uint256 stakeBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have rewards");
+        
+        // Compound
+        (uint256 claimed,) = stakeContract.claimBurnAndCompound();
+        assertEq(claimed, rewardsBefore, "Should claim all pending rewards");
+        
+        // After compound, stake should have increased
+        (uint256 stakeAfter, uint256 rewardsAfter) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeBefore + claimed, "Stake should increase by claimed amount");
+        
+        // Rewards should be near 0 (small amount from blocks passing during transaction)
+        assertLt(rewardsAfter, 10 * 10**18, "Rewards should be near 0 after compound");
+        
+        vm.stopPrank();
+    }
+
     // ========================================
     // Reserve Accounting Tests
     // ========================================

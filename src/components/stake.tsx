@@ -217,16 +217,7 @@ export const Stake: FC = () => {
         burnableFormatted: "0",
       });
 
-      toast.success(
-        `Successfully burned ${
-          Number(amountToBurn) < 1000
-            ? Number(amountToBurn).toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })
-            : shortenLargeNumber(Number(amountToBurn)).toLocaleString()
-        } WISH from supply!`,
-      );
+      toast.success("Burn transaction successful! Tokens removed from supply.");
 
       // Let the automatic refetch interval (10s) handle the next update
       // This prevents flashing by not immediately overwriting the optimistic update
@@ -337,21 +328,7 @@ export const Stake: FC = () => {
       });
 
       toast.success(
-        `Compounded ${
-          Number(rewardsToClaim) < 1000
-            ? Number(rewardsToClaim).toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })
-            : shortenLargeNumber(Number(rewardsToClaim)).toLocaleString()
-        } WISH + burned ${
-          Number(burnableAmount) < 1000
-            ? Number(burnableAmount).toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })
-            : shortenLargeNumber(Number(burnableAmount)).toLocaleString()
-        } WISH!`,
+        "Compound successful! Rewards claimed, tokens burned, and re-staked.",
       );
 
       // Delay refetch to allow blockchain to propagate
@@ -509,7 +486,14 @@ export const Stake: FC = () => {
                   ) : apy !== undefined ? (
                     <>
                       <SplitFlipNumber
-                        value={shortenLargeNumber(apy).toLocaleString()}
+                        value={
+                          Number(apy) < 1000
+                            ? Number(apy).toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })
+                            : shortenLargeNumber(apy).toLocaleString()
+                        }
                       />
                       %
                     </>
@@ -577,7 +561,7 @@ export const Stake: FC = () => {
               {account && (
                 <div className="flex justify-between items-center pt-2 border-t border-orange-500/20">
                   <span className="text-xs font-medium text-muted-foreground">
-                    By You:
+                    Total Burned By You:
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground">
                     {isUserBurnedLoading ? (
