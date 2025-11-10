@@ -534,7 +534,7 @@ contract StakeAWish is Staking20, Permissions {
      * @return amountBurned Amount of tokens burned from burn pool
      */
     function claimBurnAndCompound() external returns (uint256 rewardsClaimed, uint256 amountBurned) {
-        // SECURITY: Verify that reward token matches staking token
+        // Verify that reward token matches staking token
         // Compounding only makes sense if rewards are in the same token as staking
         require(rewardToken == address(stakingToken), "Cannot compound different tokens");
         
@@ -591,6 +591,7 @@ contract StakeAWish is Staking20, Permissions {
      * @param to Address to send tokens to
      * @notice Only callable by admin. Handles proportional deduction when reward/burn tokens are same.
      * @notice Can be permanently disabled via permanentlyDisableEmergencyWithdrawal()
+     * @notice Cannot withdraw more than pool reserves
      */
     function emergencyWithdraw(
         address token,
@@ -602,7 +603,7 @@ contract StakeAWish is Staking20, Permissions {
         require(to != address(0), "Invalid recipient");
         if (amount == 0) revert InvalidAmount();
         
-        // Only allow withdrawing from pool reserves, never touch staked funds
+        // Only allow withdrawing from pool reserves
         uint256 maxWithdrawable = rewardPoolReserve + burnPoolReserve;
         if (amount > maxWithdrawable) revert CannotWithdrawStakedFunds();
         
