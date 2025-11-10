@@ -22,6 +22,8 @@ contract StakeAWish is Staking20, Permissions {
     error InsufficientRewardPool();
     error InsufficientBurnPool();
     error EmergencyWithdrawalDisabled();
+    error CannotWithdrawStakedFunds();
+    error CompoundOverflow();
 
     // Permission role for managing stake conditions
     bytes32 public constant STAKE_CONDITIONS_MANAGER_ROLE = keccak256("STAKE_CONDITIONS_MANAGER_ROLE");
@@ -42,8 +44,9 @@ contract StakeAWish is Staking20, Permissions {
     // Track how much burn allowance has been used per user
     mapping(address => uint256) public burnedAmount;
     
-    // Track when each staker first staked (for burn calculations)
+    // Track stake amount at time of burn tracking start/update
     mapping(address => uint256) public stakingStartTime;
+    mapping(address => uint256) public baseStakeAmount; // Stake amount used for burn calculation
 
     // Track total amount burned per day (day number => amount burned that day)
     mapping(uint256 => uint256) public dailyBurnedAmount;
@@ -106,6 +109,11 @@ contract StakeAWish is Staking20, Permissions {
      * @param _amount Amount of tokens to unstake
      */
     function _withdraw(uint256 _amount) internal virtual override {
+        // Get current stake info before any changes
+        (uint256 currentStake, ) = this.getStakeInfo(msg.sender);
+        bool isPartialWithdrawal = _amount < currentStake;
+        uint256 newRemainingStake = currentStake > _amount ? currentStake - _amount : 0;
+        
         // Get burnable amount before withdrawing
         uint256 burnable = getBurnableAmount(msg.sender);
         
@@ -118,12 +126,21 @@ contract StakeAWish is Staking20, Permissions {
         // Call parent withdraw function
         super._withdraw(_amount);
         
+        // Adjust burn tracking after withdrawal
+        if (isPartialWithdrawal && newRemainingStake > 0) {
+            // Partial withdrawal - reset burn tracking to prevent gaming
+            baseStakeAmount[msg.sender] = newRemainingStake;
+            burnedAmount[msg.sender] = 0;
+            stakingStartTime[msg.sender] = block.timestamp;
+        }
+        
         // Check if user has fully unstaked
         (uint256 remainingStake, ) = this.getStakeInfo(msg.sender);
         if (remainingStake == 0 && stakingStartTime[msg.sender] > 0) {
             // Auto-reset tracking when fully unstaked
             delete stakingStartTime[msg.sender];
             delete burnedAmount[msg.sender];
+            delete baseStakeAmount[msg.sender];
         }
     }
 
@@ -132,10 +149,11 @@ contract StakeAWish is Staking20, Permissions {
      * @param staker Address of the staker
      */
     function _startBurnTracking(address staker) internal {
-        // Only set start time if not already tracking
-        // This makes the function idempotent - safe to call multiple times
         if (stakingStartTime[staker] == 0) {
+            // First time staking - initialize tracking
             stakingStartTime[staker] = block.timestamp;
+            (uint256 currentStake, ) = this.getStakeInfo(staker);
+            baseStakeAmount[staker] = currentStake;
             emit BurnTrackingStarted(staker, block.timestamp);
         }
     }
@@ -186,7 +204,7 @@ contract StakeAWish is Staking20, Permissions {
     function recoverUnaccountedTokens(uint256 amountForRewardPool, uint256 amountForBurnPool) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can recover tokens");
         
-        // Calculate actual token balances in contract
+        // Snapshot balances at start to prevent manipulation during execution
         uint256 actualRewardBalance = IERC20(rewardToken).balanceOf(address(this));
         uint256 actualBurnBalance = IERC20(burnToken).balanceOf(address(this));
         
@@ -226,6 +244,18 @@ contract StakeAWish is Staking20, Permissions {
                 burnPoolReserve += amountForBurnPool;
                 emit BurnPoolFunded(msg.sender, amountForBurnPool, burnPoolReserve);
             }
+        }
+        
+        // Verify balances didn't change during execution
+        require(
+            IERC20(rewardToken).balanceOf(address(this)) == actualRewardBalance,
+            "Balance changed during execution"
+        );
+        if (rewardToken != burnToken) {
+            require(
+                IERC20(burnToken).balanceOf(address(this)) == actualBurnBalance,
+                "Burn balance changed during execution"
+            );
         }
     }
 
@@ -275,22 +305,23 @@ contract StakeAWish is Staking20, Permissions {
 
     /**
      * @dev Calculate how many tokens a staker can burn from the burn pool
-     * Formula: (stakedAmount * completePeriods) - alreadyBurned
+     * Use base stake amount instead of current stake to prevent retroactive allowance
+     * Formula: (baseStakeAmount * completePeriods) - alreadyBurned
      * @param staker The address to check
      * @return burnableAmount The amount that can be burned
      */
     function getBurnableAmount(address staker) public view returns (uint256 burnableAmount) {
-        // Get staked amount from parent contract
-        (uint256 amountStaked, ) = this.getStakeInfo(staker);
+        // Use base stake amount for calculations
+        uint256 baseStake = baseStakeAmount[staker];
         
-        if (amountStaked == 0 || stakingStartTime[staker] == 0) return 0;
+        if (baseStake == 0 || stakingStartTime[staker] == 0) return 0;
 
         // Calculate complete 24h periods since staking
         uint256 timeStaked = block.timestamp - stakingStartTime[staker];
         uint256 completePeriods = timeStaked / BURN_PERIOD;
         
-        // Total burnable = staked amount * number of complete 24h periods
-        uint256 totalBurnable = amountStaked * completePeriods;
+        // Total burnable based on BASE stake amount (not current)
+        uint256 totalBurnable = baseStake * completePeriods;
         
         // Subtract already burned amount
         if (totalBurnable > burnedAmount[staker]) {
@@ -431,14 +462,16 @@ contract StakeAWish is Staking20, Permissions {
         // Get staked amount from parent contract
         (currentStaked, ) = this.getStakeInfo(staker);
         alreadyBurned = burnedAmount[staker];
+        uint256 baseStake = baseStakeAmount[staker];
         
-        if (currentStaked == 0 || stakingStartTime[staker] == 0) {
-            return (0, 0, 0, 0, alreadyBurned, 0);
+        if (baseStake == 0 || stakingStartTime[staker] == 0) {
+            return (currentStaked, 0, 0, 0, alreadyBurned, 0);
         }
 
         timeStaked = block.timestamp - stakingStartTime[staker];
         completePeriods = timeStaked / BURN_PERIOD;
-        totalBurnable = currentStaked * completePeriods;
+        // Use base stake for total burnable calculation
+        totalBurnable = baseStake * completePeriods;
         availableToBurn = getBurnableAmount(staker);
         
         return (currentStaked, timeStaked, completePeriods, totalBurnable, alreadyBurned, availableToBurn);
@@ -514,6 +547,10 @@ contract StakeAWish is Staking20, Permissions {
         rewardsClaimed = stakers[msg.sender].unclaimedRewards;
         
         if (rewardsClaimed > 0) {
+            // Check for uint128 overflow before casting
+            uint256 newStakeAmount = uint256(stakers[msg.sender].amountStaked) + rewardsClaimed;
+            if (newStakeAmount > type(uint128).max) revert CompoundOverflow();
+            
             // Check that reward pool has sufficient reserve
             if (rewardPoolReserve < rewardsClaimed) revert InsufficientRewardPool();
             
@@ -531,8 +568,14 @@ contract StakeAWish is Staking20, Permissions {
             // Don't call _stake() as that would try to transfer tokens from user
             // The rewards are already in the contract, so just update the accounting
             // This is safe because we verified rewardToken == stakingToken above
-            stakers[msg.sender].amountStaked += uint128(rewardsClaimed);
+            stakers[msg.sender].amountStaked = uint128(newStakeAmount);
             stakingTokenBalance += rewardsClaimed;
+            
+            // When compounding, restart burn tracking with new base
+            // This prevents retroactive burn allowance from compounded amounts
+            stakingStartTime[msg.sender] = block.timestamp;  // Reset start time
+            baseStakeAmount[msg.sender] = newStakeAmount;    // New base
+            burnedAmount[msg.sender] = 0;                    // Reset burned amount
             
             emit RewardsClaimed(msg.sender, rewardsClaimed);
             emit TokensStaked(msg.sender, rewardsClaimed);
@@ -559,22 +602,22 @@ contract StakeAWish is Staking20, Permissions {
         require(to != address(0), "Invalid recipient");
         if (amount == 0) revert InvalidAmount();
         
+        // Only allow withdrawing from pool reserves, never touch staked funds
+        uint256 maxWithdrawable = rewardPoolReserve + burnPoolReserve;
+        if (amount > maxWithdrawable) revert CannotWithdrawStakedFunds();
+        
         // Handle accounting based on which token is being withdrawn
         if (rewardToken == burnToken && token == rewardToken) {
             // Same token for both pools - deduct proportionally from reserves
             uint256 totalReserve = rewardPoolReserve + burnPoolReserve;
             
-            if (totalReserve > 0 && amount <= totalReserve) {
+            if (totalReserve > 0) {
                 // Proportional deduction based on pool sizes
                 uint256 fromReward = (amount * rewardPoolReserve) / totalReserve;
                 uint256 fromBurn = amount - fromReward;
                 
                 rewardPoolReserve -= fromReward;
                 burnPoolReserve -= fromBurn;
-            } else if (amount > totalReserve) {
-                // Withdrawing more than in reserves - zero them out
-                rewardPoolReserve = 0;
-                burnPoolReserve = 0;
             }
         } else {
             // Different tokens - deduct from appropriate reserve

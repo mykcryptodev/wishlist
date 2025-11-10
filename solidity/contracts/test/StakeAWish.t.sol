@@ -177,7 +177,6 @@ contract StakeAWishTest is Test {
         vm.startPrank(alice);
         stakingToken.approve(address(stakeContract), stakeAmount);
         stakeContract.stake(stakeAmount);
-        uint256 startTime = stakeContract.stakingStartTime(alice);
         
         // Wait 2 days to accumulate burn allowance
         vm.warp(block.timestamp + 2 days);
@@ -186,16 +185,20 @@ contract StakeAWishTest is Test {
         uint256 burnableBeforeUnstake = stakeContract.getBurnableAmount(alice);
         assertEq(burnableBeforeUnstake, stakeAmount * 2, "Should have 2 days worth of burnable tokens");
         
-        // Unstake half - should burn tokens but keep tracking active
+        // Unstake half - should auto-burn tokens and reset tracking (FIX #5)
         stakeContract.withdraw(stakeAmount / 2);
         
-        // Verify tracking is still active after partial unstake
-        assertEq(stakeContract.stakingStartTime(alice), startTime, "Tracking should persist after partial unstake");
-        assertEq(stakeContract.burnedAmount(alice), stakeAmount * 2, "Should have burned all available tokens");
+        // FIX #5: Tracking resets on partial withdrawal to prevent gaming
+        assertEq(stakeContract.stakingStartTime(alice), block.timestamp, "Start time resets on partial withdrawal");
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount resets on partial withdrawal");
+        assertEq(stakeContract.baseStakeAmount(alice), stakeAmount / 2, "Base stake updated to remaining amount");
         
         // Verify remaining stake
         (uint256 remainingStake, ) = stakeContract.getStakeInfo(alice);
         assertEq(remainingStake, stakeAmount / 2, "Should have half stake remaining");
+        
+        // Burnable should be 0 since tracking just reset
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable resets after partial withdrawal");
         
         vm.stopPrank();
     }
@@ -257,9 +260,9 @@ contract StakeAWishTest is Test {
         uint256 startTimeAfterSecondStake = stakeContract.stakingStartTime(alice);
         assertEq(startTime, startTimeAfterSecondStake, "Start time should remain the same");
         
-        // Burnable amount should be based on total staked and time from first stake
+        // FIX: Burnable amount based on ORIGINAL stake (no retroactive allowance for new tokens)
         uint256 burnable = stakeContract.getBurnableAmount(alice);
-        assertEq(burnable, (firstStake + secondStake) * 1, "Burnable based on total stake and 1 day");
+        assertEq(burnable, firstStake * 1, "Burnable based on original stake, no retroactive allowance");
         
         vm.stopPrank();
     }
@@ -1315,7 +1318,9 @@ contract StakeAWishTest is Test {
         
         // Verify burn happened
         assertEq(amountBurned, burnableBeforeCompound, "Should have burned 10 days worth");
-        assertEq(stakeContract.burnedAmount(alice), burnableBeforeCompound, "Burned amount tracked");
+        
+        // FIX #1: After compound, tracking resets (burned amount back to 0)
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount resets after compound");
         
         // Verify rewards were claimed
         assertEq(rewardsClaimed, rewardsBeforeCompound, "Should have claimed all rewards");
@@ -1324,6 +1329,9 @@ contract StakeAWishTest is Test {
         (uint256 stakeAfterCompound, uint256 rewardsAfterCompound) = stakeContract.getStakeInfo(alice);
         assertEq(stakeAfterCompound, stakeAmount + rewardsClaimed, "Stake increased by rewards");
         assertEq(rewardsAfterCompound, 0, "Rewards should be zero after claim");
+        
+        // FIX #1: Start time resets to prevent retroactive burn allowance
+        assertEq(stakeContract.stakingStartTime(alice), block.timestamp, "Start time resets after compound");
         
         vm.stopPrank();
     }
