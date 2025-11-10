@@ -13,6 +13,7 @@ import { sendCalls as walletSendCalls } from "thirdweb/wallets/eip5792";
 import { chain, stake as stakeAddress, wish } from "@/constants";
 import {
   burnRewardTokens,
+  claimBurnAndCompound,
   claimRewards,
   getStakeInfo,
   stake,
@@ -321,11 +322,38 @@ export function useStakeContract() {
     }
   };
 
+  // Compound: claim rewards, burn allowance, and re-stake in one transaction
+  const compoundTokens = async () => {
+    if (!account) throw new Error("No account connected");
+
+    try {
+      console.log("Compounding (claim + burn + re-stake)...");
+
+      const compoundTransaction = claimBurnAndCompound({
+        contract: stakeContract,
+      });
+
+      const result = await sendTx(compoundTransaction);
+      const receipt = await waitForReceipt({
+        client,
+        chain,
+        transactionHash: result.transactionHash,
+      });
+
+      console.log("✅ Compound confirmed:", receipt.transactionHash);
+      return { receipt };
+    } catch (error) {
+      console.error("Error compounding:", error);
+      throw error;
+    }
+  };
+
   return {
     stakeTokens,
     unstakeTokens,
     burnTokens,
     claimRewardsTokens,
+    compoundTokens,
     getStakedInfo,
   };
 }

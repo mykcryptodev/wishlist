@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { FulfilledWishes } from "@/components/fulfilled-wishes";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
@@ -101,6 +102,9 @@ export default function Home() {
         </div>
 
         <TreasuryWethBalance />
+
+        {/* Fulfilled Wishes Section */}
+        <FulfilledWishes />
 
         {/* Wishlist Directory Section */}
         <div className="py-16">

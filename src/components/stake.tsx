@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Flame, Gift } from "lucide-react";
+import { Flame, Gift, Zap } from "lucide-react";
 import { FC, useState } from "react";
 import { toast } from "sonner";
 import { useActiveAccount, useWalletBalance } from "thirdweb/react";
@@ -26,9 +26,13 @@ import { useDailyBurn } from "@/hooks/useDailyBurn";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
+import { useTotalBurned } from "@/hooks/useTotalBurned";
+import { useUserBurnedAmount } from "@/hooks/useUserBurnedAmount";
+import { useUserRewardsClaimed } from "@/hooks/useUserRewardsClaimed";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
+import { ShareStakeDialog } from "./stake/ShareStakeDialog";
 
 const isStakingComingSoon = true;
 
@@ -41,6 +45,17 @@ export const Stake: FC = () => {
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isCompounding, setIsCompounding] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareStats, setShareStats] = useState<{
+    type: "compound" | "claim" | "burn";
+    amountClaimed?: string;
+    amountCompounded?: string;
+    amountBurned?: string;
+    userTotalRewards: string;
+    userTotalBurned: string;
+    globalTotalBurned: string;
+  } | null>(null);
 
   const {
     data: balance,
@@ -77,8 +92,29 @@ export const Stake: FC = () => {
     isLoading: isAPYLoading,
     error: apyError,
   } = useStakingAPY();
-  const { stakeTokens, unstakeTokens, burnTokens, claimRewardsTokens } =
-    useStakeContract();
+
+  const { data: totalBurnedData, isLoading: isTotalBurnedLoading } =
+    useTotalBurned();
+
+  const {
+    data: userBurnedData,
+    isLoading: isUserBurnedLoading,
+    refetch: refetchUserBurned,
+  } = useUserBurnedAmount(account?.address);
+
+  const {
+    data: userRewardsClaimedData,
+    isLoading: isUserRewardsClaimedLoading,
+    refetch: refetchUserRewards,
+  } = useUserRewardsClaimed(account?.address);
+
+  const {
+    stakeTokens,
+    unstakeTokens,
+    burnTokens,
+    claimRewardsTokens,
+    compoundTokens,
+  } = useStakeContract();
 
   const handleStakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -186,7 +222,7 @@ export const Stake: FC = () => {
     const amountToBurn = burnableBalance;
     setIsBurning(true);
     try {
-      await burnTokens({
+      const result = await burnTokens({
         amount: amountToBurn,
       });
 
@@ -196,12 +232,52 @@ export const Stake: FC = () => {
         burnableFormatted: "0",
       });
 
-      toast.success(
-        `Successfully burned ${shortenLargeNumber(Number(amountToBurn)).toLocaleString()} WISH from supply!`,
-      );
+      toast.success("Burn transaction successful! Tokens removed from supply.");
 
-      // Let the automatic refetch interval (10s) handle the next update
-      // This prevents flashing by not immediately overwriting the optimistic update
+      // Refetch stats and show share dialog
+      setTimeout(async () => {
+        // Refetch all user stats to get latest data
+        await Promise.all([
+          refetchBurnable(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual burn amount from transaction receipt
+        let actualBurnAmount = "0";
+        if (result.receipt?.logs) {
+          // Look for StakedWishesBurned event
+          // Event signature: StakedWishesBurned(address indexed staker, uint256 amount)
+          const burnEvent = result.receipt.logs.find(
+            log =>
+              log.topics &&
+              log.topics[0] ===
+                "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+          );
+          if (burnEvent && burnEvent.data) {
+            const burnedAmount = BigInt(burnEvent.data);
+            actualBurnAmount = (Number(burnedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "burn",
+          amountBurned: actualBurnAmount || amountToBurn,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
     } catch (error) {
       console.error("Burn error:", error);
       toast.error(
@@ -220,7 +296,7 @@ export const Stake: FC = () => {
     const amountToClaim = rewardsBalance;
     setIsClaiming(true);
     try {
-      await claimRewardsTokens();
+      const result = await claimRewardsTokens();
 
       // Optimistically set rewards to 0 after successful transaction
       queryClient.setQueryData<{
@@ -244,15 +320,53 @@ export const Stake: FC = () => {
         };
       });
 
-      toast.success(
-        `Successfully claimed ${shortenLargeNumber(Number(amountToClaim)).toLocaleString()} WISH rewards!`,
-      );
+      toast.success("Rewards claimed successfully!");
 
-      // Delay refetch to allow blockchain to propagate
-      // This prevents the flash of old data overwriting our optimistic update
-      setTimeout(() => {
-        Promise.all([refetchStaked(), refetchBalance()]);
-      }, 2000);
+      // Delay refetch and show share dialog
+      setTimeout(async () => {
+        // Refetch all stats to get latest data
+        await Promise.all([
+          refetchStaked(),
+          refetchBalance(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual claimed amount from transaction receipt
+        let actualClaimedAmount = amountToClaim;
+        if (result.receipt?.logs) {
+          // Look for RewardsClaimed event
+          // Event signature: RewardsClaimed(address indexed staker, uint256 rewardAmount)
+          const claimEvent = result.receipt.logs.find(
+            log =>
+              log.topics &&
+              log.topics[0] ===
+                "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+          );
+          if (claimEvent && claimEvent.data) {
+            const claimedAmount = BigInt(claimEvent.data);
+            actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "claim",
+          amountClaimed: actualClaimedAmount,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
     } catch (error) {
       console.error("Claim error:", error);
       toast.error(
@@ -262,6 +376,117 @@ export const Stake: FC = () => {
       await Promise.all([refetchStaked(), refetchBalance()]);
     } finally {
       setIsClaiming(false);
+    }
+  };
+
+  const handleCompound = async () => {
+    if (!rewardsBalance || Number(rewardsBalance) <= 0) return;
+
+    const rewardsToClaim = rewardsBalance;
+
+    setIsCompounding(true);
+    try {
+      const result = await compoundTokens();
+
+      // Optimistically update: rewards to 0, increase staked balance, burnable to 0
+      queryClient.setQueryData<{
+        tokensStaked: bigint;
+        tokensStakedFormatted: string;
+        rewards: bigint;
+        rewardsFormatted: string;
+      }>(["stakedBalance", chain.id, account?.address], oldData => {
+        if (!oldData) return oldData;
+
+        // Calculate new staked amount (old staked + rewards)
+        const newStaked = oldData.tokensStaked + oldData.rewards;
+
+        return {
+          tokensStaked: newStaked,
+          tokensStakedFormatted: (Number(newStaked) / 10 ** 18).toFixed(2),
+          rewards: BigInt(0),
+          rewardsFormatted: "0",
+        };
+      });
+
+      // Reset burnable amount to 0 (optimistic)
+      queryClient.setQueryData(["burnableAmount", chain.id, account?.address], {
+        burnable: BigInt(0),
+        burnableFormatted: "0",
+      });
+
+      toast.success(
+        "Compound successful! Rewards claimed, tokens burned, and re-staked.",
+      );
+
+      // Delay refetch and show share dialog
+      setTimeout(async () => {
+        // Refetch all stats to get latest data
+        await Promise.all([
+          refetchStaked(),
+          refetchBalance(),
+          refetchBurnable(),
+          refetchUserBurned(),
+          refetchUserRewards(),
+        ]);
+
+        // Parse actual amounts from transaction receipt
+        let actualBurnedAmount = "0";
+        let actualClaimedAmount = rewardsToClaim;
+
+        if (result.receipt?.logs) {
+          // Look for StakedWishesBurned event
+          const burnEvent = result.receipt.logs.find(
+            log =>
+              log.topics &&
+              log.topics[0] ===
+                "0xd5e619f4c840f51bf475a9612cc70b30ac68d4fa25b11e1904379c1c430a59a7",
+          );
+          if (burnEvent && burnEvent.data) {
+            const burnedAmount = BigInt(burnEvent.data);
+            actualBurnedAmount = (Number(burnedAmount) / 10 ** 18).toString();
+          }
+
+          // Look for RewardsClaimed event
+          const claimEvent = result.receipt.logs.find(
+            log =>
+              log.topics &&
+              log.topics[0] ===
+                "0xfc30cddea38e2bf4d6ea7d3f9ed3b6ad7f176419f4963bd81318067a4aee73fe",
+          );
+          if (claimEvent && claimEvent.data) {
+            const claimedAmount = BigInt(claimEvent.data);
+            actualClaimedAmount = (Number(claimedAmount) / 10 ** 18).toString();
+          }
+        }
+
+        // Get REFETCHED stats for share dialog
+        const freshUserBurned = await refetchUserBurned();
+        const freshUserRewards = await refetchUserRewards();
+
+        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
+        const userRewards =
+          freshUserRewards.data?.rewardsClaimedFormatted || "0";
+        const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
+
+        setShareStats({
+          type: "compound",
+          amountCompounded: actualClaimedAmount,
+          amountBurned: actualBurnedAmount,
+          userTotalRewards: userRewards,
+          userTotalBurned: userBurned,
+          globalTotalBurned: globalBurned,
+        });
+        setShareDialogOpen(true);
+      }, 3000);
+    } catch (error) {
+      console.error("Compound error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to compound",
+      );
+      // On error, immediately refetch to restore correct state
+      await Promise.all([refetchStaked(), refetchBalance(), refetchBurnable()]);
+    } finally {
+      setIsCompounding(false);
     }
   };
 
@@ -293,7 +518,10 @@ export const Stake: FC = () => {
               </div>
               {Number(balance.displayValue) >= 1000 && (
                 <span className="text-xs text-muted-foreground">
-                  {Number(balance.displayValue).toLocaleString()}
+                  {Number(balance.displayValue).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               )}
             </div>
@@ -314,16 +542,26 @@ export const Stake: FC = () => {
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-lg font-bold">
                   <SplitFlipNumber
-                    value={shortenLargeNumber(
-                      Number(stakedBalance),
-                    ).toLocaleString()}
+                    value={
+                      Number(stakedBalance) < 1000
+                        ? Number(stakedBalance).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })
+                        : shortenLargeNumber(
+                            Number(stakedBalance),
+                          ).toLocaleString()
+                    }
                   />
                 </span>
                 <span className="text-xs text-muted-foreground ml-1">WISH</span>
               </div>
               {Number(stakedBalance) >= 1000 && (
                 <span className="text-xs text-muted-foreground">
-                  {Number(stakedBalance).toLocaleString()}
+                  {Number(stakedBalance).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               )}
             </div>
@@ -373,25 +611,121 @@ export const Stake: FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* APY Display */}
-          <div className="flex justify-between items-center p-4 bg-primary/10 rounded-lg border border-primary/20">
-            <span className="text-sm font-medium">Current APY:</span>
-            <span className="text-lg font-bold text-primary">
-              {isAPYLoading ? (
-                <span className="text-muted-foreground">Loading...</span>
-              ) : apyError ? (
-                <span className="text-destructive text-sm">Failed to load</span>
-              ) : apy !== undefined ? (
-                <>
-                  <SplitFlipNumber
-                    value={shortenLargeNumber(apy).toLocaleString()}
-                  />
-                  %
-                </>
-              ) : (
-                "N/A"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            {/* APY Display */}
+            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Gift className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium">Current APY:</span>
+                </div>
+                <span className="text-lg font-bold text-primary">
+                  {isAPYLoading ? (
+                    <span className="text-muted-foreground">Loading...</span>
+                  ) : apyError ? (
+                    <span className="text-destructive text-sm">
+                      Failed to load
+                    </span>
+                  ) : apy !== undefined ? (
+                    <>
+                      <SplitFlipNumber
+                        value={
+                          Number(apy) < 1000
+                            ? Number(apy).toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })
+                            : shortenLargeNumber(apy).toLocaleString()
+                        }
+                      />
+                      %
+                    </>
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
+              </div>
+
+              {/* User's Total Rewards Claimed - Inside same box */}
+              {account && (
+                <div className="flex justify-between items-center pt-2 border-t border-primary/20">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Total Earned By You:
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {isUserRewardsClaimedLoading ? (
+                      <span className="text-muted-foreground">Loading...</span>
+                    ) : userRewardsClaimedData ? (
+                      <>
+                        {Number(
+                          userRewardsClaimedData.rewardsClaimedFormatted,
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        WISH
+                      </>
+                    ) : (
+                      "0 WISH"
+                    )}
+                  </span>
+                </div>
               )}
-            </span>
+            </div>
+
+            {/* Total Burned All Time Display */}
+            <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20 space-y-3">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  <span className="text-sm font-medium">Total Burned:</span>
+                </div>
+                <span className="text-lg font-bold text-orange-500 text-center md:text-right">
+                  {isTotalBurnedLoading ? (
+                    <span className="text-muted-foreground text-sm">
+                      Loading...
+                    </span>
+                  ) : totalBurnedData ? (
+                    <>
+                      <SplitFlipNumber
+                        value={shortenLargeNumber(
+                          Number(totalBurnedData.totalBurnedFormatted),
+                        ).toLocaleString()}
+                      />
+                      <span className="ml-1 text-sm">WISH</span>
+                    </>
+                  ) : (
+                    "0 WISH"
+                  )}
+                </span>
+              </div>
+
+              {/* User's Total Burned - Inside same box */}
+              {account && (
+                <div className="flex justify-between items-center pt-2 border-t border-orange-500/20">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Total Burned By You:
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {isUserBurnedLoading ? (
+                      <span className="text-muted-foreground">Loading...</span>
+                    ) : userBurnedData ? (
+                      <>
+                        {Number(
+                          userBurnedData.burnedAmountFormatted,
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        WISH
+                      </>
+                    ) : (
+                      "0 WISH"
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <Tabs className="w-full" defaultValue="stake">
@@ -509,35 +843,69 @@ export const Stake: FC = () => {
                   ) : (
                     <>
                       <SplitFlipNumber
-                        value={shortenLargeNumber(
-                          Number(rewardsBalance),
-                        ).toLocaleString()}
+                        value={
+                          Number(rewardsBalance) < 1000
+                            ? Number(rewardsBalance).toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })
+                            : shortenLargeNumber(
+                                Number(rewardsBalance),
+                              ).toLocaleString()
+                        }
                       />
                       <span className="ml-1">WISH</span>
                     </>
                   )}
                 </span>
               </div>
-              <Button
-                className="w-full"
-                variant="default"
-                disabled={
-                  isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
-                }
-                onClick={handleClaimRewards}
-              >
-                {isClaiming ? (
-                  "Claiming..."
-                ) : (
-                  <>
-                    <Gift className="w-4 h-4 mr-2" />
-                    Claim Rewards
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Claim your earned staking rewards and add them to your wallet
-              </p>
+              <div className="space-y-2 mt-4">
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  variant="default"
+                  disabled={
+                    isLoadingStaked ||
+                    Number(rewardsBalance) <= 0 ||
+                    isCompounding
+                  }
+                  onClick={handleCompound}
+                >
+                  {isCompounding ? (
+                    "Compounding..."
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Compound Rewards
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Automatically claim rewards, burn tokens, and re-stake
+                </p>
+
+                <div className="h-1" />
+
+                <Button
+                  className="w-full"
+                  variant="default"
+                  disabled={
+                    isLoadingStaked || Number(rewardsBalance) <= 0 || isClaiming
+                  }
+                  onClick={handleClaimRewards}
+                >
+                  {isClaiming ? (
+                    "Claiming..."
+                  ) : (
+                    <>
+                      <Gift className="w-4 h-4 mr-2" />
+                      Claim Rewards
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Claim your staking rewards and add them to your wallet
+                </p>
+              </div>
             </div>
           )}
 
@@ -634,6 +1002,13 @@ export const Stake: FC = () => {
           )}
         </CardContent>
       </div>
+
+      {/* Share Dialog */}
+      <ShareStakeDialog
+        open={shareDialogOpen}
+        stats={shareStats}
+        onOpenChange={setShareDialogOpen}
+      />
     </Card>
   );
 };

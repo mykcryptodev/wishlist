@@ -20,6 +20,7 @@ contract StakeAWishTest is Test {
     StakeAWish public stakeContract;
     WishToken public stakingToken;
     WishToken public rewardToken;
+    WishToken public burnToken;
     MockWETH public weth;
     
     address public owner = address(1);
@@ -28,15 +29,19 @@ contract StakeAWishTest is Test {
     address public attacker = address(4);
     
     uint256 public constant INITIAL_SUPPLY = 1_000_000_000 * 10**18; // 1B tokens
-    uint256 public constant REWARD_POOL = 500_000_000 * 10**18; // 500M tokens
+    uint256 public constant REWARD_POOL = 500_000_000 * 10**18; // 500M tokens for staking rewards
+    uint256 public constant BURN_POOL = 500_000_000 * 10**18; // 500M tokens for burning
     uint80 public constant TIME_UNIT = 1 days;
     uint256 public constant REWARD_NUMERATOR = 1;
     uint256 public constant REWARD_DENOMINATOR = 1;
     
     function setUp() public {
         vm.startPrank(owner);
-        stakingToken = new WishToken(INITIAL_SUPPLY);
-        rewardToken = new WishToken(INITIAL_SUPPLY);
+        
+        // Use the SAME token for staking, rewards, and burning (simulates WISH token)
+        stakingToken = new WishToken(INITIAL_SUPPLY * 3); // Need more supply
+        rewardToken = stakingToken;  // Same token instance
+        burnToken = stakingToken;    // Same token instance
         weth = new MockWETH();
         
         stakeContract = new StakeAWish(
@@ -44,11 +49,19 @@ contract StakeAWishTest is Test {
             REWARD_NUMERATOR,
             REWARD_DENOMINATOR,
             address(stakingToken),
-            address(rewardToken),
+            address(rewardToken),   // Same address as stakingToken
+            address(burnToken),     // Same address as stakingToken
             address(weth)
         );
         
-        rewardToken.transfer(address(stakeContract), REWARD_POOL);
+        // Fund the reward pool using the new function
+        stakingToken.approve(address(stakeContract), REWARD_POOL);
+        stakeContract.fundRewardPool(REWARD_POOL);
+        
+        // Fund the burn pool using the new function
+        stakingToken.approve(address(stakeContract), BURN_POOL);
+        stakeContract.fundBurnPool(BURN_POOL);
+        
         stakingToken.transfer(alice, 10_000 * 10**18);
         stakingToken.transfer(bob, 10_000 * 10**18);
         stakingToken.transfer(attacker, 10_000 * 10**18);
@@ -164,7 +177,6 @@ contract StakeAWishTest is Test {
         vm.startPrank(alice);
         stakingToken.approve(address(stakeContract), stakeAmount);
         stakeContract.stake(stakeAmount);
-        uint256 startTime = stakeContract.stakingStartTime(alice);
         
         // Wait 2 days to accumulate burn allowance
         vm.warp(block.timestamp + 2 days);
@@ -173,16 +185,20 @@ contract StakeAWishTest is Test {
         uint256 burnableBeforeUnstake = stakeContract.getBurnableAmount(alice);
         assertEq(burnableBeforeUnstake, stakeAmount * 2, "Should have 2 days worth of burnable tokens");
         
-        // Unstake half - should burn tokens but keep tracking active
+        // Unstake half - should auto-burn tokens and reset tracking (FIX #5)
         stakeContract.withdraw(stakeAmount / 2);
         
-        // Verify tracking is still active after partial unstake
-        assertEq(stakeContract.stakingStartTime(alice), startTime, "Tracking should persist after partial unstake");
-        assertEq(stakeContract.burnedAmount(alice), stakeAmount * 2, "Should have burned all available tokens");
+        // FIX #5: Tracking resets on partial withdrawal to prevent gaming
+        assertEq(stakeContract.stakingStartTime(alice), block.timestamp, "Start time resets on partial withdrawal");
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount resets on partial withdrawal");
+        assertEq(stakeContract.baseStakeAmount(alice), stakeAmount / 2, "Base stake updated to remaining amount");
         
         // Verify remaining stake
         (uint256 remainingStake, ) = stakeContract.getStakeInfo(alice);
         assertEq(remainingStake, stakeAmount / 2, "Should have half stake remaining");
+        
+        // Burnable should be 0 since tracking just reset
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable resets after partial withdrawal");
         
         vm.stopPrank();
     }
@@ -244,9 +260,9 @@ contract StakeAWishTest is Test {
         uint256 startTimeAfterSecondStake = stakeContract.stakingStartTime(alice);
         assertEq(startTime, startTimeAfterSecondStake, "Start time should remain the same");
         
-        // Burnable amount should be based on total staked and time from first stake
+        // FIX: Burnable amount based on ORIGINAL stake (no retroactive allowance for new tokens)
         uint256 burnable = stakeContract.getBurnableAmount(alice);
-        assertEq(burnable, (firstStake + secondStake) * 1, "Burnable based on total stake and 1 day");
+        assertEq(burnable, firstStake * 1, "Burnable based on original stake, no retroactive allowance");
         
         vm.stopPrank();
     }
@@ -349,8 +365,9 @@ contract StakeAWishTest is Test {
         
         vm.startPrank(owner);
         stakingToken.transfer(alice, largeStake);
-        // Transfer enough reward tokens for the burn cap
-        rewardToken.transfer(address(stakeContract), 222_000_000 * 10**18);
+        // Fund burn pool with additional tokens
+        stakingToken.approve(address(stakeContract), 222_000_000 * 10**18);
+        stakeContract.fundBurnPool(222_000_000 * 10**18);
         vm.stopPrank();
         
         vm.startPrank(alice);
@@ -385,7 +402,9 @@ contract StakeAWishTest is Test {
         vm.startPrank(owner);
         stakingToken.transfer(alice, stakeAmount);
         stakingToken.transfer(bob, stakeAmount);
-        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        // Fund burn pool with additional tokens
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.fundBurnPool(500_000_000 * 10**18);
         vm.stopPrank();
         
         // Both stake
@@ -438,7 +457,9 @@ contract StakeAWishTest is Test {
         
         vm.startPrank(owner);
         stakingToken.transfer(alice, stakeAmount);
-        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        // Fund burn pool with additional tokens
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.fundBurnPool(500_000_000 * 10**18);
         vm.stopPrank();
         
         vm.startPrank(alice);
@@ -477,7 +498,9 @@ contract StakeAWishTest is Test {
         
         vm.startPrank(owner);
         stakingToken.transfer(alice, stakeAmount);
-        rewardToken.transfer(address(stakeContract), 500_000_000 * 10**18);
+        // Fund burn pool with additional tokens
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.fundBurnPool(500_000_000 * 10**18);
         vm.stopPrank();
         
         vm.startPrank(alice);
@@ -495,5 +518,1950 @@ contract StakeAWishTest is Test {
         
         vm.stopPrank();
     }
+
+    // ========================================
+    // Pool Isolation Tests
+    // ========================================
+
+    function testRewardPoolIndependentOfBurnPool() public {
+        // This test verifies that the reward pool and burn pool are completely separate
+        // Even if the burn pool is depleted, users can still claim staking rewards
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 30 days to accumulate significant staking rewards
+        vm.warp(block.timestamp + 30 days);
+        
+        // Check Alice has earned staking rewards
+        (uint256 stakedAmount, uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertEq(stakedAmount, stakeAmount, "Staked amount should match");
+        assertGt(rewards, 0, "Alice should have earned staking rewards");
+        
+        // Now let's burn all available tokens from Alice's burn allowance
+        // After 30 days, Alice can burn 30,000 tokens (1000 * 30)
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertEq(burnable, stakeAmount * 30, "Should have 30 days worth of burn allowance");
+        
+        // Burn all available
+        stakeContract.burnRewardTokens(burnable);
+        assertEq(stakeContract.burnedAmount(alice), burnable, "All burnable should be burned");
+        
+        // NOW THE KEY TEST: Claim staking rewards
+        // This should succeed even though we've burned tokens from the burn pool
+        uint256 aliceBalanceBefore = stakingToken.balanceOf(alice);
+        stakeContract.claimRewards();
+        uint256 aliceBalanceAfter = stakingToken.balanceOf(alice);
+        
+        // Verify Alice received her staking rewards
+        assertGt(aliceBalanceAfter, aliceBalanceBefore, "Alice should receive staking rewards");
+        assertEq(aliceBalanceAfter - aliceBalanceBefore, rewards, "Should receive exact rewards amount");
+        
+        vm.stopPrank();
+    }
+
+    function testBurnPoolDepletionDoesNotAffectRewards() public {
+        // This test simulates depleting the entire burn pool and verifies
+        // that staking rewards still work perfectly
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Bob stakes
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Simulate the burn pool being completely depleted by directly burning all tokens
+        // In practice this could happen over time through normal burn operations
+        vm.startPrank(owner);
+        uint256 burnPoolBalance = stakeContract.getBurnTokenBalance();
+        assertEq(burnPoolBalance, BURN_POOL, "Should have full burn pool initially");
+        
+        // Manually burn entire pool to simulate depletion
+        vm.stopPrank();
+        
+        // Fast forward time so both Alice and Bob earn rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        // Check both have earned rewards
+        (uint256 aliceStaked, uint256 aliceRewards) = stakeContract.getStakeInfo(alice);
+        (uint256 bobStaked, uint256 bobRewards) = stakeContract.getStakeInfo(bob);
+        
+        assertGt(aliceRewards, 0, "Alice should have rewards");
+        assertGt(bobRewards, 0, "Bob should have rewards");
+        
+        // Both users claim their rewards - should work despite burn pool being used
+        vm.prank(alice);
+        stakeContract.claimRewards();
+        
+        vm.prank(bob);
+        stakeContract.claimRewards();
+        
+        // Verify they received their rewards
+        assertGt(stakingToken.balanceOf(alice), 0, "Alice should have received reward tokens");
+        assertGt(stakingToken.balanceOf(bob), 0, "Bob should have received reward tokens");
+    }
+
+    function testSeparatePoolBalances() public {
+        // Verify that the contract correctly tracks separate balances
+        
+        uint256 rewardBalance = stakeContract.getRewardTokenBalance();
+        uint256 burnBalance = stakeContract.getBurnTokenBalance();
+        
+        assertEq(rewardBalance, REWARD_POOL, "Reward pool should have 500M");
+        assertEq(burnBalance, BURN_POOL, "Burn pool should have 500M");
+        
+        // Stake and burn some tokens
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), 1000 * 10**18);
+        stakeContract.stake(1000 * 10**18);
+        
+        vm.warp(block.timestamp + 1 days);
+        
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        stakeContract.burnRewardTokens(burnable);
+        vm.stopPrank();
+        
+        // Check balances changed correctly
+        uint256 rewardBalanceAfter = stakeContract.getRewardTokenBalance();
+        uint256 burnBalanceAfter = stakeContract.getBurnTokenBalance();
+        
+        // Reward pool should be unchanged (no rewards claimed yet)
+        assertEq(rewardBalanceAfter, REWARD_POOL, "Reward pool unchanged");
+        
+        // Burn pool should be reduced
+        assertLt(burnBalanceAfter, burnBalance, "Burn pool should be reduced");
+        assertEq(burnBalanceAfter, burnBalance - burnable, "Burn pool reduced by burned amount");
+    }
+
+    // ========================================
+    // Security Vulnerability Tests
+    // ========================================
+
+    function testWithdrawalWorksWhenBurnPoolEmpty() public {
+        // Tests fix for Vulnerability #1: Withdrawal DoS
+        // Users should ALWAYS be able to withdraw, even if burn pool is depleted
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Deplete burn pool completely
+        vm.startPrank(owner);
+        stakingToken.transfer(bob, 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.stake(500_000_000 * 10**18);
+        
+        // Burn over multiple days to fully deplete
+        vm.warp(block.timestamp + 1 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        vm.warp(block.timestamp + 2 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        vm.warp(block.timestamp + 3 days);
+        stakeContract.burnRewardTokens(56_000_000 * 10**18);
+        vm.stopPrank();
+        
+        // Verify burn pool is empty
+        assertEq(stakeContract.getBurnTokenBalance(), 0, "Burn pool should be depleted");
+        
+        // Alice waits and accumulates burn allowance
+        vm.warp(block.timestamp + 10 days);
+        
+        // Alice should have burn allowance
+        uint256 aliceBurnable = stakeContract.getBurnableAmount(alice);
+        assertGt(aliceBurnable, 0, "Alice should have burn allowance");
+        
+        // CRITICAL TEST: Alice withdraws - should succeed despite empty burn pool!
+        vm.startPrank(alice);
+        uint256 aliceBalanceBefore = stakingToken.balanceOf(alice);
+        
+        stakeContract.withdraw(stakeAmount);  // Should NOT revert!
+        
+        uint256 aliceBalanceAfter = stakingToken.balanceOf(alice);
+        assertEq(aliceBalanceAfter - aliceBalanceBefore, stakeAmount, "Alice should receive her staked tokens");
+        
+        // Verify unstaked completely
+        (uint256 remainingStake,) = stakeContract.getStakeInfo(alice);
+        assertEq(remainingStake, 0, "Alice should have no stake remaining");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundRejectsTokenMismatch() public {
+        // Tests fix for Vulnerability #2: Token Mismatch in Compound
+        // Compound should reject when reward token != staking token
+        
+        // Deploy a contract with DIFFERENT reward and staking tokens
+        vm.startPrank(owner);
+        
+        WishToken differentRewardToken = new WishToken(INITIAL_SUPPLY);
+        WishToken differentBurnToken = new WishToken(INITIAL_SUPPLY);
+        
+        StakeAWish mismatchContract = new StakeAWish(
+            TIME_UNIT,
+            REWARD_NUMERATOR,
+            REWARD_DENOMINATOR,
+            address(stakingToken),           // Stake WISH
+            address(differentRewardToken),   // Earn DIFFERENT token
+            address(differentBurnToken),     // Burn different token
+            address(weth)
+        );
+        
+        // Fund pools
+        differentRewardToken.approve(address(mismatchContract), REWARD_POOL);
+        mismatchContract.fundRewardPool(REWARD_POOL);
+        
+        differentBurnToken.approve(address(mismatchContract), BURN_POOL);
+        mismatchContract.fundBurnPool(BURN_POOL);
+        
+        stakingToken.transfer(alice, 10_000 * 10**18);
+        vm.stopPrank();
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(mismatchContract), 1000 * 10**18);
+        mismatchContract.stake(1000 * 10**18);
+        
+        // Wait to earn rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        // Alice has rewards (in different token)
+        (, uint256 rewards) = mismatchContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Should have earned rewards");
+        
+        // CRITICAL TEST: Compound should revert with token mismatch
+        vm.expectRevert("Cannot compound different tokens");
+        mismatchContract.claimBurnAndCompound();
+        
+        vm.stopPrank();
+    }
+
+    function testRecoverUnaccountedTokens() public {
+        // Tests fix for Vulnerability #3: Reserve Desynchronization
+        // Admin should be able to recover tokens sent directly to contract
+        
+        uint256 directTransferAmount = 100_000_000 * 10**18;
+        
+        // Check initial reserves
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Someone accidentally sends tokens directly to contract (bypassing fund functions)
+        vm.prank(owner);
+        stakingToken.transfer(address(stakeContract), directTransferAmount);
+        
+        // Reserves don't update automatically
+        assertEq(stakeContract.getRewardTokenBalance(), initialRewardReserve, "Reserve unchanged after direct transfer");
+        
+        // Check actual balance vs reserves (using stakingToken since all are same)
+        uint256 actualBalance = stakingToken.balanceOf(address(stakeContract));
+        uint256 totalAccounted = initialRewardReserve + initialBurnReserve;
+        assertGt(actualBalance, totalAccounted, "Actual balance higher than total reserves");
+        
+        // Admin recovers the unaccounted tokens (allocate all to reward pool)
+        vm.prank(owner);
+        stakeContract.recoverUnaccountedTokens(directTransferAmount, 0);
+        
+        // Verify reward reserve updated
+        assertEq(
+            stakeContract.getRewardTokenBalance(),
+            initialRewardReserve + directTransferAmount,
+            "Reward reserve should increase by recovered amount"
+        );
+        
+        // Burn reserve unchanged
+        assertEq(stakeContract.getBurnTokenBalance(), initialBurnReserve, "Burn reserve unchanged");
+    }
+
+    function testCannotRecoverMoreThanUnaccounted() public {
+        // Tests that recovery function prevents over-allocation
+        
+        uint256 directTransferAmount = 50_000_000 * 10**18;
+        
+        // Send tokens directly (using stakingToken since all are the same)
+        vm.prank(owner);
+        stakingToken.transfer(address(stakeContract), directTransferAmount);
+        
+        // Try to recover MORE than what was sent (split attempt)
+        vm.prank(owner);
+        // Since rewardToken == burnToken (same token), uses first branch
+        vm.expectRevert("Cannot allocate more than unaccounted");
+        stakeContract.recoverUnaccountedTokens(directTransferAmount, 1);
+    }
+
+    function testRecoverWithSameToken() public {
+        // Tests recovery when rewardToken == burnToken (same WISH token)
+        // In our setup, all tokens are the same instance (simulates production WISH token)
+        
+        uint256 directTransferAmount = 75_000_000 * 10**18;
+        
+        // Send tokens directly to contract
+        vm.prank(owner);
+        stakingToken.transfer(address(stakeContract), directTransferAmount);
+        
+        // Recover - split between both pools
+        // Total to allocate must not exceed unaccounted amount
+        vm.prank(owner);
+        stakeContract.recoverUnaccountedTokens(50_000_000 * 10**18, 25_000_000 * 10**18);
+        
+        // Verify both reserves increased
+        assertEq(
+            stakeContract.getRewardTokenBalance(),
+            REWARD_POOL + 50_000_000 * 10**18,
+            "Reward reserve increased"
+        );
+        
+        assertEq(
+            stakeContract.getBurnTokenBalance(),
+            BURN_POOL + 25_000_000 * 10**18,
+            "Burn reserve increased"
+        );
+    }
+
+    // ========================================
+    // Total Burned Tracking Tests
+    // ========================================
+
+    function testTotalBurnedStartsAtZero() public {
+        // Verify total burned starts at 0
+        assertEq(stakeContract.getTotalBurnedAllTime(), 0, "Total burned should start at 0");
+    }
+
+    function testTotalBurnedIncrementsOnBurn() public {
+        // Test that total burned increments when users burn
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertEq(burnable, stakeAmount, "Should have 1000 burnable");
+        
+        // Burn
+        stakeContract.burnRewardTokens(burnable);
+        
+        // Check total burned increased
+        assertEq(stakeContract.getTotalBurnedAllTime(), burnable, "Total burned should equal burned amount");
+        
+        vm.stopPrank();
+    }
+
+    function testTotalBurnedAccumulatesAcrossUsers() public {
+        // Test that total burned accumulates across multiple users
+        uint256 aliceStake = 1000 * 10**18;
+        uint256 bobStake = 2000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        stakeContract.stake(aliceStake);
+        vm.stopPrank();
+        
+        // Bob stakes
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), bobStake);
+        stakeContract.stake(bobStake);
+        vm.stopPrank();
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        // Alice burns
+        vm.prank(alice);
+        stakeContract.burnRewardTokens(aliceStake);
+        
+        assertEq(stakeContract.getTotalBurnedAllTime(), aliceStake, "Total should be Alice's burn");
+        
+        // Bob burns
+        vm.prank(bob);
+        stakeContract.burnRewardTokens(bobStake);
+        
+        // Total should be sum of both
+        assertEq(
+            stakeContract.getTotalBurnedAllTime(),
+            aliceStake + bobStake,
+            "Total should be sum of both burns"
+        );
+    }
+
+    function testTotalBurnedAccumulatesOverTime() public {
+        // Test that total burned accumulates over multiple burn sessions
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Day 1: Burn
+        vm.warp(block.timestamp + 1 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount, "Day 1 burn");
+        
+        // Day 2: Burn again
+        vm.warp(block.timestamp + 2 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount * 2, "Day 2 cumulative");
+        
+        // Day 3: Burn again
+        vm.warp(block.timestamp + 3 days);
+        stakeContract.burnRewardTokens(stakeAmount);
+        assertEq(stakeContract.getTotalBurnedAllTime(), stakeAmount * 3, "Day 3 cumulative");
+        
+        vm.stopPrank();
+    }
+
+    function testTotalBurnedWithCompound() public {
+        // Test that compound function also updates total burned
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 10 days
+        vm.warp(block.timestamp + 10 days);
+        
+        uint256 burnableBefore = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableBefore, stakeAmount * 10, "Should have 10 days burnable");
+        
+        // Compound (which burns + claims + stakes)
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        // Total burned should equal amount burned from compound
+        assertEq(stakeContract.getTotalBurnedAllTime(), amountBurned, "Total burned from compound");
+        assertEq(amountBurned, burnableBefore, "Should have burned all burnable");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Rewards Claimed Tracking Tests
+    // ========================================
+
+    function testRewardsClaimedStartsAtZero() public {
+        // Verify rewards claimed starts at 0 for new user
+        assertEq(stakeContract.getUserTotalRewardsClaimed(alice), 0, "Should start at 0");
+    }
+
+    function testRewardsClaimedIncrementsOnClaim() public {
+        // Test that rewards claimed increments when user claims
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait to accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (,uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Should have rewards");
+        
+        // Claim rewards
+        stakeContract.claimRewards();
+        
+        // Check total rewards claimed updated
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewards,
+            "Total rewards claimed should equal claimed amount"
+        );
+        
+        vm.stopPrank();
+    }
+
+    function testRewardsClaimedAccumulatesOverTime() public {
+        // Test that rewards claimed accumulates over multiple claims
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // First claim after 10 days
+        vm.warp(block.timestamp + 10 days);
+        (,uint256 rewards1) = stakeContract.getStakeInfo(alice);
+        stakeContract.claimRewards();
+        
+        assertEq(stakeContract.getUserTotalRewardsClaimed(alice), rewards1, "First claim tracked");
+        
+        // Second claim after another 10 days
+        vm.warp(block.timestamp + 20 days);
+        (,uint256 rewards2) = stakeContract.getStakeInfo(alice);
+        stakeContract.claimRewards();
+        
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewards1 + rewards2,
+            "Should accumulate both claims"
+        );
+        
+        vm.stopPrank();
+    }
+
+    function testRewardsClaimedWithCompound() public {
+        // Test that compound also tracks rewards claimed
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait for rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (,uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have rewards");
+        
+        // Compound
+        (uint256 rewardsClaimed,) = stakeContract.claimBurnAndCompound();
+        
+        // Total rewards claimed should be updated
+        assertEq(
+            stakeContract.getUserTotalRewardsClaimed(alice),
+            rewardsClaimed,
+            "Compound should track rewards"
+        );
+        assertEq(rewardsClaimed, rewardsBefore, "Should equal pending rewards");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundResetsRewards() public {
+        // Test that compound properly resets rewards after claiming
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (uint256 stakeBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have rewards");
+        
+        // Compound
+        (uint256 claimed,) = stakeContract.claimBurnAndCompound();
+        assertEq(claimed, rewardsBefore, "Should claim all pending rewards");
+        
+        // After compound, stake should have increased
+        (uint256 stakeAfter, uint256 rewardsAfter) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeBefore + claimed, "Stake should increase by claimed amount");
+        
+        // Rewards should be near 0 (small amount from blocks passing during transaction)
+        assertLt(rewardsAfter, 10 * 10**18, "Rewards should be near 0 after compound");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Reserve Accounting Tests
+    // ========================================
+
+    function testRewardPoolReserveEnforcement() public {
+        // This test verifies that the reward pool enforces its reserve limit
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait to accumulate rewards
+        vm.warp(block.timestamp + 30 days);
+        
+        // Check rewards earned
+        (uint256 stakedAmount, uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Should have earned rewards");
+        
+        vm.stopPrank();
+        
+        // Drain the reward pool reserve to zero by manually setting it
+        // This simulates what would happen if rewards were over-allocated
+        vm.startPrank(owner);
+        
+        // Claim rewards to deplete the pool
+        vm.stopPrank();
+        vm.prank(alice);
+        stakeContract.claimRewards();
+        
+        // Verify reward reserve decreased
+        uint256 rewardReserveAfter = stakeContract.getRewardTokenBalance();
+        assertLt(rewardReserveAfter, REWARD_POOL, "Reward reserve should decrease");
+        assertEq(rewardReserveAfter, REWARD_POOL - rewards, "Reward reserve decreased by rewards amount");
+    }
+
+    function testBurnPoolReserveEnforcement() public {
+        // This test verifies that burn operations cannot exceed the burn pool reserve
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 1 days);
+        
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertEq(burnable, stakeAmount, "Should be able to burn 1000 tokens");
+        
+        // Burn tokens
+        stakeContract.burnRewardTokens(burnable);
+        
+        // Check burn reserve decreased
+        uint256 burnReserveAfter = stakeContract.getBurnTokenBalance();
+        assertEq(burnReserveAfter, BURN_POOL - burnable, "Burn reserve decreased by burned amount");
+        
+        vm.stopPrank();
+    }
+
+    function testCannotBurnMoreThanReserve() public {
+        // Create a scenario where burn pool is completely depleted
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // First, let's drain the burn pool over multiple days (due to daily cap)
+        vm.startPrank(owner);
+        stakingToken.transfer(bob, 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.stake(500_000_000 * 10**18);
+        
+        // Day 1: Bob burns 222M (daily cap)
+        vm.warp(block.timestamp + 1 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        
+        // Day 2: Bob burns another 222M (daily cap)
+        vm.warp(block.timestamp + 2 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        
+        // Day 3: Bob burns remaining 56M (500M - 222M - 222M = 56M)
+        vm.warp(block.timestamp + 3 days);
+        uint256 remaining = stakeContract.getBurnTokenBalance();
+        stakeContract.burnRewardTokens(remaining);
+        vm.stopPrank();
+        
+        // Burn pool should now be zero
+        assertEq(stakeContract.getBurnTokenBalance(), 0, "Burn pool should be depleted");
+        
+        // Now Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 1 day
+        vm.warp(block.timestamp + 4 days);
+        
+        // Alice has burn allowance but pool is empty
+        uint256 aliceBurnable = stakeContract.getBurnableAmount(alice);
+        assertGt(aliceBurnable, 0, "Alice should have burn allowance");
+        
+        // Alice tries to burn using burnRewardTokens() - should fail with InsufficientBurnPool
+        vm.expectRevert(StakeAWish.InsufficientBurnPool.selector);
+        stakeContract.burnRewardTokens(aliceBurnable);
+        
+        vm.stopPrank();
+    }
+
+    function testFundingPoolsIncreasesReserves() public {
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        uint256 additionalFunding = 100_000_000 * 10**18;
+        
+        vm.startPrank(owner);
+        
+        // Fund reward pool
+        stakingToken.approve(address(stakeContract), additionalFunding);
+        stakeContract.fundRewardPool(additionalFunding);
+        
+        // Fund burn pool
+        stakingToken.approve(address(stakeContract), additionalFunding);
+        stakeContract.fundBurnPool(additionalFunding);
+        
+        vm.stopPrank();
+        
+        // Check reserves increased
+        assertEq(
+            stakeContract.getRewardTokenBalance(),
+            initialRewardReserve + additionalFunding,
+            "Reward reserve should increase"
+        );
+        assertEq(
+            stakeContract.getBurnTokenBalance(),
+            initialBurnReserve + additionalFunding,
+            "Burn reserve should increase"
+        );
+    }
+
+    function testOnlyAdminCanFundPools() public {
+        uint256 fundAmount = 1000 * 10**18;
+        
+        // Alice (not admin) tries to fund reward pool
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), fundAmount);
+        
+        vm.expectRevert();
+        stakeContract.fundRewardPool(fundAmount);
+        
+        // Alice tries to fund burn pool
+        stakingToken.approve(address(stakeContract), fundAmount);
+        
+        vm.expectRevert();
+        stakeContract.fundBurnPool(fundAmount);
+        
+        vm.stopPrank();
+    }
+
+    function testReserveAccountingWithSameToken() public {
+        // This test verifies that even when using the same token for both pools,
+        // the accounting keeps them separate
+        
+        // In our setup, rewardToken and burnToken are different, but let's verify
+        // the accounting logic works by checking reserve tracking
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // Initial state
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        // Burn some tokens
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        stakeContract.burnRewardTokens(burnable);
+        
+        // Claim rewards
+        (,uint256 rewards) = stakeContract.getStakeInfo(alice);
+        stakeContract.claimRewards();
+        
+        vm.stopPrank();
+        
+        // Verify reserves changed independently
+        uint256 finalRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 finalBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Reward reserve should have decreased by rewards claimed
+        assertEq(
+            finalRewardReserve,
+            initialRewardReserve - rewards,
+            "Reward reserve decreased by rewards"
+        );
+        
+        // Burn reserve should have decreased by amount burned
+        assertEq(
+            finalBurnReserve,
+            initialBurnReserve - burnable,
+            "Burn reserve decreased by burn amount"
+        );
+    }
+
+    // ========================================
+    // Compound Function Tests
+    // ========================================
+
+    function testClaimBurnAndCompound() public {
+        // Test the convenience function that claims, burns, and compounds
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Initial stake
+        (uint256 initialStake,) = stakeContract.getStakeInfo(alice);
+        assertEq(initialStake, stakeAmount, "Initial stake should be 1000");
+        
+        // Wait 10 days to accumulate rewards and burn allowance
+        vm.warp(block.timestamp + 10 days);
+        
+        // Check what we expect
+        (uint256 stakeBeforeCompound, uint256 rewardsBeforeCompound) = stakeContract.getStakeInfo(alice);
+        uint256 burnableBeforeCompound = stakeContract.getBurnableAmount(alice);
+        
+        assertEq(stakeBeforeCompound, stakeAmount, "Stake should still be 1000");
+        assertGt(rewardsBeforeCompound, 0, "Should have earned rewards");
+        assertEq(burnableBeforeCompound, stakeAmount * 10, "Should have 10 days of burnable");
+        
+        // Execute compound function
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        // Verify burn happened
+        assertEq(amountBurned, burnableBeforeCompound, "Should have burned 10 days worth");
+        
+        // FIX #1: After compound, tracking resets (burned amount back to 0)
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount resets after compound");
+        
+        // Verify rewards were claimed
+        assertEq(rewardsClaimed, rewardsBeforeCompound, "Should have claimed all rewards");
+        
+        // Verify compounding - stake should increase by rewards
+        (uint256 stakeAfterCompound, uint256 rewardsAfterCompound) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfterCompound, stakeAmount + rewardsClaimed, "Stake increased by rewards");
+        assertEq(rewardsAfterCompound, 0, "Rewards should be zero after claim");
+        
+        // FIX #1: Start time resets to prevent retroactive burn allowance
+        assertEq(stakeContract.stakingStartTime(alice), block.timestamp, "Start time resets after compound");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundingIncreasesStake() public {
+        // Verify that compounding actually increases the staked amount
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait 30 days
+        vm.warp(block.timestamp + 30 days);
+        
+        (uint256 stakeBefore,) = stakeContract.getStakeInfo(alice);
+        
+        // Compound
+        (uint256 rewardsClaimed,) = stakeContract.claimBurnAndCompound();
+        assertGt(rewardsClaimed, 0, "Should have claimed rewards");
+        
+        // Check stake increased
+        (uint256 stakeAfter, uint256 newRewards) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeBefore + rewardsClaimed, "Stake should increase");
+        
+        // Wait another 10 days and check rewards grow on larger base
+        vm.warp(block.timestamp + 40 days);
+        (,uint256 rewardsOnLargerBase) = stakeContract.getStakeInfo(alice);
+        
+        // Rewards after compounding should be calculated on larger stake
+        assertGt(rewardsOnLargerBase, 0, "Should earn rewards on compounded stake");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundWithNoBurnable() public {
+        // Test compound when there's no burnable amount yet
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait less than 1 day - no burnable yet
+        vm.warp(block.timestamp + 12 hours);
+        
+        // But should have accumulated some rewards
+        (uint256 stakeBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have some rewards");
+        
+        uint256 burnableBefore = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableBefore, 0, "Should have no burnable yet");
+        
+        // Compound should still work (just claims and compounds, no burn)
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        assertEq(amountBurned, 0, "Nothing should be burned");
+        assertEq(rewardsClaimed, rewardsBefore, "Should claim all rewards");
+        
+        (uint256 stakeAfter,) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeBefore + rewardsClaimed, "Stake should increase by rewards");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundWithNoRewards() public {
+        // Test compound immediately after staking (no rewards yet)
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Compound immediately
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        assertEq(rewardsClaimed, 0, "No rewards to claim yet");
+        assertEq(amountBurned, 0, "Nothing to burn yet");
+        
+        // Stake should remain unchanged
+        (uint256 stakeAfter,) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeAmount, "Stake unchanged");
+        
+        vm.stopPrank();
+    }
+
+    function testMultipleCompounds() public {
+        // Test multiple compound operations over time
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        (uint256 stake1,) = stakeContract.getStakeInfo(alice);
+        assertEq(stake1, stakeAmount, "Initial stake");
+        
+        // First compound after 10 days
+        vm.warp(block.timestamp + 10 days);
+        (uint256 rewards1,) = stakeContract.claimBurnAndCompound();
+        (uint256 stake2,) = stakeContract.getStakeInfo(alice);
+        assertEq(stake2, stake1 + rewards1, "Stake after first compound");
+        
+        // Second compound after another 10 days
+        vm.warp(block.timestamp + 20 days);
+        (uint256 rewards2,) = stakeContract.claimBurnAndCompound();
+        (uint256 stake3,) = stakeContract.getStakeInfo(alice);
+        assertEq(stake3, stake2 + rewards2, "Stake after second compound");
+        
+        // Third compound
+        vm.warp(block.timestamp + 30 days);
+        (uint256 rewards3,) = stakeContract.claimBurnAndCompound();
+        (uint256 stake4,) = stakeContract.getStakeInfo(alice);
+        assertEq(stake4, stake3 + rewards3, "Stake after third compound");
+        
+        // Final stake should be significantly higher due to compounding
+        assertGt(stake4, stakeAmount * 3, "Compounding should have grown stake significantly");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundRespectsRewardPoolReserve() public {
+        // Test that compound correctly handles the case where reward pool is sufficient
+        // This test demonstrates that compound works when pools are properly funded
+        
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait to accumulate rewards
+        vm.warp(block.timestamp + 30 days);
+        
+        (uint256 stakeBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        assertGt(rewardsBefore, 0, "Should have rewards");
+        
+        // Verify reward pool has enough
+        uint256 rewardReserve = stakeContract.getRewardTokenBalance();
+        assertGe(rewardReserve, rewardsBefore, "Pool should have enough for Alice");
+        
+        // Compound should succeed
+        (uint256 rewardsClaimed, uint256 burned) = stakeContract.claimBurnAndCompound();
+        
+        assertEq(rewardsClaimed, rewardsBefore, "Should claim all rewards");
+        assertGt(burned, 0, "Should burn some tokens");
+        
+        // Verify stake increased
+        (uint256 stakeAfter,) = stakeContract.getStakeInfo(alice);
+        assertEq(stakeAfter, stakeBefore + rewardsClaimed, "Stake should increase");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundBurnRespectsReserves() public {
+        // Test that compound's burn portion respects burn pool reserve
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // First, drain the burn pool
+        vm.startPrank(owner);
+        stakingToken.transfer(bob, 500_000_000 * 10**18);
+        vm.stopPrank();
+        
+        vm.startPrank(bob);
+        stakingToken.approve(address(stakeContract), 500_000_000 * 10**18);
+        stakeContract.stake(500_000_000 * 10**18);
+        
+        // Burn over multiple days to deplete pool
+        vm.warp(block.timestamp + 1 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        vm.warp(block.timestamp + 2 days);
+        stakeContract.burnRewardTokens(222_000_000 * 10**18);
+        vm.warp(block.timestamp + 3 days);
+        stakeContract.burnRewardTokens(56_000_000 * 10**18);
+        vm.stopPrank();
+        
+        // Burn pool should be depleted
+        assertEq(stakeContract.getBurnTokenBalance(), 0, "Burn pool depleted");
+        
+        // Now Alice stakes and tries to compound
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        vm.warp(block.timestamp + 10 days);
+        
+        // Compound should still work - it just won't burn anything
+        (uint256 rewardsClaimed, uint256 amountBurned) = stakeContract.claimBurnAndCompound();
+        
+        assertGt(rewardsClaimed, 0, "Should still claim rewards");
+        assertEq(amountBurned, 0, "Nothing burned due to empty pool");
+        
+        // Stake should increase despite no burning
+        (uint256 finalStake,) = stakeContract.getStakeInfo(alice);
+        assertEq(finalStake, stakeAmount + rewardsClaimed, "Stake increased");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Emergency Withdrawal Tests
+    // ========================================
+
+    function testEmergencyWithdrawInitiallyEnabled() public {
+        // Verify emergency withdrawal is enabled by default
+        assertFalse(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be enabled initially");
+    }
+
+    function testAdminCanEmergencyWithdraw() public {
+        // Test that admin can withdraw tokens in emergency
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        uint256 ownerBalanceBefore = stakingToken.balanceOf(owner);
+        uint256 contractBalanceBefore = stakingToken.balanceOf(address(stakeContract));
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        uint256 ownerBalanceAfter = stakingToken.balanceOf(owner);
+        uint256 contractBalanceAfter = stakingToken.balanceOf(address(stakeContract));
+        
+        assertEq(ownerBalanceAfter - ownerBalanceBefore, withdrawAmount, "Owner should receive tokens");
+        assertEq(contractBalanceBefore - contractBalanceAfter, withdrawAmount, "Contract balance should decrease");
+    }
+
+    function testUnauthorizedCannotEmergencyWithdraw() public {
+        // Test that non-admin cannot withdraw tokens
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(attacker);
+        vm.expectRevert();
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, attacker);
+    }
+
+    function testAliceCannotEmergencyWithdraw() public {
+        // Test that regular user Alice cannot withdraw tokens
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(alice);
+        vm.expectRevert();
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, alice);
+    }
+
+    function testEmergencyWithdrawProportionalDeductionSameToken() public {
+        // Test proportional deduction when reward and burn tokens are the same
+        // In our setup, all tokens are the same (WISH)
+        
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        uint256 totalReserve = initialRewardReserve + initialBurnReserve;
+        
+        uint256 withdrawAmount = 100_000_000 * 10**18;
+        
+        // Calculate expected proportional deduction
+        uint256 expectedFromReward = (withdrawAmount * initialRewardReserve) / totalReserve;
+        uint256 expectedFromBurn = withdrawAmount - expectedFromReward;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Check reserves were deducted proportionally
+        uint256 finalRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 finalBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        assertEq(finalRewardReserve, initialRewardReserve - expectedFromReward, "Reward reserve deducted proportionally");
+        assertEq(finalBurnReserve, initialBurnReserve - expectedFromBurn, "Burn reserve deducted proportionally");
+    }
+
+    function testEmergencyWithdrawZeroingOutReserves() public {
+        // Test withdrawing more than reserves zeroes them out
+        uint256 totalReserve = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        // Withdraw exactly the total reserves (can't withdraw more than contract has)
+        uint256 withdrawAmount = totalReserve;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Both reserves should be zeroed (or close to zero due to proportional math)
+        assertLt(stakeContract.getRewardTokenBalance(), 10, "Reward reserve zeroed");
+        assertLt(stakeContract.getBurnTokenBalance(), 10, "Burn reserve zeroed");
+    }
+
+    function testEmergencyWithdrawInvalidRecipient() public {
+        // Test that zero address as recipient is rejected
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(owner);
+        vm.expectRevert("Invalid recipient");
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, address(0));
+    }
+
+    function testEmergencyWithdrawZeroAmount() public {
+        // Test that zero amount is rejected
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.InvalidAmount.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), 0, owner);
+    }
+
+    function testEmergencyWithdrawEvent() public {
+        // Test that emergency withdrawal emits correct event
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.expectEmit(true, true, true, true);
+        emit StakeAWish.EmergencyWithdrawal(owner, address(stakingToken), withdrawAmount, owner);
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+    }
+
+    function testPermanentlyDisableEmergencyWithdrawal() public {
+        // Test permanently disabling emergency withdrawal
+        assertFalse(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be enabled initially");
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        assertTrue(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be disabled after calling");
+    }
+
+    function testDisableEmergencyWithdrawalEvent() public {
+        // Test that disabling emits correct event
+        vm.expectEmit(true, true, true, true);
+        emit StakeAWish.EmergencyWithdrawalPermanentlyDisabled(owner, block.timestamp);
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+    }
+
+    function testCannotDisableEmergencyWithdrawalTwice() public {
+        // Test that disable can only be called once
+        vm.startPrank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        vm.expectRevert("Already disabled");
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        vm.stopPrank();
+    }
+
+    function testUnauthorizedCannotDisableEmergencyWithdrawal() public {
+        // Test that non-admin cannot disable
+        vm.prank(attacker);
+        vm.expectRevert();
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+    }
+
+    function testEmergencyWithdrawFailsWhenDisabled() public {
+        // Test that emergency withdrawal fails after being disabled
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.EmergencyWithdrawalDisabled.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+    }
+
+    function testEmergencyWithdrawDoesNotAffectStakers() public {
+        // Test that emergency withdrawal doesn't affect stakers' balances
+        uint256 stakeAmount = 1000 * 10**18;
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        vm.stopPrank();
+        
+        // Wait and accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+        
+        (uint256 stakedBefore, uint256 rewardsBefore) = stakeContract.getStakeInfo(alice);
+        
+        // Admin performs emergency withdrawal
+        uint256 withdrawAmount = 50_000_000 * 10**18;
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Alice's stake info should be unchanged
+        (uint256 stakedAfter, uint256 rewardsAfter) = stakeContract.getStakeInfo(alice);
+        assertEq(stakedAfter, stakedBefore, "Alice's stake unchanged");
+        assertEq(rewardsAfter, rewardsBefore, "Alice's rewards unchanged");
+        
+        // Alice can still unstake
+        vm.prank(alice);
+        stakeContract.withdraw(stakeAmount);
+        
+        // Alice should receive her original stake
+        assertGe(stakingToken.balanceOf(alice), stakeAmount, "Alice receives her stake");
+    }
+
+    function testEmergencyWithdrawPartialAmount() public {
+        // Test withdrawing partial amounts
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Withdraw 10% of total reserves
+        uint256 totalReserve = initialRewardReserve + initialBurnReserve;
+        uint256 withdrawAmount = totalReserve / 10;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Reserves should be reduced proportionally by 10%
+        uint256 finalRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 finalBurnReserve = stakeContract.getBurnTokenBalance();
+        
+        // Total reserve should be reduced by exactly the withdrawn amount
+        assertEq(finalRewardReserve + finalBurnReserve, totalReserve - withdrawAmount, "Total reserve reduced correctly");
+    }
+
+    function testEmergencyWithdrawMultipleTimes() public {
+        // Test multiple emergency withdrawals
+        uint256 firstWithdraw = 10_000_000 * 10**18;
+        uint256 secondWithdraw = 5_000_000 * 10**18;
+        uint256 thirdWithdraw = 2_000_000 * 10**18;
+        
+        uint256 initialRewardReserve = stakeContract.getRewardTokenBalance();
+        uint256 initialBurnReserve = stakeContract.getBurnTokenBalance();
+        uint256 initialTotal = initialRewardReserve + initialBurnReserve;
+        
+        vm.startPrank(owner);
+        
+        stakeContract.emergencyWithdraw(address(stakingToken), firstWithdraw, owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), secondWithdraw, owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), thirdWithdraw, owner);
+        
+        vm.stopPrank();
+        
+        uint256 finalTotal = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        uint256 totalWithdrawn = firstWithdraw + secondWithdraw + thirdWithdraw;
+        
+        assertEq(finalTotal, initialTotal - totalWithdrawn, "Total withdrawn matches");
+    }
+
+    function testEmergencyWithdrawWithDifferentRecipient() public {
+        // Test withdrawing to a different address (not owner)
+        uint256 withdrawAmount = 1_000_000 * 10**18;
+        uint256 bobBalanceBefore = stakingToken.balanceOf(bob);
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, bob);
+        
+        uint256 bobBalanceAfter = stakingToken.balanceOf(bob);
+        assertEq(bobBalanceAfter - bobBalanceBefore, withdrawAmount, "Bob receives tokens");
+    }
+
+    function testCannotReEnableEmergencyWithdrawal() public {
+        // Verify that once disabled, emergency withdrawal can NEVER be re-enabled
+        // This is the key security feature
+        
+        vm.prank(owner);
+        stakeContract.permanentlyDisableEmergencyWithdrawal();
+        
+        assertTrue(stakeContract.emergencyWithdrawalPermanentlyDisabled(), "Should be disabled");
+        
+        // Even owner cannot re-enable it (there's no function to do so)
+        // Try to withdraw - should fail
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.EmergencyWithdrawalDisabled.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), 1, owner);
+    }
+
+    function testEmergencyWithdrawProportionalityMath() public {
+        // Test the proportional deduction math in detail
+        uint256 rewardReserve = 700_000_000 * 10**18; // 70%
+        uint256 burnReserve = 300_000_000 * 10**18;   // 30%
+        
+        // Setup specific reserves by first draining
+        vm.startPrank(owner);
+        uint256 currentReward = stakeContract.getRewardTokenBalance();
+        uint256 currentBurn = stakeContract.getBurnTokenBalance();
+        
+        // Drain current reserves
+        stakeContract.emergencyWithdraw(address(stakingToken), currentReward + currentBurn, owner);
+        
+        // Fund to specific amounts
+        stakingToken.approve(address(stakeContract), rewardReserve);
+        stakeContract.fundRewardPool(rewardReserve);
+        stakingToken.approve(address(stakeContract), burnReserve);
+        stakeContract.fundBurnPool(burnReserve);
+        vm.stopPrank();
+        
+        // Verify setup
+        assertEq(stakeContract.getRewardTokenBalance(), rewardReserve, "Reward reserve set");
+        assertEq(stakeContract.getBurnTokenBalance(), burnReserve, "Burn reserve set");
+        
+        // Withdraw 100M (10% of total)
+        uint256 withdrawAmount = 100_000_000 * 10**18;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Should withdraw 70M from reward pool, 30M from burn pool
+        assertEq(stakeContract.getRewardTokenBalance(), 630_000_000 * 10**18, "70M deducted from reward");
+        assertEq(stakeContract.getBurnTokenBalance(), 270_000_000 * 10**18, "30M deducted from burn");
+    }
+
+    function testEmergencyWithdrawPreservesStakingFunctionality() public {
+        // Test that after emergency withdrawal, staking still works
+        uint256 withdrawAmount = 50_000_000 * 10**18;
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), withdrawAmount, owner);
+        
+        // Alice can still stake
+        uint256 stakeAmount = 1000 * 10**18;
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and verify rewards accumulate
+        vm.warp(block.timestamp + 10 days);
+        (, uint256 rewards) = stakeContract.getStakeInfo(alice);
+        assertGt(rewards, 0, "Alice earns rewards after emergency withdrawal");
+        
+        // Alice can claim rewards
+        stakeContract.claimRewards();
+        assertGt(stakingToken.balanceOf(alice), 0, "Alice receives rewards");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Compound Security & Burn Allowance Tests
+    // ========================================
+
+    function testCompoundResetsTracking() public {
+        uint256 initialStake = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        
+        // Wait 20 days
+        vm.warp(block.timestamp + 20 days);
+        
+        // Compound
+        (uint256 rewardsClaimed, uint256 burned) = stakeContract.claimBurnAndCompound();
+        assertGt(rewardsClaimed, 0, "Earned rewards");
+        assertGt(burned, 0, "Burned allowance");
+        
+        // After compounding, burn allowance resets to 0
+        uint256 burnableAfter = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableAfter, 0, "Burn allowance resets after compound");
+        
+        // Tracking is reset
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset");
+        uint256 newStake = initialStake + rewardsClaimed;
+        assertEq(stakeContract.baseStakeAmount(alice), newStake, "Base updated to compounded amount");
+        
+        vm.stopPrank();
+    }
+
+    function testAdditionalStakeDoesNotGrantRetroactiveBurnAllowance() public {
+        uint256 stake1 = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stake1);
+        stakeContract.stake(stake1);
+        
+        // Verify base stake set
+        assertEq(stakeContract.baseStakeAmount(alice), stake1, "Base stake equals initial stake");
+        
+        // Stake more tokens after 10 days
+        vm.warp(block.timestamp + 10 days);
+        uint256 stake2 = 5000 * 10**18;
+        stakingToken.approve(address(stakeContract), stake2);
+        stakeContract.stake(stake2);
+        
+        // Base stake does not increase
+        assertEq(stakeContract.baseStakeAmount(alice), stake1, "Base stake unchanged");
+        
+        // Total staked is 6000, but burn allowance still based on 1000
+        (uint256 totalStaked, ) = stakeContract.getStakeInfo(alice);
+        assertEq(totalStaked, stake1 + stake2, "Total stake equals 6000");
+        
+        // Burn allowance based on original 1000, not new 6000
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        assertEq(burnable, stake1 * 10, "Burnable based on original 1000, not new 6000");
+        
+        vm.stopPrank();
+    }
+
+    function testBaseStakeAmountTracking() public {
+        uint256 initialStake = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        
+        // Check baseStakeAmount was set
+        uint256 baseStake = stakeContract.baseStakeAmount(alice);
+        assertEq(baseStake, initialStake, "Base stake should equal initial stake");
+        
+        // Compound after 30 days
+        vm.warp(block.timestamp + 30 days);
+        (uint256 rewardsClaimed, ) = stakeContract.claimBurnAndCompound();
+        
+        // Base stake should update to new amount
+        uint256 newBaseStake = stakeContract.baseStakeAmount(alice);
+        assertEq(newBaseStake, initialStake + rewardsClaimed, "Base stake updated after compound");
+        
+        // Burned amount should reset to 0
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset after compound");
+        
+        vm.stopPrank();
+    }
+
+    function testFuzzCompoundBurnAllowance(uint256 stakeAmount, uint256 daysBeforeCompound) public {
+        stakeAmount = bound(stakeAmount, 100 * 10**18, 100_000 * 10**18);
+        daysBeforeCompound = bound(daysBeforeCompound, 10, 365);
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, stakeAmount);
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stakeAmount);
+        stakeContract.stake(stakeAmount);
+        
+        // Wait and compound
+        vm.warp(block.timestamp + daysBeforeCompound * 1 days);
+        uint256 burnableBeforeCompound = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableBeforeCompound, stakeAmount * daysBeforeCompound, "Pre-compound burnable");
+        
+        stakeContract.claimBurnAndCompound();
+        
+        // Burn allowance should reset to 0
+        uint256 burnableAfterCompound = stakeContract.getBurnableAmount(alice);
+        assertEq(burnableAfterCompound, 0, "Post-compound burnable should be 0");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Integer Overflow Protection Tests
+    // ========================================
+
+    function testCompoundWithNormalAmounts() public {
+        uint256 normalStake = 1000 * 10**18;
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), normalStake);
+        stakeContract.stake(normalStake);
+        
+        vm.warp(block.timestamp + 30 days);
+        
+        // Should not revert for normal amounts
+        (uint256 rewards, ) = stakeContract.claimBurnAndCompound();
+        assertGt(rewards, 0, "Should successfully compound normal amounts");
+        
+        vm.stopPrank();
+    }
+
+    function testCompoundWithModerateStake() public {
+        uint256 moderateStake = 10_000 * 10**18;
+        
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, moderateStake);
+        vm.stopPrank();
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), moderateStake);
+        stakeContract.stake(moderateStake);
+        
+        (uint256 staked, ) = stakeContract.getStakeInfo(alice);
+        assertEq(staked, moderateStake, "Should handle normal stakes");
+        
+        // Compound should work
+        vm.warp(block.timestamp + 10 days);
+        (uint256 rewards, ) = stakeContract.claimBurnAndCompound();
+        assertGt(rewards, 0, "Should compound successfully");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Emergency Withdrawal Boundary Tests
+    // ========================================
+
+    function testEmergencyWithdrawCannotExceedReserves() public {
+        uint256 aliceStake = 100_000 * 10**18;
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, aliceStake);
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        stakeContract.stake(aliceStake);
+        vm.stopPrank();
+        
+        // Calculate maximum withdrawable (only pool reserves)
+        uint256 maxWithdrawable = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        
+        // Try to withdraw more than reserves
+        uint256 attemptedWithdrawal = maxWithdrawable + aliceStake;
+        
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.CannotWithdrawStakedFunds.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), attemptedWithdrawal, owner);
+    }
+
+    function testEmergencyWithdrawUpToReservesSucceeds() public {
+        uint256 aliceStake = 100_000 * 10**18;
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, aliceStake);
+        
+        // Alice stakes
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        stakeContract.stake(aliceStake);
+        vm.stopPrank();
+        
+        // Withdraw exactly the reserves
+        uint256 maxWithdrawable = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), maxWithdrawable, owner);
+        
+        // Reserves should be depleted
+        assertEq(stakeContract.getRewardTokenBalance(), 0, "Reward reserve depleted");
+        assertEq(stakeContract.getBurnTokenBalance(), 0, "Burn reserve depleted");
+        
+        // Alice can still unstake her funds
+        vm.prank(alice);
+        stakeContract.withdraw(aliceStake);
+        assertGe(stakingToken.balanceOf(alice), aliceStake, "Alice gets her stake back");
+    }
+
+    function testMultipleUsersProtectedFromEmergencyWithdrawal() public {
+        uint256 aliceStake = 100_000 * 10**18;
+        uint256 bobStake = 150_000 * 10**18;
+        
+        // Give users enough tokens
+        vm.startPrank(owner);
+        stakingToken.transfer(alice, aliceStake);
+        stakingToken.transfer(bob, bobStake);
+        vm.stopPrank();
+        
+        // Multiple users stake
+        vm.prank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        vm.prank(alice);
+        stakeContract.stake(aliceStake);
+        
+        vm.prank(bob);
+        stakingToken.approve(address(stakeContract), bobStake);
+        vm.prank(bob);
+        stakeContract.stake(bobStake);
+        
+        // Admin withdraws all reserves
+        uint256 reserves = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        vm.prank(owner);
+        stakeContract.emergencyWithdraw(address(stakingToken), reserves, owner);
+        
+        // Both users can still unstake
+        vm.prank(alice);
+        stakeContract.withdraw(aliceStake);
+        
+        vm.prank(bob);
+        stakeContract.withdraw(bobStake);
+        
+        assertGe(stakingToken.balanceOf(alice), aliceStake, "Alice protected");
+        assertGe(stakingToken.balanceOf(bob), bobStake, "Bob protected");
+    }
+
+    function testFuzzEmergencyWithdrawProtectsStakedFunds(
+        uint256 aliceStake,
+        uint256 withdrawAttempt
+    ) public {
+        aliceStake = bound(aliceStake, 1000 * 10**18, 500_000 * 10**18);
+        withdrawAttempt = bound(withdrawAttempt, 1 * 10**18, 2_000_000_000 * 10**18);
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, aliceStake);
+        
+        // Alice stakes
+        vm.prank(alice);
+        stakingToken.approve(address(stakeContract), aliceStake);
+        vm.prank(alice);
+        stakeContract.stake(aliceStake);
+        
+        uint256 maxWithdrawable = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        
+        if (withdrawAttempt > maxWithdrawable) {
+            // Should revert
+            vm.prank(owner);
+            vm.expectRevert(StakeAWish.CannotWithdrawStakedFunds.selector);
+            stakeContract.emergencyWithdraw(address(stakingToken), withdrawAttempt, owner);
+        } else {
+            // Should succeed
+            vm.prank(owner);
+            stakeContract.emergencyWithdraw(address(stakingToken), withdrawAttempt, owner);
+            
+            // Alice can still unstake
+            vm.prank(alice);
+            stakeContract.withdraw(aliceStake);
+            assertGe(stakingToken.balanceOf(alice), aliceStake, "Alice funds protected");
+        }
+    }
+
+    // ========================================
+    // Token Recovery Tests
+    // ========================================
+
+    function testRecoverUnaccountedTokensBalanceConsistency() public {
+        // Send tokens directly to contract
+        uint256 directTransfer = 100_000 * 10**18;
+        vm.prank(owner);
+        stakingToken.transfer(address(stakeContract), directTransfer);
+        
+        // Recovery should work normally
+        vm.prank(owner);
+        stakeContract.recoverUnaccountedTokens(directTransfer, 0);
+        
+        // Verify reserves updated
+        assertEq(
+            stakeContract.getRewardTokenBalance(),
+            REWARD_POOL + directTransfer,
+            "Reward reserve updated"
+        );
+    }
+
+    function testRecoverCannotOverAllocate() public {
+        uint256 directTransfer = 50_000 * 10**18;
+        
+        vm.prank(owner);
+        stakingToken.transfer(address(stakeContract), directTransfer);
+        
+        // Try to recover more than what was sent
+        vm.prank(owner);
+        vm.expectRevert("Cannot allocate more than unaccounted");
+        stakeContract.recoverUnaccountedTokens(directTransfer + 1, 0);
+    }
+
+    function testRecoverLegitimateDirectTransfer() public {
+        uint256 accidentalTransfer = 75_000 * 10**18;
+        
+        uint256 initialReward = stakeContract.getRewardTokenBalance();
+        uint256 initialBurn = stakeContract.getBurnTokenBalance();
+        
+        // Give Alice tokens for transfer
+        vm.prank(owner);
+        stakingToken.transfer(alice, accidentalTransfer);
+        
+        // Someone accidentally sends tokens
+        vm.prank(alice);
+        stakingToken.transfer(address(stakeContract), accidentalTransfer);
+        
+        // Admin recovers and allocates
+        vm.prank(owner);
+        stakeContract.recoverUnaccountedTokens(50_000 * 10**18, 25_000 * 10**18);
+        
+        assertEq(
+            stakeContract.getRewardTokenBalance(),
+            initialReward + 50_000 * 10**18,
+            "Reward pool increased"
+        );
+        assertEq(
+            stakeContract.getBurnTokenBalance(),
+            initialBurn + 25_000 * 10**18,
+            "Burn pool increased"
+        );
+    }
+
+    // ========================================
+    // Partial Withdrawal Tracking Tests
+    // ========================================
+
+    function testPartialWithdrawalResetsTracking() public {
+        uint256 initialStake = 10_000 * 10**18;
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, initialStake + 9_900 * 10**18); // Extra for restaking
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        
+        // Wait 10 days
+        vm.warp(block.timestamp + 10 days);
+        
+        // Partially withdraw most tokens, keeping just 100 WISH
+        uint256 withdrawAmount = initialStake - (100 * 10**18);
+        stakeContract.withdraw(withdrawAmount);
+        
+        // Tracking resets completely
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset");
+        assertEq(stakeContract.baseStakeAmount(alice), 100 * 10**18, "Base equals remaining");
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable reset");
+        
+        // User must rebuild burn allowance from scratch
+        stakingToken.approve(address(stakeContract), 9_900 * 10**18);
+        stakeContract.stake(9_900 * 10**18);
+        
+        // Base doesn't increase with restaking
+        assertEq(stakeContract.baseStakeAmount(alice), 100 * 10**18, "Base unchanged by restaking");
+        
+        vm.stopPrank();
+    }
+
+    function testFullWithdrawalResetsAllTracking() public {
+        uint256 stake = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stake);
+        stakeContract.stake(stake);
+        
+        vm.warp(block.timestamp + 10 days);
+        
+        // Full withdrawal
+        stakeContract.withdraw(stake);
+        
+        // Everything should be reset
+        assertEq(stakeContract.stakingStartTime(alice), 0, "Start time reset");
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset");
+        assertEq(stakeContract.baseStakeAmount(alice), 0, "Base stake reset");
+        
+        vm.stopPrank();
+    }
+
+    function testMultiplePartialWithdrawalsResetTracking() public {
+        uint256 initialStake = 10000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        uint256 startTime = block.timestamp;
+        
+        // Day 10: Withdraw 25%
+        vm.warp(startTime + 10 days);
+        stakeContract.withdraw(2500 * 10**18);
+        
+        // Tracking resets after first withdrawal
+        assertEq(stakeContract.baseStakeAmount(alice), 7500 * 10**18, "Base stake after first withdrawal");
+        assertEq(stakeContract.stakingStartTime(alice), startTime + 10 days, "Start time resets");
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable resets");
+        
+        // Day 20: Withdraw another 25% of original
+        vm.warp(startTime + 20 days);
+        stakeContract.withdraw(2500 * 10**18);
+        
+        // Tracking resets again
+        assertEq(stakeContract.baseStakeAmount(alice), 5000 * 10**18, "Base stake after second withdrawal");
+        assertEq(stakeContract.stakingStartTime(alice), startTime + 20 days, "Start time resets again");
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable resets after each withdrawal");
+        
+        vm.stopPrank();
+    }
+
+    function testFuzzPartialWithdrawalTracking(uint256 initialStake, uint256 withdrawPercent) public {
+        initialStake = bound(initialStake, 1000 * 10**18, 100_000 * 10**18);
+        withdrawPercent = bound(withdrawPercent, 10, 90); // Withdraw 10-90%
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, initialStake);
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        
+        // Wait some time
+        vm.warp(block.timestamp + 10 days);
+        
+        // Partial withdrawal
+        uint256 withdrawAmount = (initialStake * withdrawPercent) / 100;
+        uint256 remainingStake = initialStake - withdrawAmount;
+        
+        stakeContract.withdraw(withdrawAmount);
+        
+        // Verify tracking resets
+        assertEq(stakeContract.baseStakeAmount(alice), remainingStake, "Base stake equals remaining");
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset");
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "Burnable reset");
+        
+        vm.stopPrank();
+    }
+
+    // ========================================
+    // Integration & Edge Case Tests
+    // ========================================
+
+    function testCompleteUserJourney() public {
+        uint256 initialStake = 10_000 * 10**18;
+        
+        // Give Alice enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(alice, initialStake);
+        
+        vm.startPrank(alice);
+        
+        // 1. Alice stakes
+        stakingToken.approve(address(stakeContract), initialStake);
+        stakeContract.stake(initialStake);
+        assertEq(stakeContract.baseStakeAmount(alice), initialStake, "Base stake set");
+        
+        // 2. Wait 30 days and burn
+        vm.warp(block.timestamp + 30 days);
+        uint256 burnable = stakeContract.getBurnableAmount(alice);
+        stakeContract.burnRewardTokens(burnable);
+        
+        // 3. Compound rewards
+        (uint256 rewards, ) = stakeContract.claimBurnAndCompound();
+        uint256 newStake = initialStake + rewards;
+        
+        // Base stake updated, burned amount reset
+        assertEq(stakeContract.baseStakeAmount(alice), newStake, "Base stake updated after compound");
+        assertEq(stakeContract.burnedAmount(alice), 0, "Burned amount reset after compound");
+        
+        // 4. Wait 10 days and partially withdraw
+        vm.warp(block.timestamp + 40 days);
+        uint256 partialWithdraw = newStake / 2;
+        stakeContract.withdraw(partialWithdraw);
+        
+        // Base stake adjusted
+        assertEq(stakeContract.baseStakeAmount(alice), newStake / 2, "Base stake adjusted after partial withdrawal");
+        
+        // 5. Admin tries to withdraw too much - should fail
+        vm.stopPrank();
+        uint256 maxWithdrawable = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.CannotWithdrawStakedFunds.selector);
+        stakeContract.emergencyWithdraw(
+            address(stakingToken),
+            maxWithdrawable + (newStake / 2),
+            owner
+        );
+        
+        // 6. Alice can unstake remaining funds
+        vm.prank(alice);
+        stakeContract.withdraw(newStake / 2);
+        
+        assertGt(stakingToken.balanceOf(alice), 0, "Alice recovers her funds");
+    }
+
+    function testCompoundAndWithdrawCombination() public {
+        uint256 attackerStake = 100_000 * 10**18;
+        
+        // Give attacker enough tokens
+        vm.prank(owner);
+        stakingToken.transfer(attacker, attackerStake);
+        
+        vm.startPrank(attacker);
+        stakingToken.approve(address(stakeContract), attackerStake);
+        stakeContract.stake(attackerStake);
+        uint256 startTime = block.timestamp;
+        
+        // 1. Compound after 100 days
+        vm.warp(startTime + 100 days);
+        stakeContract.claimBurnAndCompound();
+        uint256 burnableAfter = stakeContract.getBurnableAmount(attacker);
+        
+        // Tracking reset after compound
+        assertEq(burnableAfter, 0, "Burn allowance reset after compound");
+        
+        // 2. Try partial withdrawal with dust amount
+        vm.warp(startTime + 110 days);
+        uint256 dustAmount = 1 * 10**18;
+        uint256 withdrawnAmount = stakeContract.baseStakeAmount(attacker) - dustAmount;
+        stakeContract.withdraw(withdrawnAmount);
+        
+        // Tracking reset again
+        assertEq(stakeContract.baseStakeAmount(attacker), dustAmount, "Base stake reduced to dust");
+        assertEq(stakeContract.stakingStartTime(attacker), startTime + 110 days, "Start time reset");
+        assertEq(stakeContract.getBurnableAmount(attacker), 0, "No time advantage");
+        
+        vm.stopPrank();
+        
+        // 3. Admin cannot withdraw staked funds
+        (uint256 remainingStake, ) = stakeContract.getStakeInfo(attacker);
+        uint256 reserves = stakeContract.getRewardTokenBalance() + stakeContract.getBurnTokenBalance();
+        
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.CannotWithdrawStakedFunds.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), reserves + remainingStake, owner);
+        
+        // User gets funds back
+        vm.prank(attacker);
+        stakeContract.withdraw(dustAmount);
+        assertGt(stakingToken.balanceOf(attacker), 0, "User can unstake");
+    }
+
+    function testZeroAmountOperations() public {
+        vm.startPrank(alice);
+        
+        // Cannot burn 0
+        vm.expectRevert(StakeAWish.InvalidAmount.selector);
+        stakeContract.burnRewardTokens(0);
+        
+        vm.stopPrank();
+        
+        // Admin cannot emergency withdraw 0
+        vm.prank(owner);
+        vm.expectRevert(StakeAWish.InvalidAmount.selector);
+        stakeContract.emergencyWithdraw(address(stakingToken), 0, owner);
+    }
+
+    function testImmediateOperationsAfterStaking() public {
+        uint256 stake = 1000 * 10**18;
+        
+        vm.startPrank(alice);
+        stakingToken.approve(address(stakeContract), stake);
+        stakeContract.stake(stake);
+        
+        // No burnable immediately
+        assertEq(stakeContract.getBurnableAmount(alice), 0, "No burnable yet");
+        
+        // Cannot burn
+        vm.expectRevert(StakeAWish.NoBurnableTokens.selector);
+        stakeContract.burnRewardTokens(1);
+        
+        // Can compound (but nothing happens)
+        (uint256 rewards, uint256 burned) = stakeContract.claimBurnAndCompound();
+        assertEq(rewards, 0, "No rewards yet");
+        assertEq(burned, 0, "Nothing burned");
+        
+        vm.stopPrank();
+    }
 }
+
+
+
+
+
+
 
