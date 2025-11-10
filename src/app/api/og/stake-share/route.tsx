@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,32 +24,6 @@ export async function GET(request: NextRequest) {
         return `${(n / 1000).toFixed(2)}K`;
       }
       return n.toFixed(2);
-    };
-
-    const getTitle = () => {
-      switch (type) {
-        case "compound":
-          return "Compounded Rewards";
-        case "claim":
-          return "Claimed Rewards";
-        case "burn":
-          return "Burned Tokens";
-        default:
-          return "Stake Update";
-      }
-    };
-
-    const getEmoji = () => {
-      switch (type) {
-        case "compound":
-          return "⚡";
-        case "claim":
-          return "🎁";
-        case "burn":
-          return "🔥";
-        default:
-          return "🎯";
-      }
     };
 
     // Get base URL for images

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { chain, wishlist } from "@/constants";
 import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Get all items that the user is signed up to purchase
  *
