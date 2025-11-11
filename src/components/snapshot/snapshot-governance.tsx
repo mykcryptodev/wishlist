@@ -318,12 +318,11 @@ export function SnapshotGovernanceView() {
               </Button>
             </div>
             <ScrollArea className="max-h-[320px] rounded-lg border p-4">
-              <ReactMarkdown
-                className="prose prose-sm max-w-none dark:prose-invert"
-                remarkPlugins={[remarkGfm]}
-              >
-                {selectedProposal.body || "No additional details were provided."}
-              </ReactMarkdown>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedProposal.body || "No additional details were provided."}
+                </ReactMarkdown>
+              </div>
             </ScrollArea>
           </section>
 
