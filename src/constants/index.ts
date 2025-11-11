@@ -52,7 +52,7 @@ export const snapshotApiUrl =
   process.env.NEXT_PUBLIC_SNAPSHOT_API_URL ?? `${snapshotHubUrl}/graphql`;
 
 export const snapshotSpaceId =
-  process.env.NEXT_PUBLIC_SNAPSHOT_SPACE ?? "pawthereum.eth";
+  process.env.NEXT_PUBLIC_SNAPSHOT_SPACE ?? "wishlistholiday.eth";
 
 export const snapshotAppId =
   process.env.NEXT_PUBLIC_SNAPSHOT_APP ?? "wishlist.holiday";

@@ -1,13 +1,14 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useActiveAccount } from "thirdweb/react";
 
-import { useSnapshotProposals } from "@/hooks/useSnapshotProposals";
+import { useSnapshotProposal } from "@/hooks/useSnapshotProposal";
 import { useSnapshotVote } from "@/hooks/useSnapshotVote";
 import type { SnapshotProposal } from "@/lib/snapshot";
 import { getSnapshotProposalUrl, supportedVoteTypes } from "@/lib/snapshot";
@@ -32,12 +33,14 @@ import {
 import { Label } from "../ui/label";
 import { Progress } from "../ui/progress";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { ScrollArea } from "../ui/scroll-area";
 import { Skeleton } from "../ui/skeleton";
 
 const stateStyles: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  {
+    label: string;
+    variant: "default" | "secondary" | "outline" | "destructive";
+  }
 > = {
   active: { label: "Active", variant: "default" },
   pending: { label: "Pending", variant: "secondary" },
@@ -101,42 +104,28 @@ function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-export function SnapshotGovernanceView() {
+interface SnapshotProposalDetailProps {
+  proposalId: string;
+}
+
+export function SnapshotProposalDetail({
+  proposalId,
+}: SnapshotProposalDetailProps) {
+  const router = useRouter();
   const account = useActiveAccount();
-  const { data, isLoading, isError, error, refetch } = useSnapshotProposals();
+  const {
+    data: proposal,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useSnapshotProposal(proposalId);
   const { mutateAsync: submitVote, isPending: isVoting } = useSnapshotVote();
 
-  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!data?.length) {
-      return;
-    }
-
-    setSelectedProposalId(prev => {
-      if (prev && data.some(proposal => proposal.id === prev)) {
-        return prev;
-      }
-      return data[0]?.id ?? null;
-    });
-  }, [data]);
-
-  useEffect(() => {
-    setSelectedChoice(null);
-  }, [selectedProposalId]);
-
-  const selectedProposal = useMemo(() => {
-    if (!data || !data.length) {
-      return null;
-    }
-
-    const match = data.find(proposal => proposal.id === selectedProposalId);
-    return match ?? data[0] ?? null;
-  }, [data, selectedProposalId]);
-
   const handleVote = async () => {
-    if (!selectedProposal) {
+    if (!proposal) {
       return;
     }
 
@@ -155,9 +144,9 @@ export function SnapshotGovernanceView() {
 
     try {
       await submitVote({
-        proposalId: selectedProposal.id,
-        space: selectedProposal.space.id,
-        type: selectedProposal.type,
+        proposalId: proposal.id,
+        space: proposal.space.id,
+        type: proposal.type,
         choice: numericChoice,
       });
       showSuccessToast("Vote submitted", "Your vote was recorded on Snapshot.");
@@ -172,74 +161,53 @@ export function SnapshotGovernanceView() {
     }
   };
 
-  const renderProposalList = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton
-              key={`proposal-skeleton-${index}`}
-              className="h-20 w-full"
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (!data?.length) {
-      return (
-        <Card>
-          <CardContent className="py-6 text-center text-sm text-muted-foreground">
-            No proposals found for this space yet.
-          </CardContent>
-        </Card>
-      );
-    }
-
+  if (isError) {
     return (
-      <ScrollArea className="max-h-[520px] pr-2">
-        <div className="space-y-3">
-          {data.map(proposal => {
-            const state = stateStyles[proposal.state] ?? {
-              label: proposal.state,
-              variant: "outline" as const,
-            };
-
-            return (
-              <button
-                key={proposal.id}
-                type="button"
-                className={cn(
-                  "w-full rounded-xl border p-4 text-left transition-all",
-                  proposal.id === selectedProposal?.id
-                    ? "border-primary bg-primary/10 shadow-md"
-                    : "border-border bg-background hover:border-primary/50",
-                )}
-                onClick={() => setSelectedProposalId(proposal.id)}
+      <div className="container mx-auto px-4 py-10">
+        <Button
+          className="mb-6"
+          variant="ghost"
+          onClick={() => router.push("/governance")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to proposals
+        </Button>
+        <Alert variant="destructive">
+          <AlertTitle>Unable to load proposal</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error
+              ? error.message
+              : "Something went wrong while connecting to Snapshot."}
+            <div className="mt-4 flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => refetch()}>
+                Try again
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push("/governance")}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold leading-tight">
-                      {proposal.title}
-                    </h3>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {describeTiming(proposal)}
-                    </p>
-                  </div>
-                  <Badge variant={state.variant}>{state.label}</Badge>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </ScrollArea>
+                Back to proposals
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
-  };
+  }
 
-  const renderProposalDetails = () => {
-    if (isLoading) {
-      return (
-        <Card className="flex-1">
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <Button
+          className="mb-6"
+          variant="ghost"
+          onClick={() => router.push("/governance")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to proposals
+        </Button>
+        <Card>
           <CardHeader>
             <Skeleton className="h-7 w-2/3" />
             <Skeleton className="mt-2 h-4 w-1/2" />
@@ -249,56 +217,90 @@ export function SnapshotGovernanceView() {
             <Skeleton className="h-64 w-full" />
           </CardContent>
         </Card>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (!selectedProposal) {
-      return (
-        <Card className="flex-1">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Select a proposal to see more details.
-          </CardContent>
-        </Card>
-      );
-    }
-
-    const state = stateStyles[selectedProposal.state] ?? {
-      label: selectedProposal.state,
-      variant: "outline" as const,
-    };
-
-    const votingSupported = supportedVoteTypes.has(selectedProposal.type);
-    const isActive = selectedProposal.state === "active";
-    const hasVotes = selectedProposal.scores_total > 0;
-
+  if (!proposal) {
     return (
-      <Card className="flex-1">
+      <div className="container mx-auto px-4 py-10">
+        <Button
+          className="mb-6"
+          variant="ghost"
+          onClick={() => router.push("/governance")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to proposals
+        </Button>
+        <Alert>
+          <AlertTitle>Proposal not found</AlertTitle>
+          <AlertDescription>
+            The proposal you&apos;re looking for doesn&apos;t exist or has been
+            removed.
+            <div className="mt-4">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push("/governance")}
+              >
+                Back to proposals
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const state = stateStyles[proposal.state] ?? {
+    label: proposal.state,
+    variant: "outline" as const,
+  };
+
+  const votingSupported = supportedVoteTypes.has(proposal.type);
+  const isActive = proposal.state === "active";
+  const hasVotes = proposal.scores_total > 0;
+
+  return (
+    <div className="container mx-auto px-4 py-10">
+      <Button
+        className="mb-6"
+        variant="ghost"
+        onClick={() => router.push("/governance")}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to proposals
+      </Button>
+
+      <Card>
         <CardHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <Badge variant={state.variant}>{state.label}</Badge>
               <span className="text-sm font-medium text-muted-foreground">
-                {selectedProposal.space.name ?? selectedProposal.space.id}
+                {proposal.space.name ?? proposal.space.id}
               </span>
             </div>
             <div>
               <CardTitle className="text-2xl font-semibold">
-                {selectedProposal.title}
+                {proposal.title}
               </CardTitle>
               <CardDescription className="mt-1 text-sm text-muted-foreground">
-                {describeTiming(selectedProposal)}
+                {describeTiming(proposal)}
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>Snapshot #{selectedProposal.snapshot}</span>
-              <span aria-hidden className="text-muted-foreground">•</span>
-              <span>
-                Total votes: {selectedProposal.votes.toLocaleString()}
+              <span>Snapshot #{proposal.snapshot}</span>
+              <span aria-hidden className="text-muted-foreground">
+                •
               </span>
-              {selectedProposal.quorum > 0 && (
+              <span>Total votes: {proposal.votes.toLocaleString()}</span>
+              {proposal.quorum > 0 && (
                 <>
-                  <span aria-hidden className="text-muted-foreground">•</span>
-                  <span>Quorum target: {selectedProposal.quorum}</span>
+                  <span aria-hidden className="text-muted-foreground">
+                    •
+                  </span>
+                  <span>Quorum target: {proposal.quorum}</span>
                 </>
               )}
             </div>
@@ -311,19 +313,15 @@ export function SnapshotGovernanceView() {
                 Proposal details
               </h3>
               <Button asChild size="sm" variant="outline">
-                <Link href={getSnapshotProposalUrl(selectedProposal)} target="_blank">
+                <Link href={getSnapshotProposalUrl(proposal)} target="_blank">
                   View on Snapshot
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
-            <ScrollArea className="max-h-[320px] rounded-lg border p-4">
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedProposal.body || "No additional details were provided."}
-                </ReactMarkdown>
-              </div>
-            </ScrollArea>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {proposal.body || "No additional details were provided."}
+            </ReactMarkdown>
           </section>
 
           <section className="space-y-4">
@@ -333,13 +331,14 @@ export function SnapshotGovernanceView() {
               </h3>
               {!votingSupported && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  This proposal uses a voting strategy that isn&apos;t supported in-app yet.
-                  You can still cast your vote directly on Snapshot.
+                  This proposal uses a voting strategy that isn&apos;t supported
+                  in-app yet. You can still cast your vote directly on Snapshot.
                 </p>
               )}
               {!account && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Connect your wallet using the button in the header to participate in voting.
+                  Connect your wallet using the button in the header to
+                  participate in voting.
                 </p>
               )}
             </div>
@@ -348,11 +347,11 @@ export function SnapshotGovernanceView() {
               value={selectedChoice ?? undefined}
               onValueChange={value => setSelectedChoice(value)}
             >
-              {selectedProposal.choices.map((choice, index) => {
+              {proposal.choices.map((choice: string, index: number) => {
                 const value = String(index + 1);
-                const score = selectedProposal.scores[index] ?? 0;
+                const score = proposal.scores[index] ?? 0;
                 const percent = hasVotes
-                  ? (score / selectedProposal.scores_total) * 100
+                  ? (score / proposal.scores_total) * 100
                   : 0;
                 const isSelected = selectedChoice === value;
 
@@ -369,7 +368,7 @@ export function SnapshotGovernanceView() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <RadioGroupItem
-                          disabled={!isActive || !votingSupported}
+                          disabled={!isActive || !votingSupported || !account}
                           id={`choice-${value}`}
                           value={value}
                         />
@@ -401,18 +400,18 @@ export function SnapshotGovernanceView() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 disabled={
-                  !selectedProposal ||
+                  !proposal ||
                   !selectedChoice ||
                   !account ||
                   !votingSupported ||
-                  selectedProposal.state !== "active" ||
+                  proposal.state !== "active" ||
                   isVoting
                 }
                 onClick={handleVote}
               >
                 {isVoting ? "Submitting..." : "Submit vote"}
               </Button>
-              {selectedProposal.state !== "active" && (
+              {proposal.state !== "active" && (
                 <span className="text-sm text-muted-foreground">
                   Voting is not currently open for this proposal.
                 </span>
@@ -421,38 +420,6 @@ export function SnapshotGovernanceView() {
           </section>
         </CardContent>
       </Card>
-    );
-  };
-
-  return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="mx-auto mb-10 max-w-3xl text-center">
-        <h1 className="text-3xl font-bold md:text-4xl">Wishlist Governance</h1>
-        <p className="mt-3 text-muted-foreground">
-          Participate in community decisions without leaving Wishlist. Browse current proposals and cast your vote directly on Snapshot.
-        </p>
-      </div>
-
-      {isError && (
-        <Alert className="mb-8" variant="destructive">
-          <AlertTitle>Unable to load proposals</AlertTitle>
-          <AlertDescription>
-            {error instanceof Error
-              ? error.message
-              : "Something went wrong while connecting to Snapshot."}
-            <div className="mt-4">
-              <Button size="sm" variant="outline" onClick={() => refetch()}>
-                Try again
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
-        <div>{renderProposalList()}</div>
-        {renderProposalDetails()}
-      </div>
     </div>
   );
 }

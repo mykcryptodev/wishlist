@@ -65,6 +65,35 @@ const PROPOSALS_QUERY = `
   }
 `;
 
+const PROPOSAL_QUERY = `
+  query Proposal($id: String!) {
+    proposal(id: $id) {
+      id
+      title
+      body
+      state
+      author
+      start
+      end
+      snapshot
+      link
+      choices
+      type
+      votes
+      quorum
+      scores
+      scores_total
+      strategies {
+        name
+      }
+      space {
+        id
+        name
+      }
+    }
+  }
+`;
+
 export async function fetchSnapshotProposals({
   first = 20,
 }: { first?: number } = {}): Promise<SnapshotProposal[]> {
@@ -101,6 +130,43 @@ export async function fetchSnapshotProposals({
   }
 
   return result.data.proposals;
+}
+
+export async function fetchSnapshotProposal(
+  proposalId: string,
+): Promise<SnapshotProposal | null> {
+  const response = await fetch(snapshotApiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: PROPOSAL_QUERY,
+      variables: {
+        id: proposalId,
+      },
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Snapshot API responded with ${response.status}`);
+  }
+
+  const result = (await response.json()) as {
+    data?: { proposal: SnapshotProposal | null };
+    errors?: { message?: string }[];
+  };
+
+  if (result.errors?.length) {
+    throw new Error(result.errors[0]?.message ?? "Unable to load proposal");
+  }
+
+  if (!result.data) {
+    throw new Error("Snapshot API did not return data");
+  }
+
+  return result.data.proposal;
 }
 
 export const supportedVoteTypes = new Set(["single-choice", "basic"]);
