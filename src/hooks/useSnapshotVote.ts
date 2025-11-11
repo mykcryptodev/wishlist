@@ -16,6 +16,10 @@ import { supportedVoteTypes } from "@/lib/snapshot";
 
 const snapshotClient = new snapshot.Client712(snapshotHubUrl);
 
+type SnapshotClient = typeof snapshotClient;
+type SnapshotSigner = Parameters<SnapshotClient["vote"]>[0];
+type SnapshotVoteOptions = Parameters<SnapshotClient["vote"]>[2];
+
 type Domain = Record<string, unknown>;
 type Message = Record<string, unknown>;
 type Types = Record<string, { name: string; type: string }[]>;
@@ -38,7 +42,7 @@ function createDomainDefinition(domain: Domain) {
   });
 }
 
-function createSnapshotSigner(account: Account) {
+function createSnapshotSigner(account: Account): SnapshotSigner {
   return {
     provider: {
       async getNetwork() {
@@ -58,7 +62,7 @@ function createSnapshotSigner(account: Account) {
         primaryType: "Vote",
       });
     },
-  };
+  } as SnapshotSigner;
 }
 
 type SnapshotVoteInput = SnapshotVotePayload & {
@@ -80,19 +84,19 @@ export function useSnapshotVote() {
         throw new Error("This proposal uses a voting type that isn't supported yet.");
       }
 
-      const signer = createSnapshotSigner(account);
+      const votePayload: SnapshotVoteOptions = {
+        space,
+        proposal: proposalId,
+        type: type as SnapshotVoteOptions["type"],
+        choice,
+        reason: reason ?? "",
+        app: snapshotAppId,
+      };
 
       await snapshotClient.vote(
-        signer as unknown as object,
+        createSnapshotSigner(account),
         account.address,
-        {
-          space,
-          proposal: proposalId,
-          type,
-          choice,
-          reason: reason ?? "",
-          app: snapshotAppId,
-        },
+        votePayload,
       );
     },
     onSuccess: () => {
