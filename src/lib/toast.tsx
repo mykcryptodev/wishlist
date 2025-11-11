@@ -2,6 +2,10 @@
 
 import { toast } from "sonner";
 
+export function dismissToast(id?: string | number) {
+  toast.dismiss(id);
+}
+
 export function showLoadingToast(message: string, description?: string) {
   return toast.loading(message, {
     description,
