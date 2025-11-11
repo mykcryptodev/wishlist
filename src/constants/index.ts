@@ -43,3 +43,16 @@ export const multicall = {
   [baseSepolia.id]: "0xcA11bde05977b3631167028862bE2a173976CA11",
   [base.id]: "0xca11bde05977b3631167028862be2a173976ca11",
 };
+
+// SNAPSHOT
+export const snapshotHubUrl =
+  process.env.NEXT_PUBLIC_SNAPSHOT_HUB_URL ?? "https://hub.snapshot.org";
+
+export const snapshotApiUrl =
+  process.env.NEXT_PUBLIC_SNAPSHOT_API_URL ?? `${snapshotHubUrl}/graphql`;
+
+export const snapshotSpaceId =
+  process.env.NEXT_PUBLIC_SNAPSHOT_SPACE ?? "pawthereum.eth";
+
+export const snapshotAppId =
+  process.env.NEXT_PUBLIC_SNAPSHOT_APP ?? "wishlist.holiday";
