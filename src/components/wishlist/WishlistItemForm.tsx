@@ -5,6 +5,7 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -126,8 +127,6 @@ export function WishlistItemForm({
 }: WishlistItemFormProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [parsedData, setParsedData] =
-    useState<Partial<WishlistItemFormValues> | null>(null);
   const [currentTransactionId, setCurrentTransactionId] = useState<
     string | null
   >(null);
@@ -139,9 +138,9 @@ export function WishlistItemForm({
   );
 
   // Transaction monitoring
-  const { status, isMonitoring } = useTransactionMonitor({
+  const { isMonitoring } = useTransactionMonitor({
     transactionId: currentTransactionId,
-    onSuccess: data => {
+    onSuccess: () => {
       // Dismiss the loading toast first, then show success
       if (loadingToastIdRef.current) {
         toast.dismiss(loadingToastIdRef.current);
@@ -161,7 +160,6 @@ export function WishlistItemForm({
       // Reset form only in add mode
       if (mode === "add") {
         form.reset();
-        setParsedData(null);
       }
 
       setCurrentTransactionId(null);
@@ -276,8 +274,6 @@ export function WishlistItemForm({
       const resolvedImageUrl = data.imageUrl
         ? tryResolveScheme(data.imageUrl)
         : "";
-      setParsedData({ ...data, imageUrl: resolvedImageUrl });
-
       // Update form with parsed data
       if (data.title) form.setValue("title", data.title);
       if (data.description) form.setValue("description", data.description);
@@ -551,10 +547,10 @@ export function WishlistItemForm({
         <div className="space-y-2">
           <FormLabel>Upload Image (Optional)</FormLabel>
           <Input
-            accept="image/*"
-            onChange={handleFileChange}
             ref={fileInputRef}
+            accept="image/*"
             type="file"
+            onChange={handleFileChange}
           />
           <FormDescription>
             Images larger than 5MB will be automatically resized when possible.
@@ -609,7 +605,6 @@ export function WishlistItemForm({
                 URL.revokeObjectURL(previewUrl);
               }
               form.reset();
-              setParsedData(null);
               setUploadedFile(null);
               setPreviewUrl(null);
               if (fileInputRef.current) {
