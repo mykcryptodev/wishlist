@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -20,6 +21,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
@@ -74,6 +80,7 @@ export default function ExchangeWishlistsPage() {
     Record<string, MemberWishlistData>
   >({});
   const [loading, setLoading] = useState(true);
+  const [openMember, setOpenMember] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -195,6 +202,12 @@ export default function ExchangeWishlistsPage() {
     isTokenLoading,
   ]);
 
+  useEffect(() => {
+    if (openMember && !members.some(member => member.wallet_address === openMember)) {
+      setOpenMember(null);
+    }
+  }, [members, openMember]);
+
   if (!account) {
     return (
       <div className="min-h-screen bg-background">
@@ -225,84 +238,110 @@ export default function ExchangeWishlistsPage() {
       member.wallet_address.toLowerCase();
 
     return (
-      <Card key={member.wallet_address} className="overflow-hidden">
-        <CardHeader className="bg-muted/50">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <AccountProvider
-                address={member.wallet_address}
-                client={client}
-              >
-                <AccountAvatar
-                  className="size-12 rounded-full"
-                  fallbackComponent={
-                    <Blobbie
-                      address={member.wallet_address}
-                      className="size-12 rounded-full"
-                    />
-                  }
-                />
-                <div>
-                  <AccountName
-                    className="text-lg font-semibold"
+      <Collapsible
+        key={member.wallet_address}
+        open={openMember === member.wallet_address}
+        onOpenChange={isOpen => {
+          setOpenMember(prev =>
+            isOpen ? member.wallet_address : prev === member.wallet_address ? null : prev,
+          );
+        }}
+      >
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/50">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-4">
+                <AccountProvider
+                  address={member.wallet_address}
+                  client={client}
+                >
+                  <AccountAvatar
+                    className="size-12 rounded-full"
                     fallbackComponent={
-                      <span className="font-semibold">
-                        {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
-                      </span>
+                      <Blobbie
+                        address={member.wallet_address}
+                        className="size-12 rounded-full"
+                      />
                     }
                   />
-                  <CardDescription className="mt-1">
-                    Joined {new Date(member.joined_at).toLocaleDateString()}
-                  </CardDescription>
+                  <div>
+                    <AccountName
+                      className="text-lg font-semibold"
+                      fallbackComponent={
+                        <span className="font-semibold">
+                          {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
+                        </span>
+                      }
+                    />
+                    <CardDescription className="mt-1">
+                      Joined {new Date(member.joined_at).toLocaleDateString()}
+                    </CardDescription>
+                  </div>
+                </AccountProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="outline">
+                  <Link href={`/wishlist/${member.wallet_address}`}>
+                    View Full Wishlist
+                  </Link>
+                </Button>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    aria-label="Toggle wishlist items"
+                    size="icon"
+                    variant="ghost"
+                    className={`transition-transform ${
+                      openMember === member.wallet_address ? "rotate-180" : ""
+                    }`}
+                  >
+                    <ChevronDown className="size-5" />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="border-t border-border pt-6">
+              {loading ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {[1, 2, 3, 4].map(index => (
+                    <Skeleton key={index} className="h-64 w-full" />
+                  ))}
                 </div>
-              </AccountProvider>
-            </div>
-            <Button asChild variant="outline">
-              <Link href={`/wishlist/${member.wallet_address}`}>
-                View Full Wishlist
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {[1, 2, 3, 4].map(index => (
-                <Skeleton key={index} className="h-64 w-full" />
-              ))}
-            </div>
-          ) : memberData?.error ? (
-            <p className="text-sm text-destructive">{memberData.error}</p>
-          ) : memberData && memberData.items.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              {memberData.items.map(item => {
-                const purchaserInfo =
-                  memberData.purchaserData[item.id] ?? {
-                    count: 0,
-                    isUserPurchaser: false,
-                  };
+              ) : memberData?.error ? (
+                <p className="text-sm text-destructive">{memberData.error}</p>
+              ) : memberData && memberData.items.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {memberData.items.map(item => {
+                    const purchaserInfo =
+                      memberData.purchaserData[item.id] ?? {
+                        count: 0,
+                        isUserPurchaser: false,
+                      };
 
-                return (
-                  <WishlistItemCard
-                    key={item.id}
-                    isUserPurchaser={purchaserInfo.isUserPurchaser}
-                    item={item}
-                    purchaserCount={purchaserInfo.count}
-                    viewMode={isOwner ? "owner" : "public"}
-                    onPurchaseInterest={() => {
-                      window.location.href = `/wishlist/${member.wallet_address}`;
-                    }}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No wishlist items yet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                    return (
+                      <WishlistItemCard
+                        key={item.id}
+                        isUserPurchaser={purchaserInfo.isUserPurchaser}
+                        item={item}
+                        purchaserCount={purchaserInfo.count}
+                        viewMode={isOwner ? "owner" : "public"}
+                        onPurchaseInterest={() => {
+                          window.location.href = `/wishlist/${member.wallet_address}`;
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No wishlist items yet.
+                </p>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     );
   };
 
@@ -327,7 +366,7 @@ export default function ExchangeWishlistsPage() {
               )}
             </div>
             {exchange && (
-              <Card className="md:w-40 text-center border-accent/30 self-start md:self-end">
+              <Card className="w-full text-center border-accent/30 self-stretch md:w-40 md:self-end">
                 <CardHeader className="py-3">
                   <CardTitle className="text-lg">Members</CardTitle>
                   <CardDescription className="text-2xl font-bold">
