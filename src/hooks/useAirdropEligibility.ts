@@ -1,11 +1,12 @@
-import { chain, wish } from "@/constants";
-import { client } from "@/providers/Thirdweb";
 import { useQuery } from "@tanstack/react-query";
 import { getContract } from "thirdweb";
 import { isClaimed } from "thirdweb/extensions/airdrop";
 import { toUnits } from "thirdweb/utils";
 
+import { chain, wish } from "@/constants";
 import { getAmountForAddress, isAddressEligible } from "@/lib/merkleProofs";
+import { client } from "@/providers/Thirdweb";
+
 import { AIRDROP_CSV_DATA } from "../../airdrop/airdrop";
 
 interface AirdropEligibility {

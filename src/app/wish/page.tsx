@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
+import { Claim } from "@/components/airdrop/claim";
 import Buy from "@/components/buy";
 import Stake from "@/components/stake";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
@@ -21,7 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Claim } from "@/components/airdrop/claim";
 
 const isAirdropActive = false;
 

@@ -5,8 +5,8 @@ import {
   setContractURI,
 } from "thirdweb/extensions/common";
 import { upload } from "thirdweb/storage";
-import { chain } from "@/constants";
-import { airdrop, wish } from "@/constants";
+
+import { airdrop, chain , wish } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 
 // Types matching thirdweb's official format
@@ -55,7 +55,7 @@ export async function saveSnapshot(merkleRoot: string, snapshotUri: string) {
     console.log("📋 Current metadata:", metadata);
 
     // Ensure metadata is an object (handle null/undefined cases)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     if (!metadata || typeof metadata !== "object") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       metadata = {} as any;
@@ -68,11 +68,11 @@ export async function saveSnapshot(merkleRoot: string, snapshotUri: string) {
     merkleInfos[merkleRoot] = snapshotUri;
 
     // Keep old merkle roots from other tokenIds
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+     
     if (metadata.merkle && typeof metadata.merkle === "object") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+       
       for (const key of Object.keys(metadata.merkle)) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+         
         const existingUri =
           metadata.merkle[key as keyof typeof metadata.merkle];
         if (existingUri && typeof existingUri === "string") {

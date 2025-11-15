@@ -15,10 +15,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { airdrop as airdropAddress, chain, wish } from "@/constants";
+import { useAirdropEligibility } from "@/hooks/useAirdropEligibility";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "../auth/ConnectButton";
-import { useAirdropEligibility } from "@/hooks/useAirdropEligibility";
+
 import { ClaimShareModal } from "./claimShareModal";
 
 // Token address that is being airdropped
@@ -191,9 +192,9 @@ export const Claim: FC = () => {
 
       {/* Share Modal */}
       <ClaimShareModal
+        claimedAmount={claimedAmount}
         open={shareModalOpen}
         onOpenChange={setShareModalOpen}
-        claimedAmount={claimedAmount}
       />
     </Card>
   );
