@@ -34,7 +34,7 @@ import { client } from "@/providers/Thirdweb";
 import { ConnectButton } from "./auth/ConnectButton";
 import { ShareStakeDialog } from "./stake/ShareStakeDialog";
 
-const isStakingComingSoon = true;
+const isStakingComingSoon = false;
 
 export const Stake: FC = () => {
   const account = useActiveAccount();
