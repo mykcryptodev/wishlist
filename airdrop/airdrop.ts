@@ -1,0 +1,3 @@
+export const AIRDROP_CSV_DATA = `address,amount
+0x445664d66c294f49bb55a90d3c30bcab0f9502a9,30
+0x9036464e4ecd2d40d21ee38a0398aedd6805a09b,3000000`;

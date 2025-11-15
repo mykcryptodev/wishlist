@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
+import { Claim } from "@/components/airdrop/claim";
 import Buy from "@/components/buy";
 import Stake from "@/components/stake";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
@@ -21,6 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+const isAirdropActive = false;
 
 const governanceSteps = [
   {
@@ -146,6 +149,20 @@ export default function WishPage() {
             <Buy />
           </div>
         </section>
+
+        {isAirdropActive && (
+          <section className="mt-16 space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-semibold text-outlined">
+                Claim Airdrop
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Check your eligibility and claim airdropped tokens.
+              </p>
+              <Claim />
+            </div>
+          </section>
+        )}
 
         <section className="mt-16 space-y-8">
           <div className="text-center space-y-2">
