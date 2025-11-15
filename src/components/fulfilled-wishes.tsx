@@ -49,8 +49,7 @@ export function FulfilledWishes() {
         const data = await response.json();
 
         if (data.success) {
-          // Show only the first 4 items for the homepage
-          setItems(data.items.slice(0, 4));
+          setItems(data.items);
         }
       } catch (error) {
         console.error("Error fetching fulfilled wishes:", error);
