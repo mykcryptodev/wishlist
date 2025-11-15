@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTransactionMonitor } from "@/hooks/useTransactionMonitor";
+import { tryResolveScheme, uploadImageToIpfs } from "@/lib/image-upload";
 import {
   showErrorToast,
   showLoadingToast,
@@ -126,17 +127,20 @@ export function WishlistItemForm({
 }: WishlistItemFormProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [parsedData, setParsedData] =
-    useState<Partial<WishlistItemFormValues> | null>(null);
   const [currentTransactionId, setCurrentTransactionId] = useState<
     string | null
   >(null);
   const loadingToastIdRef = useRef<string | number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    initialData?.imageUrl ? tryResolveScheme(initialData.imageUrl) : null,
+  );
 
   // Transaction monitoring
-  const { status, isMonitoring } = useTransactionMonitor({
+  const { isMonitoring } = useTransactionMonitor({
     transactionId: currentTransactionId,
-    onSuccess: data => {
+    onSuccess: () => {
       // Dismiss the loading toast first, then show success
       if (loadingToastIdRef.current) {
         toast.dismiss(loadingToastIdRef.current);
@@ -156,7 +160,6 @@ export function WishlistItemForm({
       // Reset form only in add mode
       if (mode === "add") {
         form.reset();
-        setParsedData(null);
       }
 
       setCurrentTransactionId(null);
@@ -187,15 +190,76 @@ export function WishlistItemForm({
   // Update form when initialData changes (for edit mode)
   useEffect(() => {
     if (initialData) {
+      const resolvedImageUrl = initialData.imageUrl
+        ? tryResolveScheme(initialData.imageUrl)
+        : "";
+
       form.reset({
         url: initialData.url || "",
         title: initialData.title || "",
         description: initialData.description || "",
         price: initialData.price || "",
-        imageUrl: initialData.imageUrl || "",
+        imageUrl: resolvedImageUrl,
       });
+      setUploadedFile(null);
+      setPreviewUrl(resolvedImageUrl || null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }, [initialData, form]);
+
+  const watchedImageUrl = form.watch("imageUrl");
+
+  useEffect(() => {
+    if (!uploadedFile) {
+      setPreviewUrl(watchedImageUrl ? tryResolveScheme(watchedImageUrl) : null);
+    }
+  }, [uploadedFile, watchedImageUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (!file) {
+      setUploadedFile(null);
+      setPreviewUrl(form.getValues("imageUrl") || null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    form.setValue("imageUrl", "");
+  };
+
+  const handleRemoveUploadedFile = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setUploadedFile(null);
+    setPreviewUrl(form.getValues("imageUrl") || null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleParseUrl = async () => {
     const url = form.getValues("url");
@@ -207,13 +271,22 @@ export function WishlistItemForm({
     setIsParsing(true);
     try {
       const data = await parseItemFromUrl(url);
-      setParsedData(data);
-
+      const resolvedImageUrl = data.imageUrl
+        ? tryResolveScheme(data.imageUrl)
+        : "";
       // Update form with parsed data
       if (data.title) form.setValue("title", data.title);
       if (data.description) form.setValue("description", data.description);
       if (data.price) form.setValue("price", data.price);
-      if (data.imageUrl) form.setValue("imageUrl", data.imageUrl);
+      if (resolvedImageUrl) form.setValue("imageUrl", resolvedImageUrl);
+
+      if (resolvedImageUrl) {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        setUploadedFile(null);
+        setPreviewUrl(resolvedImageUrl);
+      }
 
       toast.success("Item details extracted successfully!");
     } catch (error) {
@@ -249,6 +322,41 @@ export function WishlistItemForm({
 
     setIsSubmitting(true);
     try {
+      let finalImageUrl = data.imageUrl?.trim() || "";
+
+      const hadUploadedFile = Boolean(uploadedFile);
+
+      if (uploadedFile) {
+        try {
+          finalImageUrl = await uploadImageToIpfs(uploadedFile);
+        } catch (error) {
+          console.error("Error uploading image to IPFS:", error);
+          toast.error("Image upload failed", {
+            description:
+              error instanceof Error
+                ? error.message
+                : "Please ensure the image is 5MB or smaller.",
+          });
+          return;
+        }
+      } else if (finalImageUrl) {
+        finalImageUrl = tryResolveScheme(finalImageUrl);
+      }
+
+      if (hadUploadedFile) {
+        setUploadedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+
+      if (finalImageUrl) {
+        form.setValue("imageUrl", finalImageUrl);
+        setPreviewUrl(finalImageUrl);
+      } else if (!hadUploadedFile) {
+        setPreviewUrl(null);
+      }
+
       let response;
       if (mode === "add") {
         response = await fetch("/api/wishlist", {
@@ -259,6 +367,7 @@ export function WishlistItemForm({
           body: JSON.stringify({
             ...data,
             userAddress,
+            imageUrl: finalImageUrl,
           }),
         });
       } else {
@@ -267,7 +376,10 @@ export function WishlistItemForm({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            imageUrl: finalImageUrl,
+          }),
         });
       }
 
@@ -423,22 +535,51 @@ export function WishlistItemForm({
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>URL to the product image.</FormDescription>
+                <FormDescription>URL to the image</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        <div className="space-y-2">
+          <FormLabel>Upload Image (Optional)</FormLabel>
+          <Input
+            ref={fileInputRef}
+            accept="image/*"
+            type="file"
+            onChange={handleFileChange}
+          />
+          <FormDescription>
+            Images larger than 5MB will be automatically resized when possible.
+          </FormDescription>
+          {uploadedFile && (
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              <span className="truncate pr-4">
+                {uploadedFile.name} (
+                {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)
+              </span>
+              <Button
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={handleRemoveUploadedFile}
+              >
+                Remove
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* Image Preview */}
-        {form.watch("imageUrl") && (
+        {previewUrl && (
           <div className="space-y-2">
             <FormLabel>Image Preview</FormLabel>
             <div className="border rounded-lg p-4 bg-muted/20">
               <img
                 alt="Product preview"
                 className="max-w-xs max-h-48 object-contain mx-auto rounded"
-                src={form.watch("imageUrl")}
+                src={previewUrl}
                 onError={e => {
                   e.currentTarget.style.display = "none";
                 }}
@@ -458,8 +599,15 @@ export function WishlistItemForm({
             type="button"
             variant="outline"
             onClick={() => {
+              if (previewUrl && previewUrl.startsWith("blob:")) {
+                URL.revokeObjectURL(previewUrl);
+              }
               form.reset();
-              setParsedData(null);
+              setUploadedFile(null);
+              setPreviewUrl(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
             }}
           >
             Clear
