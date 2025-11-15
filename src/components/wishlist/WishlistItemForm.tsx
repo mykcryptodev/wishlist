@@ -420,7 +420,7 @@ export function WishlistItemForm({
   };
 
   const url = form.watch("url");
-  
+
   return (
     <Form {...form}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
@@ -535,9 +535,7 @@ export function WishlistItemForm({
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>
-                  Provide a direct image link or upload an image below (max 5MB).
-                </FormDescription>
+                <FormDescription>URL to the image</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
