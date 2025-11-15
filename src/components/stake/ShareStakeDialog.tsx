@@ -121,11 +121,11 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
         // Generate cast text
         let castText = "";
         if (stats.type === "compound") {
-          castText = `Just compounded ${formatNumber(stats.amountCompounded || "0")} WISH and burned ${formatNumber(stats.amountBurned || "0")} WISH! 🚀\n\nStake your $WISH at wishlist.lol`;
+          castText = `I just compounded ${formatNumber(stats.amountCompounded || "0")} WISH and burned ${formatNumber(stats.amountBurned || "0")} WISH! 🚀\n\nStake your $WISH at wishlist.lol`;
         } else if (stats.type === "claim") {
-          castText = `Just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.holiday`;
+          castText = `I just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.holiday`;
         } else if (stats.type === "burn") {
-          castText = `Just burned ${formatNumber(stats.amountBurned || "0")} WISH from supply! 🔥\n\nStake your $WISH at wishlist.lol`;
+          castText = `I just burned ${formatNumber(stats.amountBurned || "0")} WISH from supply! 🔥\n\nStake your $WISH at wishlist.lol`;
         }
 
         await sdk.actions.composeCast({

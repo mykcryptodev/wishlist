@@ -19,6 +19,7 @@ import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "../auth/ConnectButton";
 import { useAirdropEligibility } from "@/hooks/useAirdropEligibility";
+import { ClaimShareModal } from "./claimShareModal";
 
 // Token address that is being airdropped
 // This is the ERC20 token address that users will receive
@@ -28,6 +29,8 @@ export const Claim: FC = () => {
   const account = useActiveAccount();
   const { mutateAsync: sendTx } = useSendTransaction();
   const [isClaiming, setIsClaiming] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [claimedAmount, setClaimedAmount] = useState<string>("0");
 
   const airdropContractAddress = airdropAddress[chain.id];
 
@@ -74,13 +77,19 @@ export const Claim: FC = () => {
         transactionHash: transactionResult.transactionHash,
       });
 
-      const claimedAmount = eligibility?.eligibleAmountFormatted || "tokens";
-      toast.success(`Successfully claimed ${claimedAmount}!`);
+      const amountClaimed = eligibility?.eligibleAmountFormatted || "0";
+      setClaimedAmount(amountClaimed);
+      toast.success(`Successfully claimed ${amountClaimed} tokens!`);
 
       // Refetch eligibility after successful claim
       setTimeout(() => {
         refetchEligibility();
       }, 2000);
+
+      // Show share modal after successful claim
+      setTimeout(() => {
+        setShareModalOpen(true);
+      }, 1000);
     } catch (error) {
       console.error("Error claiming airdrop:", error);
       toast.error(
@@ -179,6 +188,13 @@ export const Claim: FC = () => {
           )}
         </Button>
       </CardContent>
+
+      {/* Share Modal */}
+      <ClaimShareModal
+        open={shareModalOpen}
+        onOpenChange={setShareModalOpen}
+        claimedAmount={claimedAmount}
+      />
     </Card>
   );
 };

@@ -45,7 +45,7 @@ export const multicall = {
 };
 
 export const airdrop = {
-  [baseSepolia.id]: "0x759F7A914027FAE0f8cD67636dD793523E8d9fdE",
+  [baseSepolia.id]: "0x6cA2222F35dF6f141DBe24dF81E39679186096a0",
   [base.id]: "0x5250826C768bc534866666FFAD8766e0b5da5469",
 };
 
