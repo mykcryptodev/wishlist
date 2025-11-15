@@ -44,6 +44,11 @@ export const multicall = {
   [base.id]: "0xca11bde05977b3631167028862be2a173976ca11",
 };
 
+export const airdrop = {
+  [baseSepolia.id]: "0x759F7A914027FAE0f8cD67636dD793523E8d9fdE",
+  [base.id]: "0x5250826C768bc534866666FFAD8766e0b5da5469",
+};
+
 // SNAPSHOT
 export const snapshotHubUrl =
   process.env.NEXT_PUBLIC_SNAPSHOT_HUB_URL ?? "https://hub.snapshot.org";
