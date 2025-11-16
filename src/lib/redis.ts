@@ -67,6 +67,10 @@ export const getYouTubeLiveCacheKey = () => {
   return "youtube:live:status";
 };
 
+export const getYouTubeLastLiveVideoIdKey = () => {
+  return "youtube:live:last-video-id";
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
   FIVE_SECONDS: 5, // 5 seconds (real-time price data)
