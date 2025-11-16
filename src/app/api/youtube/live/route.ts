@@ -137,6 +137,7 @@ export async function GET(request: Request) {
 
     const searchJson = (await searchResponse.json()) as YoutubeSearchResponse;
     let liveVideoId = searchJson.items?.[0]?.id?.videoId;
+    let isCheckingLastKnownVideo = false;
 
     // If search didn't return a live video, but we have a last known live video ID,
     // check if that specific video is still live (handles YouTube search API delays)
@@ -145,6 +146,7 @@ export async function GET(request: Request) {
         `⚠️ Search API returned no results, checking last known live video: ${lastKnownLiveVideoId}`,
       );
       liveVideoId = lastKnownLiveVideoId;
+      isCheckingLastKnownVideo = true;
     }
 
     if (!liveVideoId) {
@@ -207,7 +209,21 @@ export async function GET(request: Request) {
           console.error("Failed to clear last video ID:", error);
         }
       }
-      // Don't cache "not live" - prevents false negatives
+
+      // If we explicitly checked the last known video and it's no longer live,
+      // we can confidently cache that we're not live (stream definitely ended)
+      if (isCheckingLastKnownVideo && redis) {
+        const notLiveResult = { isLive: false };
+        try {
+          await redis.setex(cacheKey, CACHE_TTL.ONE_MINUTE, notLiveResult);
+          console.log(
+            "✅ Cached 'not live' status - verified last known video ended",
+          );
+        } catch (cacheError) {
+          console.error("Redis cache write error:", cacheError);
+        }
+      }
+
       return NextResponse.json({ isLive: false });
     }
 
