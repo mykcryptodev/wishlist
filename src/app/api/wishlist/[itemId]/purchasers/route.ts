@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
 import { optionalAuth } from "@/lib/auth-utils";
@@ -178,14 +179,16 @@ export async function GET(request: NextRequest) {
     const itemData = itemResult.result[0].data || itemResult.result[0].result;
 
     // Data is an array: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
-    const itemOwner = Array.isArray(itemData)
-      ? itemData[1]?.toLowerCase()
-      : undefined;
+    const itemOwner = Array.isArray(itemData) ? itemData[1] : undefined;
 
     // If requester is the item owner, return empty array
     if (
       authenticatedAddress &&
-      itemOwner === authenticatedAddress.toLowerCase()
+      itemOwner &&
+      isAddressEqual(
+        itemOwner as `0x${string}`,
+        authenticatedAddress as `0x${string}`,
+      )
     ) {
       return NextResponse.json({
         success: true,

@@ -16,6 +16,7 @@ import {
   useActiveAccount,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
+import { isAddressEqual } from "viem";
 
 import { ConnectButton } from "@/components/auth/ConnectButton";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,14 @@ export default function PublicWishlistPage() {
   const [purchasersDialogOpen, setPurchasersDialogOpen] = useState(false);
 
   // Check if current user is the owner of this wishlist
-  const isOwner = currentUserAddress?.toLowerCase() === address?.toLowerCase();
+  const isOwner = Boolean(
+    currentUserAddress &&
+      address &&
+      isAddressEqual(
+        currentUserAddress as `0x${string}`,
+        address as `0x${string}`,
+      ),
+  );
 
   const fetchItems = async () => {
     try {
@@ -126,10 +134,11 @@ export default function PublicWishlistPage() {
           if (data.success) {
             const isUserPurchaser =
               currentUserAddress &&
-              data.purchasers?.some(
-                (p: { purchaser: string }) =>
-                  p.purchaser.toLowerCase() ===
-                  currentUserAddress.toLowerCase(),
+              data.purchasers?.some((p: { purchaser: string }) =>
+                isAddressEqual(
+                  p.purchaser as `0x${string}`,
+                  currentUserAddress as `0x${string}`,
+                ),
               );
 
             return {

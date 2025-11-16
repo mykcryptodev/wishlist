@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddressEqual } from "viem";
 
-import { chain, wishlist } from "@/constants";
+import { chain, multisig, wishlist } from "@/constants";
+import {
+  CACHE_TTL,
+  getMyPurchasesCacheKey,
+  redis,
+  shouldUseCache,
+} from "@/lib/redis";
 import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +30,36 @@ export async function GET(request: NextRequest) {
         { error: "Missing userAddress parameter" },
         { status: 400 },
       );
+    }
+
+    const normalizedUserAddress = userAddress.toLowerCase();
+    const wishFundAddress = multisig[chain.id];
+    const shouldCacheWishFund =
+      !!(
+        wishFundAddress &&
+        isAddressEqual(
+          wishFundAddress as `0x${string}`,
+          userAddress as `0x${string}`,
+        ) &&
+        shouldUseCache(chain.id)
+      );
+    const cacheKey =
+      shouldCacheWishFund && redis
+        ? getMyPurchasesCacheKey(chain.id, normalizedUserAddress)
+        : null;
+
+    if (cacheKey && redis) {
+      try {
+        const cachedResponse = await redis.get(cacheKey);
+        if (cachedResponse) {
+          console.log(
+            `[My Purchases] Returning cached Wish Fund data for ${normalizedUserAddress}`,
+          );
+          return NextResponse.json(cachedResponse);
+        }
+      } catch (error) {
+        console.error("[My Purchases] Redis cache read error:", error);
+      }
     }
 
     // Get total number of items
@@ -80,11 +117,21 @@ export async function GET(request: NextRequest) {
 
     // If no items, return empty array
     if (purchasingItemIds.length === 0) {
-      return NextResponse.json({
+      const emptyResponse = {
         success: true,
         items: [],
         count: 0,
-      });
+      } as const;
+
+      if (cacheKey && redis) {
+        try {
+          await redis.set(cacheKey, emptyResponse, { ex: CACHE_TTL.ONE_DAY });
+        } catch (error) {
+          console.error("[My Purchases] Redis cache write error:", error);
+        }
+      }
+
+      return NextResponse.json(emptyResponse);
     }
 
     // Fetch full details for items user is purchasing
@@ -143,11 +190,24 @@ export async function GET(request: NextRequest) {
 
     console.log(`[My Purchases] Returning ${existingItems.length} items`);
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       items: existingItems,
       count: existingItems.length,
-    });
+    };
+
+    if (cacheKey && redis) {
+      try {
+        await redis.set(cacheKey, responsePayload, { ex: CACHE_TTL.ONE_DAY });
+        console.log(
+          `[My Purchases] Cached Wish Fund data for ${normalizedUserAddress} (TTL: ${CACHE_TTL.ONE_DAY}s)`,
+        );
+      } catch (error) {
+        console.error("[My Purchases] Redis cache write error:", error);
+      }
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("Error fetching my purchases:", error);
     return NextResponse.json(

@@ -39,6 +39,13 @@ export const getWishlistAddressesCacheKey = (chainId: number) => {
   return `wishlist-addresses:${chainId}`;
 };
 
+export const getMyPurchasesCacheKey = (
+  chainId: number,
+  userAddress: string,
+) => {
+  return `my-purchases:${chainId}:${userAddress.toLowerCase()}`;
+};
+
 export const getFeedCacheKey = (
   chainId: number,
   page: string,
@@ -64,4 +71,5 @@ export const CACHE_TTL = {
   ONE_MINUTE: 60, // 1 minute in seconds (frequently changing feed data)
   FIVE_MINUTES: 300, // 5 minutes in seconds (user data changes more frequently)
   ONE_HOUR: 3600, // 1 hour in seconds (contract data changes less frequently, SerpAPI availability)
+  ONE_DAY: 86400, // 1 day in seconds (Wish Fund recipient data changes rarely)
 } as const;

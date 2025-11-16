@@ -5,8 +5,9 @@ import {
   setContractURI,
 } from "thirdweb/extensions/common";
 import { upload } from "thirdweb/storage";
+import { isAddressEqual } from "viem";
 
-import { airdrop, chain , wish } from "@/constants";
+import { airdrop, chain, wish } from "@/constants";
 import { client } from "@/providers/Thirdweb";
 
 // Types matching thirdweb's official format
@@ -193,15 +194,19 @@ export async function setupAirdropMerkleTree(csvData: string) {
 export function isAddressEligible(csvData: string, address: string): boolean {
   const snapshot = parseCSVData(csvData);
   return snapshot.some(
-    entry => entry.recipient.toLowerCase() === address.toLowerCase(),
+    entry =>
+      isAddressEqual(
+        entry.recipient as `0x${string}`,
+        address as `0x${string}`,
+      ),
   );
 }
 
 // Get amount for address
 export function getAmountForAddress(csvData: string, address: string): number {
   const snapshot = parseCSVData(csvData);
-  const entry = snapshot.find(
-    entry => entry.recipient.toLowerCase() === address.toLowerCase(),
+  const entry = snapshot.find(entry =>
+    isAddressEqual(entry.recipient as `0x${string}`, address as `0x${string}`),
   );
   return entry?.amount ?? 0;
 }
