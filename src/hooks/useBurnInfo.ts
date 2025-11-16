@@ -45,7 +45,7 @@ export function useBurnInfo(address?: string) {
       };
     },
     enabled: !!address,
-    refetchInterval: 1000, // Refetch every second for countdown timer
+    refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 0,
   });
 }
