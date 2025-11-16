@@ -9,7 +9,8 @@ export const appDescription =
 export const chain = base;
 
 // YOUTUBE
-export const youtubeChannelId = "UCg52oHL5YP3tALq8hy-6Kpw";
+//export const youtubeChannelId = "UCg52oHL5YP3tALq8hy-6Kpw";
+export const youtubeChannelId = "UC7ZUfHFsuQcW7BkTHnXJtqw";
 
 // ADDRESSES
 export const wishlist = {

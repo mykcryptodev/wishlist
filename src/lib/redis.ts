@@ -63,6 +63,10 @@ export const getEthereumPriceCacheKey = () => {
   return "ethereum:price:usd";
 };
 
+export const getYouTubeLiveCacheKey = () => {
+  return "youtube:live:status";
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
   FIVE_SECONDS: 5, // 5 seconds (real-time price data)

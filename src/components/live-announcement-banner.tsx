@@ -40,17 +40,29 @@ export function LiveAnnouncementBanner() {
 
     const fetchLiveInfo = async () => {
       try {
-        const response = await fetch("/api/youtube/live", { cache: "no-store" });
+        // Use mock data for visual testing - remove ?mock=true when done
+        const useMock =
+          typeof window !== "undefined" &&
+          (new URLSearchParams(window.location.search).get("mock") === "true" ||
+            localStorage.getItem("youtube-live-mock") === "true");
+        const url = `/api/youtube/live${useMock ? "?mock=true" : ""}`;
+        const response = await fetch(url, {
+          cache: "no-store",
+        });
         const json = (await response.json()) as LiveStreamDetails;
         if (!isMounted) return;
         setLiveInfo(json);
       } catch (error) {
         if (!isMounted) return;
-        setLiveInfo(prev =>
-          prev ?? {
-            isLive: false,
-            error: error instanceof Error ? error.message : "Unable to fetch live status",
-          },
+        setLiveInfo(
+          prev =>
+            prev ?? {
+              isLive: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Unable to fetch live status",
+            },
         );
       } finally {
         if (isMounted) {
@@ -99,15 +111,25 @@ export function LiveAnnouncementBanner() {
     }
   };
 
-  if (!showBanner) {
-    return null;
-  }
-
   return (
-    <div className="mb-12">
-      <div className="relative overflow-hidden rounded-3xl border border-red-200/60 bg-gradient-to-r from-red-600 via-pink-500 to-orange-400 shadow-2xl text-white">
+    <div
+      className={`sm:my-12 my-4 transition-all duration-500 ease-out ${
+        showBanner
+          ? "max-h-[1000px] opacity-100 translate-y-0"
+          : "max-h-0 opacity-0 -translate-y-4 overflow-hidden"
+      }`}
+    >
+      <div
+        className={`relative overflow-hidden rounded-3xl border border-red-200/60 bg-gradient-to-r from-red-600 via-pink-500 to-orange-400 shadow-2xl text-white transition-all duration-500 ${
+          showBanner ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        }`}
+      >
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%)]" />
-        <div className="relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:p-10">
+        <div
+          className={`relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:p-10 transition-all duration-700 delay-100 ${
+            showBanner ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+          }`}
+        >
           {stream?.thumbnail && (
             <div className="relative w-full overflow-hidden rounded-2xl border border-white/20 shadow-xl md:w-72">
               <div className="relative aspect-video w-full">
@@ -132,15 +154,17 @@ export function LiveAnnouncementBanner() {
 
             <h2 className="text-2xl font-bold leading-tight md:text-3xl flex items-center gap-2">
               <Radio className="h-6 w-6 animate-pulse" />
-              {stream.title}
+              {stream?.title}
             </h2>
 
-            {stream.description && (
-              <p className="text-base text-white/90 line-clamp-3">{stream.description}</p>
+            {stream?.description && (
+              <p className="text-base text-white/90 line-clamp-3">
+                {stream.description}
+              </p>
             )}
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/80">
-              <span>{stream.channelTitle}</span>
+              <span>{stream?.channelTitle}</span>
               {concurrentViewersLabel && (
                 <span className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
