@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { FC, useEffect, useState } from "react";
+
+import { cn } from "@/lib/utils";
 
 const BURN_PERIOD_SECONDS = 24 * 60 * 60; // 24 hours in seconds
 

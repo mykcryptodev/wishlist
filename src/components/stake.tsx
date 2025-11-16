@@ -1005,9 +1005,9 @@ export const Stake: FC = () => {
                 burnInfoData.timeStaked > 0 &&
                 burnInfoData.completePeriods !== undefined && (
                   <BurnCountdownTimer
-                    timeStaked={burnInfoData.timeStaked}
-                    completePeriods={burnInfoData.completePeriods}
                     className="mb-3"
+                    completePeriods={burnInfoData.completePeriods}
+                    timeStaked={burnInfoData.timeStaked}
                   />
                 )}
 
