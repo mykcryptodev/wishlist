@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FulfilledWishes } from "@/components/fulfilled-wishes";
+import { LiveAnnouncementBanner } from "@/components/live-announcement-banner";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
@@ -24,6 +25,7 @@ export default function Home() {
       </div>
 
       <main className="container mx-auto px-4 py-8 relative z-10">
+        <LiveAnnouncementBanner />
         {/* Hero Section */}
         <div className="text-center py-16">
           <div className="mb-4 flex justify-center items-center gap-4">
