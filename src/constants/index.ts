@@ -9,8 +9,8 @@ export const appDescription =
 export const chain = base;
 
 // YOUTUBE
-//export const youtubeChannelId = "UCg52oHL5YP3tALq8hy-6Kpw";
-export const youtubeChannelId = "UC7ZUfHFsuQcW7BkTHnXJtqw";
+export const youtubeChannelId =
+  process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_ID ?? "UCg52oHL5YP3tALq8hy-6Kpw";
 
 // ADDRESSES
 export const wishlist = {
