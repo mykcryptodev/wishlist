@@ -3,6 +3,7 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { Radio, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { youtubeChannelId } from "@/constants";
@@ -10,7 +11,6 @@ import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import Link from "next/link";
 
 interface LiveStreamDetails {
   isLive: boolean;
