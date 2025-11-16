@@ -22,7 +22,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { chain, wish } from "@/constants";
 import { useBurnableAmount } from "@/hooks/useBurnableAmount";
+import { useBurnPoolReserve } from "@/hooks/useBurnPoolReserve";
 import { useDailyBurn } from "@/hooks/useDailyBurn";
+import { useRewardPoolReserve } from "@/hooks/useRewardPoolReserve";
 import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
@@ -107,6 +109,12 @@ export const Stake: FC = () => {
     isLoading: isUserRewardsClaimedLoading,
     refetch: refetchUserRewards,
   } = useUserRewardsClaimed(account?.address);
+
+  const { data: rewardPoolReserveData, isLoading: isRewardPoolReserveLoading } =
+    useRewardPoolReserve();
+
+  const { data: burnPoolReserveData, isLoading: isBurnPoolReserveLoading } =
+    useBurnPoolReserve();
 
   const {
     stakeTokens,
@@ -648,27 +656,52 @@ export const Stake: FC = () => {
 
               {/* User's Total Rewards Claimed - Inside same box */}
               {account && (
-                <div className="flex justify-between items-center pt-2 border-t border-primary/20">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Total Earned By You:
-                  </span>
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {isUserRewardsClaimedLoading ? (
-                      <span className="text-muted-foreground">Loading...</span>
-                    ) : userRewardsClaimedData ? (
-                      <>
-                        {Number(
-                          userRewardsClaimedData.rewardsClaimedFormatted,
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        WISH
-                      </>
-                    ) : (
-                      "0 WISH"
-                    )}
-                  </span>
+                <div className="space-y-2 pt-2 border-t border-primary/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Reward Pool Reserve:
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {isRewardPoolReserveLoading ? (
+                        <span className="text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : rewardPoolReserveData ? (
+                        <>
+                          {shortenLargeNumber(
+                            Number(rewardPoolReserveData.reserveFormatted),
+                          ).toLocaleString()}{" "}
+                          WISH
+                        </>
+                      ) : (
+                        "0 WISH"
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Total Earned By You:
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {isUserRewardsClaimedLoading ? (
+                        <span className="text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : userRewardsClaimedData ? (
+                        <>
+                          {Number(
+                            userRewardsClaimedData.rewardsClaimedFormatted,
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          WISH
+                        </>
+                      ) : (
+                        "0 WISH"
+                      )}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -702,27 +735,52 @@ export const Stake: FC = () => {
 
               {/* User's Total Burned - Inside same box */}
               {account && (
-                <div className="flex justify-between items-center pt-2 border-t border-orange-500/20">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Total Burned By You:
-                  </span>
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {isUserBurnedLoading ? (
-                      <span className="text-muted-foreground">Loading...</span>
-                    ) : userBurnedData ? (
-                      <>
-                        {Number(
-                          userBurnedData.burnedAmountFormatted,
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        WISH
-                      </>
-                    ) : (
-                      "0 WISH"
-                    )}
-                  </span>
+                <div className="space-y-2 pt-2 border-t border-orange-500/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Burn Pool Reserve:
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {isBurnPoolReserveLoading ? (
+                        <span className="text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : burnPoolReserveData ? (
+                        <>
+                          {shortenLargeNumber(
+                            Number(burnPoolReserveData.reserveFormatted),
+                          ).toLocaleString()}{" "}
+                          WISH
+                        </>
+                      ) : (
+                        "0 WISH"
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Total Burned By You:
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {isUserBurnedLoading ? (
+                        <span className="text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : userBurnedData ? (
+                        <>
+                          {Number(
+                            userBurnedData.burnedAmountFormatted,
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          WISH
+                        </>
+                      ) : (
+                        "0 WISH"
+                      )}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
