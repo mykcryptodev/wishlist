@@ -8,9 +8,6 @@ export const appDescription =
 // CHAINS
 export const chain = base;
 
-// YOUTUBE
-export const youtubeChannelId = "UCg52oHL5YP3tALq8hy-6Kpw";
-
 // ADDRESSES
 export const wishlist = {
   [baseSepolia.id]: "0x3753f2cD72850Df8Df3B665229fF5c9Bb13a26Af",
