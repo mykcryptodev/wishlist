@@ -3,6 +3,7 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { Check, Share2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -413,11 +414,14 @@ export default function PublicWishlistPage() {
         {/* Owner Notice */}
         {isOwner && items.length > 0 && (
           <Card className="max-w-7xl mx-auto bg-muted/50">
-            <CardContent>
-              <p className="text-sm text-muted-foreground text-center">
-                🎁 You&apos;re viewing your own wishlist. Purchaser information
-                is hidden from you to keep gifts a surprise!
+            <CardContent className="flex flex-col items-center gap-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                🎁 You&apos;re viewing your own wishlist. Purchaser information is
+                hidden from you to keep gifts a surprise!
               </p>
+              <Button asChild size="lg">
+                <Link href="/wishlist">add an item</Link>
+              </Button>
             </CardContent>
           </Card>
         )}
