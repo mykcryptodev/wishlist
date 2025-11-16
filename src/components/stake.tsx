@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { chain, wish } from "@/constants";
 import { useBurnableAmount } from "@/hooks/useBurnableAmount";
+import { useBurnInfo } from "@/hooks/useBurnInfo";
 import { useBurnPoolReserve } from "@/hooks/useBurnPoolReserve";
 import { useDailyBurn } from "@/hooks/useDailyBurn";
 import { useRewardPoolReserve } from "@/hooks/useRewardPoolReserve";
@@ -34,6 +35,7 @@ import { useUserRewardsClaimed } from "@/hooks/useUserRewardsClaimed";
 import { client } from "@/providers/Thirdweb";
 
 import { ConnectButton } from "./auth/ConnectButton";
+import { BurnCountdownTimer } from "./stake/BurnCountdownTimer";
 import { ShareStakeDialog } from "./stake/ShareStakeDialog";
 
 const isStakingComingSoon = false;
@@ -82,6 +84,10 @@ export const Stake: FC = () => {
     isLoading: isLoadingBurnable,
     refetch: refetchBurnable,
   } = useBurnableAmount(account?.address);
+
+  const { data: burnInfoData, isLoading: isLoadingBurnInfo } = useBurnInfo(
+    account?.address,
+  );
 
   const { data: dailyBurnData, isLoading: isLoadingDailyBurn } = useDailyBurn();
 
@@ -970,7 +976,7 @@ export const Stake: FC = () => {
           {/* Burn Section - Show if user has staked tokens */}
           {Number(stakedBalance) > 0 && (
             <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-orange-500" />
                   <span className="text-sm font-medium">Burnable Tokens</span>
@@ -992,6 +998,18 @@ export const Stake: FC = () => {
                   )}
                 </span>
               </div>
+
+              {/* Countdown Timer */}
+              {!isLoadingBurnInfo &&
+                burnInfoData &&
+                burnInfoData.timeStaked > 0 &&
+                burnInfoData.completePeriods !== undefined && (
+                  <BurnCountdownTimer
+                    timeStaked={burnInfoData.timeStaked}
+                    completePeriods={burnInfoData.completePeriods}
+                    className="mb-3"
+                  />
+                )}
 
               {/* Global Daily Burn Progress */}
               {!isLoadingDailyBurn && dailyBurnData && (
