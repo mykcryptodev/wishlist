@@ -121,11 +121,18 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
         // Generate cast text
         let castText = "";
         if (stats.type === "compound") {
-          castText = `I just compounded ${formatNumber(stats.amountCompounded || "0")} WISH and burned ${formatNumber(stats.amountBurned || "0")} WISH! 🚀\n\nStake your $WISH at wishlist.lol`;
+          const burnText =
+            stats.amountBurned && Number(stats.amountBurned) > 0
+              ? ` and burned ${formatNumber(stats.amountBurned)} WISH`
+              : "";
+          castText = `I just compounded ${formatNumber(
+            stats.amountCompounded || "0",
+          )} WISH${burnText}! 🚀\n\nStake your $WISH at wishlist.holiday`;
         } else if (stats.type === "claim") {
           castText = `I just claimed ${formatNumber(stats.amountClaimed || "0")} WISH in staking rewards! 🎁\n\nStake your $WISH at wishlist.holiday`;
         } else if (stats.type === "burn") {
-          castText = `I just burned ${formatNumber(stats.amountBurned || "0")} WISH from supply! 🔥\n\nStake your $WISH at wishlist.lol`;
+          const amountBurned = stats.amountBurned || "0";
+          castText = `I just burned ${formatNumber(amountBurned)} WISH from supply! 🔥\n\nStake your $WISH at wishlist.holiday`;
         }
 
         await sdk.actions.composeCast({
@@ -201,7 +208,9 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
                   </span>
                 </div>
               )}
-              {stats.amountBurned && Number(stats.amountBurned) > 0 && (
+              {(stats.type === "compound" || stats.type === "burn") &&
+                stats.amountBurned &&
+                Number(stats.amountBurned) > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Burned:</span>
                   <span className="text-sm font-bold text-orange-500">
