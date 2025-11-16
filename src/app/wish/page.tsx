@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { WishContractAddressRow } from "@/components/wish-contract-address-row";
 
 const isAirdropActive = false;
 
@@ -146,6 +147,9 @@ export default function WishPage() {
             <h2 className="text-3xl font-semibold text-outlined">
               Acquire $WISH Tokens
             </h2>
+            <div className="flex justify-center">
+              <WishContractAddressRow className="w-full max-w-xs sm:max-w-sm" />
+            </div>
             <Buy />
           </div>
         </section>
