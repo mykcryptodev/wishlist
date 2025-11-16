@@ -12,6 +12,7 @@ import {
   useActiveWallet,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
+import { isAddressEqual } from "viem";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 
 import { appDescription, appName, chain } from "@/constants";
@@ -80,13 +81,18 @@ export const ConnectButton: FC = () => {
 
             const data = await response.json();
             console.log("[isLoggedIn] Auth response data:", data);
+            const addressesMatch =
+              data.address &&
+              isAddressEqual(
+                data.address as `0x${string}`,
+                address as `0x${string}`,
+              );
             console.log("[isLoggedIn] Comparing addresses:", {
               fromJWT: data.address,
-              expected: address.toLowerCase(),
-              match: data.address === address.toLowerCase(),
+              expected: address,
+              match: addressesMatch,
             });
-            const isValid =
-              data.isLoggedIn && data.address === address.toLowerCase();
+            const isValid = data.isLoggedIn && addressesMatch;
             console.log(
               "[isLoggedIn] Final result:",
               isValid,

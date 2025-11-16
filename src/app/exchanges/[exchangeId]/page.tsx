@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { client } from "@/providers/Thirdweb";
+import { isAddressEqual } from "viem";
 
 interface Exchange {
   id: string;
@@ -233,9 +234,13 @@ export default function ExchangeWishlistsPage() {
 
   const renderMemberWishlist = (member: ExchangeMember) => {
     const memberData = memberWishlists[member.wallet_address];
-    const isOwner =
-      currentUserAddress?.toLowerCase() ===
-      member.wallet_address.toLowerCase();
+    const isOwner = Boolean(
+      currentUserAddress &&
+        isAddressEqual(
+          currentUserAddress as `0x${string}`,
+          member.wallet_address as `0x${string}`,
+        ),
+    );
 
     return (
       <Collapsible
@@ -432,8 +437,13 @@ async function fetchPurchaserDataForMember(
     return dataMap;
   }
 
-  const isOwner =
-    currentUserAddress?.toLowerCase() === memberAddress.toLowerCase();
+  const isOwner = Boolean(
+    currentUserAddress &&
+      isAddressEqual(
+        currentUserAddress as `0x${string}`,
+        memberAddress as `0x${string}`,
+      ),
+  );
 
   if (!currentUserAddress || isOwner) {
     items.forEach(item => {
@@ -461,7 +471,10 @@ async function fetchPurchaserDataForMember(
         if (data.success) {
           const isUserPurchaser = data.purchasers?.some(
             (p: { purchaser: string }) =>
-              p.purchaser.toLowerCase() === currentUserAddress.toLowerCase(),
+              isAddressEqual(
+                p.purchaser as `0x${string}`,
+                currentUserAddress as `0x${string}`,
+              ),
           );
 
           return {

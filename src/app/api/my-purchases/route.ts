@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { chain, multisig, wishlist } from "@/constants";
+import { isAddressEqual } from "viem";
 import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 import {
   CACHE_TTL,
@@ -32,9 +33,16 @@ export async function GET(request: NextRequest) {
     }
 
     const normalizedUserAddress = userAddress.toLowerCase();
-    const wishFundAddress = multisig[chain.id]?.toLowerCase();
+    const wishFundAddress = multisig[chain.id];
     const shouldCacheWishFund =
-      normalizedUserAddress === wishFundAddress && shouldUseCache(chain.id);
+      !!(
+        wishFundAddress &&
+        isAddressEqual(
+          wishFundAddress as `0x${string}`,
+          userAddress as `0x${string}`,
+        ) &&
+        shouldUseCache(chain.id)
+      );
     const cacheKey =
       shouldCacheWishFund && redis
         ? getMyPurchasesCacheKey(chain.id, normalizedUserAddress)
