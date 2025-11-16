@@ -10,6 +10,7 @@ import { useIsInMiniApp } from "@/hooks/useIsInMiniApp";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import Link from "next/link";
 
 interface LiveStreamDetails {
   isLive: boolean;
@@ -126,58 +127,62 @@ export function LiveAnnouncementBanner() {
       >
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.6),_transparent_60%)]" />
         <div
-          className={`relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:p-10 transition-all duration-700 delay-100 ${
+          className={`relative flex flex-col gap-6 p-6 md:p-10 transition-all duration-700 delay-100 ${
             showBanner ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           }`}
         >
-          {stream?.thumbnail && (
-            <div className="relative w-full overflow-hidden rounded-2xl border border-white/20 shadow-xl md:w-72">
-              <div className="relative aspect-video w-full">
-                <Image
-                  fill
-                  alt={stream.title}
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 288px"
-                  src={stream.thumbnail}
-                />
+          {/* First row: Thumbnail and content */}
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            {stream?.thumbnail && (
+              <div className="relative w-full overflow-hidden rounded-2xl border border-white/20 shadow-xl md:w-72">
+                <div className="relative aspect-video w-full">
+                  <Image
+                    fill
+                    alt={stream.title}
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 288px"
+                    src={stream.thumbnail}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="flex-1 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge className="bg-white/20 text-white uppercase tracking-[0.2em] px-3 py-1 animate-pulse border border-white/30">
-                LIVE NOW
-              </Badge>
-              <p className="text-sm text-white/80">{startedAtLabel}</p>
-            </div>
-
-            <h2 className="text-2xl font-bold leading-tight md:text-3xl flex items-center gap-2">
-              <Radio className="h-6 w-6 animate-pulse" />
-              {stream?.title}
-            </h2>
-
-            {stream?.description && (
-              <p className="text-base text-white/90 line-clamp-3">
-                {stream.description}
-              </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/80">
-              <span>{stream?.channelTitle}</span>
-              {concurrentViewersLabel && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {concurrentViewersLabel}
-                </span>
+            <div className="flex-1 space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className="flex items-center bg-white/20 text-white uppercase tracking-[0.2em] px-3 py-1 animate-pulse border border-white/30">
+                  <Radio className="size-4 animate-pulse mr-2" />
+                  LIVE NOW
+                </Badge>
+                <p className="text-sm text-white/80">{startedAtLabel}</p>
+              </div>
+
+              <h2 className="text-2xl font-bold leading-tight md:text-3xl flex items-center gap-2">
+                {stream?.title}
+              </h2>
+
+              {stream?.description && (
+                <p className="text-base text-white/90 line-clamp-3">
+                  {stream.description}
+                </p>
               )}
+
+              <div className="flex flex-wrap items-center gap-4 text-sm text-white/80">
+                <span>{stream?.channelTitle}</span>
+                {concurrentViewersLabel && (
+                  <span className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    {concurrentViewersLabel}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex w-full flex-col gap-3 md:w-56">
+          {/* Second row: Buttons aligned to the right */}
+          <div className="flex w-full flex-col items-end gap-1 md:w-auto">
             {isInMiniApp ? (
               <Button
-                className="h-12 text-lg font-semibold bg-white text-red-600 hover:bg-white/90"
+                className="h-12 text-lg font-semibold bg-white text-red-600 hover:bg-white/90 md:w-auto w-full"
                 disabled={isMiniAppLoading || isOpeningMiniApp}
                 onClick={handleOpenMiniApp}
               >
@@ -186,21 +191,22 @@ export function LiveAnnouncementBanner() {
             ) : (
               <Button
                 asChild
-                className="h-12 text-lg font-semibold bg-white text-red-600 hover:bg-white/90"
+                className="h-12 text-lg font-semibold bg-white text-red-600 hover:bg-white/90 md:w-auto w-full"
               >
-                <a href={youtubeLiveUrl} rel="noreferrer" target="_blank">
-                  Watch on YouTube
-                </a>
+                <Link href={youtubeLiveUrl} rel="noreferrer" target="_blank">
+                  <Radio className="size-6 animate-pulse" />
+                  Join Live
+                </Link>
               </Button>
             )}
-            <a
-              className="text-center text-sm font-semibold text-white/80 underline-offset-4 hover:text-white"
+            <Link
+              className="text-sm font-semibold text-white/80 underline-offset-4 hover:text-white whitespace-nowrap"
               href={CHANNEL_URL}
               rel="noreferrer"
               target="_blank"
             >
               Visit channel
-            </a>
+            </Link>
           </div>
         </div>
       </div>
