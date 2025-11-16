@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddressEqual } from "viem";
 
 import { chain, multisig, wishlist } from "@/constants";
-import { isAddressEqual } from "viem";
-import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 import {
   CACHE_TTL,
   getMyPurchasesCacheKey,
   redis,
   shouldUseCache,
 } from "@/lib/redis";
+import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 export const dynamic = "force-dynamic";
 

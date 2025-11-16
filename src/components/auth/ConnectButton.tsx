@@ -12,8 +12,8 @@ import {
   useActiveWallet,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
-import { isAddressEqual } from "viem";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
+import { isAddressEqual } from "viem";
 
 import { appDescription, appName, chain } from "@/constants";
 import { useAuthToken } from "@/hooks/useAuthToken";

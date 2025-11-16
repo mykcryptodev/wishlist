@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
 import { optionalAuth } from "@/lib/auth-utils";
@@ -7,7 +8,6 @@ import {
   thirdwebReadContract,
   thirdwebWriteContract,
 } from "@/lib/thirdweb-http-api";
-import { isAddressEqual } from "viem";
 
 /**
  * Sign up purchaser endpoint

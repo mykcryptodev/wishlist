@@ -11,6 +11,7 @@ import {
   Blobbie,
   useActiveAccount,
 } from "thirdweb/react";
+import { isAddressEqual } from "viem";
 
 import { ConnectButton } from "@/components/auth/ConnectButton";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WishlistItemCard } from "@/components/wishlist/WishlistItemCard";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { client } from "@/providers/Thirdweb";
-import { isAddressEqual } from "viem";
 
 interface Exchange {
   id: string;

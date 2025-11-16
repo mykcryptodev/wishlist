@@ -5,10 +5,10 @@ import {
   setContractURI,
 } from "thirdweb/extensions/common";
 import { upload } from "thirdweb/storage";
-
-import { airdrop, chain , wish } from "@/constants";
-import { client } from "@/providers/Thirdweb";
 import { isAddressEqual } from "viem";
+
+import { airdrop, chain, wish } from "@/constants";
+import { client } from "@/providers/Thirdweb";
 
 // Types matching thirdweb's official format
 interface SnapshotEntry {
