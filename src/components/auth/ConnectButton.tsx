@@ -3,7 +3,6 @@ import { type FC } from "react";
 import {
   AccountAddress,
   AccountAvatar,
-  AccountName,
   AccountProvider,
   Blobbie,
   ConnectButton as ThirdwebConnectButton,
@@ -19,6 +18,7 @@ import { appDescription, appName, chain } from "@/constants";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { client } from "@/providers/Thirdweb";
 
+import { AccountDisplayName } from "../account/AccountDisplayName";
 import { Button } from "../ui/button";
 
 export const ConnectButton: FC = () => {
@@ -173,11 +173,11 @@ export const ConnectButton: FC = () => {
       }}
       detailsButton={{
         render: () => (
-          <AccountProvider
-            address={wallet?.getAccount()?.address ?? ""}
-            client={client}
-          >
-            <Button className="flex items-center gap-2" variant="outline">
+          <Button className="flex items-center gap-2" variant="outline">
+            <AccountProvider
+              address={wallet?.getAccount()?.address ?? ""}
+              client={client}
+            >
               <AccountAvatar
                 className="!size-6 rounded-full"
                 fallbackComponent={
@@ -187,13 +187,14 @@ export const ConnectButton: FC = () => {
                   />
                 }
               />
-              <AccountName
-                fallbackComponent={
-                  <AccountAddress formatFn={addr => shortenAddress(addr)} />
-                }
-              />
-            </Button>
-          </AccountProvider>
+            </AccountProvider>
+            <AccountDisplayName
+              address={wallet?.getAccount()?.address ?? ""}
+              fallbackComponent={
+                <AccountAddress formatFn={addr => shortenAddress(addr)} />
+              }
+            />
+          </Button>
         ),
       }}
       signInButton={{

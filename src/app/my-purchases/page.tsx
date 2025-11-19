@@ -6,13 +6,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   AccountAvatar,
-  AccountName,
   AccountProvider,
   Blobbie,
   useActiveAccount,
 } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -253,8 +253,8 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
           {/* Owner Info */}
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground mb-2">Buying for:</p>
-            <AccountProvider address={item.owner} client={client}>
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <AccountProvider address={item.owner} client={client}>
                 <AccountAvatar
                   className="h-8 w-8 rounded-full"
                   fallbackComponent={
@@ -264,16 +264,17 @@ function PurchaseItemCard({ item }: { item: PurchaseItem }) {
                     />
                   }
                 />
-                <AccountName
-                  className="font-medium text-sm"
-                  fallbackComponent={
-                    <span className="font-medium text-sm text-muted-foreground">
-                      {shortenAddress(item.owner)}
-                    </span>
-                  }
-                />
-              </div>
-            </AccountProvider>
+              </AccountProvider>
+              <AccountDisplayName
+                address={item.owner}
+                className="font-medium text-sm"
+                fallbackComponent={
+                  <span className="font-medium text-sm text-muted-foreground">
+                    {shortenAddress(item.owner)}
+                  </span>
+                }
+              />
+            </div>
           </div>
         </div>
       </CardContent>
