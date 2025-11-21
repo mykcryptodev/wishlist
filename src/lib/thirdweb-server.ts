@@ -9,6 +9,8 @@ import { createThirdwebClient } from "thirdweb";
 import { createAuth } from "thirdweb/auth";
 import { privateKeyToAccount } from "thirdweb/wallets";
 
+const YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
+
 if (!process.env.THIRDWEB_SECRET_KEY) {
   throw new Error("THIRDWEB_SECRET_KEY is required for server-side operations");
 }
@@ -36,4 +38,8 @@ export const thirdwebAuth = createAuth({
     "localhost:3000",
   client: serverClient,
   adminAccount,
+  jwt: {
+    // Keep users signed in for up to one year
+    expirationTimeSeconds: YEAR_IN_SECONDS,
+  },
 });
