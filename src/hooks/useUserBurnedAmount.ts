@@ -25,7 +25,8 @@ export function useUserBurnedAmount(userAddress?: string) {
       });
 
       try {
-        // Read from the public burnedAmount mapping
+        // Read from the public burnedAmount mapping. This only tracks the
+        // current burn session and is reset on compound/withdraw.
         const burnedAmount = await readContract({
           contract: stakeContract,
           method: "function burnedAmount(address) view returns (uint256)",

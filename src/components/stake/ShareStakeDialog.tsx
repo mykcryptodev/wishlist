@@ -21,7 +21,6 @@ interface TransactionStats {
   amountCompounded?: string;
   amountBurned?: string;
   userTotalRewards: string;
-  userTotalBurned: string;
   globalTotalBurned: string;
 }
 
@@ -86,7 +85,6 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
     lines.push("");
     lines.push("📊 My Stats:");
     lines.push(`• Total Earned: ${formatNumber(stats.userTotalRewards)} WISH`);
-    lines.push(`• Total Burned: ${formatNumber(stats.userTotalBurned)} WISH`);
     lines.push("");
     lines.push(
       `🌍 Global: ${shortenLargeNumber(Number(stats.globalTotalBurned)).toLocaleString()} WISH burned`,
@@ -112,7 +110,6 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
           claimed: stats.amountClaimed || stats.amountCompounded || "0",
           burned: stats.amountBurned || "0",
           totalEarned: stats.userTotalRewards,
-          totalBurned: stats.userTotalBurned,
           globalBurned: stats.globalTotalBurned,
         });
 
@@ -221,9 +218,9 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
             </div>
           </div>
 
-          {/* Your All-Time Stats */}
+          {/* Your Stats */}
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Your All-Time Stats</h4>
+            <h4 className="text-sm font-semibold">Your Stats</h4>
             <div className="bg-primary/5 rounded-lg p-3 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">
@@ -231,14 +228,6 @@ export const ShareStakeDialog: FC<ShareStakeDialogProps> = ({
                 </span>
                 <span className="text-sm font-bold text-primary">
                   {formatNumber(stats.userTotalRewards)} WISH
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Total Burned:
-                </span>
-                <span className="text-sm font-bold text-orange-500">
-                  {formatNumber(stats.userTotalBurned)} WISH
                 </span>
               </div>
             </div>
