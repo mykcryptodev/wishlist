@@ -30,7 +30,6 @@ import { useStakeContract } from "@/hooks/useStakeContract";
 import { useStakedBalance } from "@/hooks/useStakedBalance";
 import { useStakingAPY } from "@/hooks/useStakingAPY";
 import { useTotalBurned } from "@/hooks/useTotalBurned";
-import { useUserBurnedAmount } from "@/hooks/useUserBurnedAmount";
 import { useUserRewardsClaimed } from "@/hooks/useUserRewardsClaimed";
 import { client } from "@/providers/Thirdweb";
 
@@ -57,7 +56,6 @@ export const Stake: FC = () => {
     amountCompounded?: string;
     amountBurned?: string;
     userTotalRewards: string;
-    userTotalBurned: string;
     globalTotalBurned: string;
   } | null>(null);
 
@@ -103,12 +101,6 @@ export const Stake: FC = () => {
 
   const { data: totalBurnedData, isLoading: isTotalBurnedLoading } =
     useTotalBurned();
-
-  const {
-    data: userBurnedData,
-    isLoading: isUserBurnedLoading,
-    refetch: refetchUserBurned,
-  } = useUserBurnedAmount(account?.address);
 
   const {
     data: userRewardsClaimedData,
@@ -253,7 +245,6 @@ export const Stake: FC = () => {
         // Refetch all user stats to get latest data
         await Promise.all([
           refetchBurnable(),
-          refetchUserBurned(),
           refetchUserRewards(),
         ]);
 
@@ -275,10 +266,8 @@ export const Stake: FC = () => {
         }
 
         // Get REFETCHED stats for share dialog
-        const freshUserBurned = await refetchUserBurned();
         const freshUserRewards = await refetchUserRewards();
 
-        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
         const userRewards =
           freshUserRewards.data?.rewardsClaimedFormatted || "0";
         const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
@@ -287,7 +276,6 @@ export const Stake: FC = () => {
           type: "burn",
           amountBurned: actualBurnAmount || amountToBurn,
           userTotalRewards: userRewards,
-          userTotalBurned: userBurned,
           globalTotalBurned: globalBurned,
         });
         setShareDialogOpen(true);
@@ -342,7 +330,6 @@ export const Stake: FC = () => {
         await Promise.all([
           refetchStaked(),
           refetchBalance(),
-          refetchUserBurned(),
           refetchUserRewards(),
         ]);
 
@@ -364,10 +351,8 @@ export const Stake: FC = () => {
         }
 
         // Get REFETCHED stats for share dialog
-        const freshUserBurned = await refetchUserBurned();
         const freshUserRewards = await refetchUserRewards();
 
-        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
         const userRewards =
           freshUserRewards.data?.rewardsClaimedFormatted || "0";
         const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
@@ -376,7 +361,6 @@ export const Stake: FC = () => {
           type: "claim",
           amountClaimed: actualClaimedAmount,
           userTotalRewards: userRewards,
-          userTotalBurned: userBurned,
           globalTotalBurned: globalBurned,
         });
         setShareDialogOpen(true);
@@ -439,7 +423,6 @@ export const Stake: FC = () => {
           refetchStaked(),
           refetchBalance(),
           refetchBurnable(),
-          refetchUserBurned(),
           refetchUserRewards(),
         ]);
 
@@ -474,10 +457,8 @@ export const Stake: FC = () => {
         }
 
         // Get REFETCHED stats for share dialog
-        const freshUserBurned = await refetchUserBurned();
         const freshUserRewards = await refetchUserRewards();
 
-        const userBurned = freshUserBurned.data?.burnedAmountFormatted || "0";
         const userRewards =
           freshUserRewards.data?.rewardsClaimedFormatted || "0";
         const globalBurned = totalBurnedData?.totalBurnedFormatted || "0";
@@ -487,7 +468,6 @@ export const Stake: FC = () => {
           amountCompounded: actualClaimedAmount,
           amountBurned: actualBurnedAmount,
           userTotalRewards: userRewards,
-          userTotalBurned: userBurned,
           globalTotalBurned: globalBurned,
         });
         setShareDialogOpen(true);
@@ -756,30 +736,6 @@ export const Stake: FC = () => {
                           {shortenLargeNumber(
                             Number(burnPoolReserveData.reserveFormatted),
                           ).toLocaleString()}{" "}
-                          WISH
-                        </>
-                      ) : (
-                        "0 WISH"
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Total Burned By You:
-                    </span>
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {isUserBurnedLoading ? (
-                        <span className="text-muted-foreground">
-                          Loading...
-                        </span>
-                      ) : userBurnedData ? (
-                        <>
-                          {Number(
-                            userBurnedData.burnedAmountFormatted,
-                          ).toLocaleString(undefined, {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 2,
-                          })}{" "}
                           WISH
                         </>
                       ) : (
