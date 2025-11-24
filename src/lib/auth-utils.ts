@@ -62,32 +62,8 @@ export async function verifyAuthToken(token: string): Promise<string | null> {
 }
 
 /**
- * Verify wallet address from request (fallback method)
- *
- * @param walletAddress - Wallet address from the request
- * @returns Wallet address in lowercase
- */
-export async function verifyWalletAddress(
-  walletAddress: string,
-): Promise<string | null> {
-  // Basic validation
-  if (!walletAddress || typeof walletAddress !== "string") {
-    return null;
-  }
-
-  // Check if it's a valid Ethereum address
-  if (!isAddress(walletAddress)) {
-    return null;
-  }
-
-  return walletAddress.toLowerCase();
-}
-
-/**
  * Require authentication for an API route
  * Returns the authenticated wallet address or throws an error
- *
- * Tries Bearer token first (SIWE), then falls back to x-wallet-address header
  *
  * @param request - Next.js request object
  * @returns Wallet address in lowercase
@@ -105,15 +81,6 @@ export async function requireAuth(request: Request): Promise<string> {
     }
   }
 
-  // Fall back to x-wallet-address header
-  const walletAddressHeader = headers.get("x-wallet-address");
-  if (walletAddressHeader) {
-    const walletAddress = await verifyWalletAddress(walletAddressHeader);
-    if (walletAddress) {
-      return walletAddress;
-    }
-  }
-
   throw new Error("No valid authentication provided");
 }
 
@@ -121,7 +88,7 @@ export async function requireAuth(request: Request): Promise<string> {
  * Optional authentication - returns wallet address if authenticated, null otherwise
  * Use this when authentication is optional but you want to know who the user is
  *
- * Tries Bearer token first (SIWE), then falls back to x-wallet-address header
+ * Tries Bearer token (SIWE) from header first
  */
 export async function optionalAuth(request: Request): Promise<string | null> {
   const headers = new Headers(request.headers);
@@ -133,12 +100,6 @@ export async function optionalAuth(request: Request): Promise<string | null> {
     if (walletAddress) {
       return walletAddress;
     }
-  }
-
-  // Fall back to x-wallet-address header
-  const walletAddressHeader = headers.get("x-wallet-address");
-  if (walletAddressHeader) {
-    return await verifyWalletAddress(walletAddressHeader);
   }
 
   return null;
