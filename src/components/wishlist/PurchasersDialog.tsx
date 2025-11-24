@@ -159,11 +159,19 @@ export function PurchasersDialog({
 
     try {
       setActionLoading(true);
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (currentUserAddress) {
+        headers["x-wallet-address"] = currentUserAddress;
+      }
+
       const response = await fetch(`/api/wishlist/${itemId}/purchasers`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           itemId,
           purchaserAddress: currentUserAddress,
@@ -196,10 +204,18 @@ export function PurchasersDialog({
 
     try {
       setActionLoading(true);
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (currentUserAddress) {
+        headers["x-wallet-address"] = currentUserAddress;
+      }
+
       const response = await fetch(
         `/api/wishlist/${itemId}/purchasers?itemId=${itemId}&purchaserAddress=${currentUserAddress}`,
         {
           method: "DELETE",
+          headers,
         },
       );
 
