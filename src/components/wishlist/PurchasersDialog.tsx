@@ -112,9 +112,6 @@ export function PurchasersDialog({
       // Send JWT token if available (more secure)
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
-      } else if (currentUserAddress) {
-        // Fallback to wallet address header
-        headers["x-wallet-address"] = currentUserAddress;
       }
 
       const response = await fetch(
@@ -157,13 +154,24 @@ export function PurchasersDialog({
       return;
     }
 
+    if (!token) {
+      toast.error("Please sign in to manage purchasers");
+      return;
+    }
+
     try {
       setActionLoading(true);
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/wishlist/${itemId}/purchasers`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           itemId,
           purchaserAddress: currentUserAddress,
@@ -194,12 +202,23 @@ export function PurchasersDialog({
       return;
     }
 
+    if (!token) {
+      toast.error("Please sign in to manage purchasers");
+      return;
+    }
+
     try {
       setActionLoading(true);
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `/api/wishlist/${itemId}/purchasers?itemId=${itemId}&purchaserAddress=${currentUserAddress}`,
         {
           method: "DELETE",
+          headers,
         },
       );
 

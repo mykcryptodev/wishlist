@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
-import { optionalAuth } from "@/lib/auth-utils";
+import { optionalAuth, requireAuth } from "@/lib/auth-utils";
 import { getApprovedPurchasers, isInAnyExchange } from "@/lib/exchange-utils";
 import {
   thirdwebReadContract,
@@ -38,6 +38,32 @@ export async function POST(request: NextRequest) {
     const itemIdNum = parseInt(itemId);
     if (isNaN(itemIdNum) || itemIdNum < 0) {
       return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
+    }
+
+    // Require authentication and ensure purchaserAddress matches the authenticated user
+    let authenticatedAddress: string;
+    try {
+      authenticatedAddress = await requireAuth(request);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Authentication required to sign up as a purchaser",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !isAddressEqual(
+        authenticatedAddress as `0x${string}`,
+        purchaserAddress as `0x${string}`,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "You can only sign up your own address as a purchaser" },
+        { status: 403 },
+      );
     }
 
     // Call the smart contract to sign up purchaser
@@ -99,6 +125,33 @@ export async function DELETE(request: NextRequest) {
     if (isNaN(itemIdNum) || itemIdNum < 0) {
       return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
     }
+
+    // Require authentication and ensure purchaserAddress matches the authenticated user
+    let authenticatedAddress: string;
+    try {
+      authenticatedAddress = await requireAuth(request);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Authentication required to remove a purchaser",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !isAddressEqual(
+        authenticatedAddress as `0x${string}`,
+        purchaserAddress as `0x${string}`,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "You can only remove your own address as a purchaser" },
+        { status: 403 },
+      );
+    }
+
     // Call the smart contract to remove purchaser
     const result = await thirdwebWriteContract(
       [

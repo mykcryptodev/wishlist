@@ -120,9 +120,6 @@ export default function PublicWishlistPage() {
           // Send JWT token if available (more secure)
           if (token) {
             headers["Authorization"] = `Bearer ${token}`;
-          } else if (currentUserAddress) {
-            // Fallback to wallet address header
-            headers["x-wallet-address"] = currentUserAddress;
           }
 
           const response = await fetch(
