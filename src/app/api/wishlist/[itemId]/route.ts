@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isAddressEqual } from "viem";
+
 import { chain, wishlist } from "@/constants";
-import { thirdwebWriteContract } from "@/lib/thirdweb-http-api";
+import { requireAuth } from "@/lib/auth-utils";
+import {
+  thirdwebReadContract,
+  thirdwebWriteContract,
+} from "@/lib/thirdweb-http-api";
 
 /**
  * Update wishlist item endpoint
@@ -120,6 +126,64 @@ export async function DELETE(
     const itemIdNum = parseInt(itemId);
     if (isNaN(itemIdNum) || itemIdNum < 0) {
       return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
+    }
+
+    // Require authentication and ensure the requester owns the item
+    let authenticatedAddress: string;
+    try {
+      authenticatedAddress = await requireAuth(request);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Authentication required to delete wishlist items",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 401 },
+      );
+    }
+
+    // Fetch item details to verify ownership
+    const itemResult = await thirdwebReadContract(
+      [
+        {
+          contractAddress: wishlist[chain.id],
+          method:
+            "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
+          params: [itemId],
+        },
+      ],
+      chain.id,
+    );
+
+    const itemData = itemResult.result?.[0];
+    const data = itemData?.data || itemData?.result;
+
+    if (!itemData?.success || !data) {
+      return NextResponse.json(
+        { error: "Wishlist item not found" },
+        { status: 404 },
+      );
+    }
+
+    const ownerAddress = data[1] as string | undefined;
+
+    if (!ownerAddress) {
+      return NextResponse.json(
+        { error: "Could not determine wishlist item owner" },
+        { status: 500 },
+      );
+    }
+
+    if (
+      !isAddressEqual(
+        authenticatedAddress as `0x${string}`,
+        ownerAddress as `0x${string}`,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "You can only delete your own wishlist items" },
+        { status: 403 },
+      );
     }
 
     // Call the smart contract to delete item
