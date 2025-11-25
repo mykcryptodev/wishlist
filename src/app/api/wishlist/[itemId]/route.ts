@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
-import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
 import { requireAuth } from "@/lib/auth-utils";
+import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
 import {
   thirdwebReadContract,
   thirdwebWriteContract,
