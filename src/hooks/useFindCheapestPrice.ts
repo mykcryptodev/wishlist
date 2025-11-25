@@ -79,7 +79,7 @@ export function useFindCheapestPrice() {
         fetch,
         client,
         wallet,
-        MAX_WISH_PAYMENT,
+        { maxValue: MAX_WISH_PAYMENT },
       );
 
       // Make request to x402 endpoint with payment wrapper

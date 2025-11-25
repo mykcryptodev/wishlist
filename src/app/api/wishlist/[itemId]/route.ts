@@ -164,7 +164,17 @@ export async function DELETE(
       );
     }
 
-    const ownerAddress = data[1] as string | undefined;
+    const normalizedData = Array.isArray(data)
+      ? data
+      : typeof data === "object" && data !== null
+        ? data
+        : undefined;
+
+    const ownerAddress = Array.isArray(normalizedData)
+      ? (normalizedData[1] as string | undefined)
+      : typeof (normalizedData as { owner?: unknown })?.owner === "string"
+        ? ((normalizedData as { owner?: string }).owner as string)
+        : undefined;
 
     if (!ownerAddress) {
       return NextResponse.json(
