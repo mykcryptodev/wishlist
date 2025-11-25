@@ -75,12 +75,9 @@ export function useFindCheapestPrice() {
       // Set maxValue high enough for WISH token payments
       // 10,000 WISH in wei = 10,000 * 10^18
       const MAX_WISH_PAYMENT = BigInt(10000) * BigInt(10 ** 18);
-      const fetchWithPay = wrapFetchWithPayment(
-        fetch,
-        client,
-        wallet,
-        MAX_WISH_PAYMENT,
-      );
+      const fetchWithPay = wrapFetchWithPayment(fetch, client, wallet, {
+        maxValue: MAX_WISH_PAYMENT,
+      });
 
       // Make request to x402 endpoint with payment wrapper
       const response = await fetchWithPay("/api/wishlist/find-cheapest", {
