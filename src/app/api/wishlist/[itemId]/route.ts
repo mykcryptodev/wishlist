@@ -60,6 +60,68 @@ export async function PUT(
       priceInWei = BigInt(Math.floor(priceNum * 1e18)).toString();
     }
 
+    // Require authentication and ensure the requester owns the item
+    let authenticatedAddress: string;
+    try {
+      authenticatedAddress = await requireAuth(request);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Authentication required to update wishlist items",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 401 },
+      );
+    }
+
+    // Fetch item details to verify ownership
+    const itemResult = await thirdwebReadContract(
+      [
+        {
+          contractAddress: wishlist[chain.id],
+          method:
+            "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
+          params: [itemId],
+        },
+      ],
+      chain.id,
+    );
+
+    const itemData = itemResult.result?.[0];
+    const data = itemData?.data || itemData?.result;
+
+    if (!itemData?.success || !data) {
+      return NextResponse.json(
+        { error: "Wishlist item not found" },
+        { status: 404 },
+      );
+    }
+
+    const ownerAddress = Array.isArray(data)
+      ? (data[1] as string | undefined)
+      : typeof (data as { owner?: unknown })?.owner === "string"
+        ? ((data as { owner?: string }).owner as string | undefined)
+        : undefined;
+
+    if (!ownerAddress) {
+      return NextResponse.json(
+        { error: "Could not determine wishlist item owner" },
+        { status: 500 },
+      );
+    }
+
+    if (
+      !isAddressEqual(
+        authenticatedAddress as `0x${string}`,
+        ownerAddress as `0x${string}`,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "You can only update your own wishlist items" },
+        { status: 403 },
+      );
+    }
+
     // Call the smart contract to update item
     const result = await thirdwebWriteContract(
       [
