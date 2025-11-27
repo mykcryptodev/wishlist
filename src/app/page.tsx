@@ -66,9 +66,9 @@ export default function Home() {
             </style>
           </div>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto">
-            ✨ Create and share your magical holiday wishlist this holiday
-            season! ✨
+          <p className="text-xl md:text-2xl text-muted-foreground mb-4 max-w-2xl mx-auto">
+            ✨ Tell the world what you want for the holidays and you might just
+            get it! ✨
           </p>
 
           <div className="flex gap-4 justify-center flex-col sm:flex-row">
