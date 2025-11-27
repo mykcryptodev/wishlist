@@ -75,9 +75,10 @@ export function useFindCheapestPrice() {
       // Set maxValue high enough for WISH token payments
       // 10,000 WISH in wei = 10,000 * 10^18
       const MAX_WISH_PAYMENT = BigInt(10000) * BigInt(10 ** 18);
+      // Cast through unknown to satisfy differing wrapFetchWithPayment typings
       const maxPaymentConfig = {
         maxValue: MAX_WISH_PAYMENT,
-      } as Parameters<typeof wrapFetchWithPayment>[3];
+      } as unknown as Parameters<typeof wrapFetchWithPayment>[3];
 
       const fetchWithPay = wrapFetchWithPayment(
         fetch,
