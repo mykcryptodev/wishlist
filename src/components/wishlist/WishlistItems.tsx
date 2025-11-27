@@ -174,8 +174,25 @@ export const WishlistItems = forwardRef<WishlistItemsRef, WishlistItemsProps>(
       if (!itemToDelete) return;
 
       try {
+        const authHeaders: HeadersInit = {};
+
+        if (typeof window !== "undefined") {
+          const token = localStorage.getItem("wishlist_auth_token");
+
+          if (!token) {
+            showErrorToast(
+              "Authentication required",
+              "Please sign in to delete wishlist items.",
+            );
+            return;
+          }
+
+          authHeaders["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`/api/wishlist/${itemToDelete.id}`, {
           method: "DELETE",
+          headers: authHeaders,
         });
         const data = await response.json();
 

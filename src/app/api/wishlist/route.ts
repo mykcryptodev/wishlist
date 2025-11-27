@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
+import { requireAuth } from "@/lib/auth-utils";
 import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
 import {
   thirdwebReadContract,
@@ -47,6 +49,32 @@ export async function POST(request: NextRequest) {
         );
       }
       priceInWei = BigInt(Math.floor(priceNum * 1e18)).toString();
+    }
+
+    // Require authentication and ensure the user is creating items for themselves
+    let authenticatedAddress: string;
+    try {
+      authenticatedAddress = await requireAuth(request);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Authentication required to add wishlist items",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !isAddressEqual(
+        authenticatedAddress as `0x${string}`,
+        userAddress as `0x${string}`,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "You can only add wishlist items for your own address" },
+        { status: 403 },
+      );
     }
 
     // Call the smart contract to create item for user

@@ -357,13 +357,27 @@ export function WishlistItemForm({
         setPreviewUrl(null);
       }
 
+      const authHeaders: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("wishlist_auth_token");
+
+        if (!token) {
+          toast.error("You must be signed in to manage your wishlist.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        authHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       let response;
       if (mode === "add") {
         response = await fetch("/api/wishlist", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             ...data,
             userAddress,
@@ -373,9 +387,7 @@ export function WishlistItemForm({
       } else {
         response = await fetch(`/api/wishlist/${itemId}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             ...data,
             imageUrl: finalImageUrl,
