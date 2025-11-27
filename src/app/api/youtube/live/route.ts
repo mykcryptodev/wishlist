@@ -128,14 +128,33 @@ export async function GET(request: Request) {
 
     const searchResponse = await fetch(
       `${YOUTUBE_API_BASE}/search?${searchParams.toString()}`,
-      { cache: "no-store" },
     );
 
     if (!searchResponse.ok) {
-      throw new Error("Failed to query YouTube search API");
+      const errorText = await searchResponse.text();
+      let errorMessage = `Failed to query YouTube search API: ${searchResponse.status} ${searchResponse.statusText}`;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorMessage += ` - ${errorJson.error.message}`;
+        }
+        if (errorJson.error?.errors) {
+          errorMessage += ` - ${JSON.stringify(errorJson.error.errors)}`;
+        }
+      } catch {
+        // If parsing fails, include raw text
+        if (errorText) {
+          errorMessage += ` - ${errorText.substring(0, 200)}`;
+        }
+      }
+
+      console.error("YouTube API Error:", errorMessage);
+      throw new Error(errorMessage);
     }
 
     const searchJson = (await searchResponse.json()) as YoutubeSearchResponse;
+    console.log("🔍 Search API Response:", JSON.stringify(searchJson, null, 2));
     let liveVideoId = searchJson.items?.[0]?.id?.videoId;
     let isCheckingLastKnownVideo = false;
 
@@ -150,10 +169,17 @@ export async function GET(request: Request) {
     }
 
     if (!liveVideoId) {
-      // Don't cache "not live" - YouTube search API can be unreliable
-      // and might temporarily not return live streams even when they exist
-      // This prevents false negatives from being cached
-      return NextResponse.json({ isLive: false });
+      // Cache "not live" result to reduce API calls
+      const notLiveResult = { isLive: false };
+      if (redis) {
+        try {
+          await redis.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, notLiveResult);
+          console.log("✅ Cached 'not live' status (5 minute TTL)");
+        } catch (cacheError) {
+          console.error("Redis cache write error:", cacheError);
+        }
+      }
+      return NextResponse.json(notLiveResult);
     }
 
     const videoParams = new URLSearchParams({
@@ -164,11 +190,29 @@ export async function GET(request: Request) {
 
     const videoResponse = await fetch(
       `${YOUTUBE_API_BASE}/videos?${videoParams.toString()}`,
-      { cache: "no-store" },
     );
 
     if (!videoResponse.ok) {
-      throw new Error("Failed to query YouTube videos API");
+      const errorText = await videoResponse.text();
+      let errorMessage = `Failed to query YouTube videos API: ${videoResponse.status} ${videoResponse.statusText}`;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorMessage += ` - ${errorJson.error.message}`;
+        }
+        if (errorJson.error?.errors) {
+          errorMessage += ` - ${JSON.stringify(errorJson.error.errors)}`;
+        }
+      } catch {
+        // If parsing fails, include raw text
+        if (errorText) {
+          errorMessage += ` - ${errorText.substring(0, 200)}`;
+        }
+      }
+
+      console.error("YouTube Videos API Error:", errorMessage);
+      throw new Error(errorMessage);
     }
 
     const videoJson = (await videoResponse.json()) as YoutubeVideoResponse;
@@ -188,9 +232,17 @@ export async function GET(request: Request) {
           console.error("Failed to clear last video ID:", error);
         }
       }
-      // Don't cache "not live" - video might exist but API call failed
-      // This prevents false negatives from being cached
-      return NextResponse.json({ isLive: false });
+      // Cache "not live" result to reduce API calls
+      const notLiveResult = { isLive: false };
+      if (redis) {
+        try {
+          await redis.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, notLiveResult);
+          console.log("✅ Cached 'not live' status (5 minute TTL)");
+        } catch (cacheError) {
+          console.error("Redis cache write error:", cacheError);
+        }
+      }
+      return NextResponse.json(notLiveResult);
     }
 
     // Verify video is actually still live (has liveStreamingDetails)
@@ -210,21 +262,18 @@ export async function GET(request: Request) {
         }
       }
 
-      // If we explicitly checked the last known video and it's no longer live,
-      // we can confidently cache that we're not live (stream definitely ended)
-      if (isCheckingLastKnownVideo && redis) {
-        const notLiveResult = { isLive: false };
+      // Cache "not live" result to reduce API calls
+      const notLiveResult = { isLive: false };
+      if (redis) {
         try {
-          await redis.setex(cacheKey, CACHE_TTL.ONE_MINUTE, notLiveResult);
-          console.log(
-            "✅ Cached 'not live' status - verified last known video ended",
-          );
+          await redis.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, notLiveResult);
+          console.log("✅ Cached 'not live' status (5 minute TTL)");
         } catch (cacheError) {
           console.error("Redis cache write error:", cacheError);
         }
       }
 
-      return NextResponse.json({ isLive: false });
+      return NextResponse.json(notLiveResult);
     }
 
     const thumbnails = video.snippet?.thumbnails;
@@ -255,17 +304,17 @@ export async function GET(request: Request) {
       },
     };
 
-    // Cache successful live stream result (1 minute TTL - balances freshness with API quota)
+    // Cache successful live stream result (5 minute TTL - reduces API calls)
     if (redis) {
       try {
-        await redis.setex(cacheKey, CACHE_TTL.ONE_MINUTE, result);
-        // Also store the video ID separately with longer TTL (5 minutes) as fallback
+        await redis.setex(cacheKey, CACHE_TTL.FIVE_MINUTES, result);
+        // Also store the video ID separately with longer TTL (15 minutes) as fallback
         await redis.setex(
           lastVideoIdKey,
-          CACHE_TTL.FIVE_MINUTES,
+          CACHE_TTL.FIVE_MINUTES * 3, // 15 minutes
           result.stream.id,
         );
-        console.log("✅ Cached YouTube live status (1 minute TTL)");
+        console.log("✅ Cached YouTube live status (5 minute TTL)");
       } catch (cacheError) {
         console.error("Redis cache write error:", cacheError);
         // Continue even if cache write fails
