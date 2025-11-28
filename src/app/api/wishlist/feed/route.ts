@@ -53,16 +53,18 @@ interface ThirdwebEventsResponse {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = searchParams.get("page") || "1";
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") || "20"),
-      100,
-    ).toString();
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
     const includeDetails = searchParams.get("includeDetails") !== "false"; // Default to true
 
     // Check Redis cache first
     const useCache = shouldUseCache(chain.id);
-    const cacheKey = getFeedCacheKey(chain.id, page, limit, includeDetails);
+    const cacheKey = getFeedCacheKey(
+      chain.id,
+      page.toString(),
+      limit.toString(),
+      includeDetails,
+    );
 
     if (useCache && redis) {
       try {
@@ -82,13 +84,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ItemCreated event signature: ItemCreated(uint256 indexed itemId, address indexed owner, string title, string url)
-    // Keccak256 hash from the actual Wishlist contract
-    // This is the hash we see in the logs: 0x492ed020ceefbf98fa397c98e691a930417875a66e7b5f6014018d970f13abef
-    const itemCreatedSignature =
-      "0x492ed020ceefbf98fa397c98e691a930417875a66e7b5f6014018d970f13abef";
-
-    // Get total items count from contract for better pagination
+    // 1. Get total items count from contract
     let totalItems = 0;
     try {
       const totalItemsResult = await thirdwebReadContract(
@@ -110,208 +106,96 @@ export async function GET(request: NextRequest) {
         if (process.env.NODE_ENV === "development") {
           console.log(`📊 Total items in contract: ${totalItems}`);
         }
+      } else {
+        throw new Error("Failed to fetch total items count");
       }
     } catch (error) {
       console.error("Failed to fetch total items:", error);
-      // Continue without total count
+      throw error;
     }
 
-    // Fetch events from the Wishlist contract
-    const response = await fetch(
-      `${THIRDWEB_API_URL}/contracts/${chain.id}/${wishlist[chain.id]}/events?page=${page}&limit=${limit}&sortOrder=desc`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-secret-key": THIRDWEB_SECRET_KEY,
-        },
-      },
-    );
+    // 2. Calculate ID range for pagination (Descending order: newest first)
+    // IDs are assumed to be 1-based and sequential up to totalItems
+    const startId = totalItems - (page - 1) * limit;
+    const endId = Math.max(1, startId - limit + 1);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Thirdweb API error: ${response.status} - ${errorText}`);
-    }
-
-    const eventsData = await response.json();
-
-    // Log basic response info (can be removed in production)
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `Fetched ${eventsData.result?.events?.length || 0} events from contract`,
-      );
-    }
-
-    // Handle different possible response structures
-    let events: EventLog[] = [];
-    if (eventsData.result?.events) {
-      events = eventsData.result.events;
-    } else if (Array.isArray(eventsData.result)) {
-      events = eventsData.result;
-    } else if (Array.isArray(eventsData)) {
-      events = eventsData;
-    } else {
-      console.error("Unexpected API response structure:", eventsData);
-      // Return empty result instead of throwing
+    if (startId < 1) {
       return NextResponse.json({
         success: true,
         items: [],
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page,
+          limit,
           hasMore: false,
+          totalItems,
+          totalPages: Math.ceil(totalItems / limit),
         },
       });
     }
 
-    // Filter for ItemCreated events using the actual topic signature
-    const itemCreatedEvents = events.filter(event => {
-      // Check the topic signature (this is the most reliable method)
-      if (event.topics && event.topics[0] === itemCreatedSignature) return true;
-
-      // Fallback: Check decoded event name (if Thirdweb provides it)
-      if (event.decoded?.eventName === "ItemCreated") return true;
-
-      return false;
-    });
+    const idsToFetch: number[] = [];
+    for (let i = startId; i >= endId; i--) {
+      idsToFetch.push(i);
+    }
 
     if (process.env.NODE_ENV === "development") {
-      console.log(`✨ Found ${itemCreatedEvents.length} ItemCreated events`);
+      console.log(
+        `Fetching items for page ${page}: IDs ${startId} to ${endId} (Total: ${totalItems})`,
+      );
     }
 
-    // Transform events into a more usable format
-    const feedItems = itemCreatedEvents.map(event => {
-      let itemId = "";
-      let owner = "";
-      let title = "";
-      let url = "";
+    // 3. Batch fetch item details
+    const itemDetailsCalls = idsToFetch.map(id => ({
+      contractAddress: wishlist[chain.id],
+      method:
+        "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
+      params: [id],
+    }));
 
-      // Try to extract data from decoded params
-      if (event.decoded?.params) {
-        // Handle params as an array
-        if (Array.isArray(event.decoded.params)) {
-          itemId =
-            event.decoded.params.find(
-              (p: { name: string; value: string }) => p.name === "itemId",
-            )?.value || "";
-          owner =
-            event.decoded.params.find(
-              (p: { name: string; value: string }) => p.name === "owner",
-            )?.value || "";
-          title =
-            event.decoded.params.find(
-              (p: { name: string; value: string }) => p.name === "title",
-            )?.value || "";
-          url =
-            event.decoded.params.find(
-              (p: { name: string; value: string }) => p.name === "url",
-            )?.value || "";
-        }
-        // Handle params as an object
-        else if (typeof event.decoded.params === "object") {
-          const params = event.decoded.params as Record<
-            string,
-            string | number
-          >;
-          itemId = (params.itemId || params[0] || "").toString();
-          owner = (params.owner || params[1] || "").toString();
-          title = (params.title || params[2] || "").toString();
-          url = (params.url || params[3] || "").toString();
-        }
-      }
+    const itemDetailsResult = await thirdwebReadContract(
+      itemDetailsCalls,
+      chain.id,
+    );
 
-      // Fallback to extracting from topics if we didn't get data from decoded
-      if (!itemId && event.topics[1]) {
-        // Topics are indexed parameters (itemId and owner)
-        itemId = BigInt(event.topics[1]).toString();
-      }
-      if (!owner && event.topics[2]) {
-        // Owner is the second indexed param - remove padding to get address
-        owner = "0x" + event.topics[2].slice(-40);
-      }
+    // 4. Map to response format
+    const feedItems = itemDetailsResult.result
+      .map((result, index) => {
+        if (!result.success || (!result.data && !result.result)) return null;
 
-      return {
-        itemId,
-        owner,
-        title,
-        url,
-        description: "",
-        imageUrl: "",
-        price: "0",
-        blockNumber: event.blockNumber,
-        blockTimestamp: event.blockTimestamp,
-        transactionHash: event.transactionHash,
-      };
-    });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (result.data || result.result) as any;
+        
+        // Handle array-like return from Thirdweb
+        const id = (data[0] || idsToFetch[index]).toString();
+        const owner = data[1] as string;
+        const title = data[2] as string;
+        const description = data[3] as string;
+        const url = data[4] as string;
+        const imageUrl = data[5] as string;
+        const price = (data[6] || "0").toString();
+        const exists = data[7] as boolean;
+        const createdAt = (data[8] || Date.now() / 1000).toString();
+        // const updatedAt = data[9];
 
-    // Optionally fetch full item details from the contract
-    let enrichedFeedItems = feedItems;
-    if (includeDetails && feedItems.length > 0) {
-      try {
-        if (process.env.NODE_ENV === "development") {
-          console.log(
-            `📦 Enriching ${feedItems.length} items with full details...`,
-          );
-        }
+        if (!exists) return null;
 
-        // Batch read all item details
-        const itemDetailsCalls = feedItems.map(item => ({
-          contractAddress: wishlist[chain.id],
-          method:
-            "function items(uint256) external view returns (uint256 id, address owner, string title, string description, string url, string imageUrl, uint256 price, bool exists, uint256 createdAt, uint256 updatedAt)",
-          params: [item.itemId],
-        }));
+        return {
+          itemId: id,
+          owner,
+          title,
+          url,
+          description,
+          imageUrl,
+          price,
+          blockNumber: "0", // Not available from state read
+          blockTimestamp: createdAt,
+          transactionHash: `item-${id}`, // Placeholder
+        };
+      })
+      .filter(item => item !== null);
 
-        const itemDetailsResult = await thirdwebReadContract(
-          itemDetailsCalls,
-          chain.id,
-        );
-
-        // Enrich feed items with full details
-        enrichedFeedItems = feedItems.map((item, index) => {
-          const details = itemDetailsResult.result[index];
-          if (details.success && (details.data || details.result)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data = (details.data || details.result) as any;
-            return {
-              ...item,
-              description: (data[3] as string) || item.description,
-              imageUrl: (data[5] as string) || item.imageUrl,
-              price: (data[6] as string) || item.price,
-            };
-          }
-          return item;
-        });
-
-        if (process.env.NODE_ENV === "development") {
-          console.log(
-            `✅ Successfully enriched ${enrichedFeedItems.length} items`,
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching item details:", error);
-        // Continue with basic items if detail fetch fails
-      }
-    }
-
-    // Determine pagination info based on total items from contract
-    let hasMore = false;
-    let totalPages = 0;
-
-    if (totalItems > 0) {
-      // Calculate total pages based on contract's total item count
-      totalPages = Math.ceil(totalItems / parseInt(limit));
-      // Check if there are more pages after the current one
-      hasMore = parseInt(page) < totalPages;
-    } else {
-      // Fallback: use Thirdweb's pagination if we don't have total count
-      if (eventsData.result?.page?.hasNextPage !== undefined) {
-        hasMore = eventsData.result.page.hasNextPage;
-      } else {
-        // Last resort: assume more if we got a full page of ItemCreated events
-        hasMore = itemCreatedEvents.length >= parseInt(limit);
-      }
-    }
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasMore = page < totalPages;
 
     if (process.env.NODE_ENV === "development") {
       console.log(
@@ -321,10 +205,10 @@ export async function GET(request: NextRequest) {
 
     const feedResponse = {
       success: true,
-      items: enrichedFeedItems,
+      items: feedItems,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         hasMore,
         totalItems,
         totalPages,
@@ -332,7 +216,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Cache the response in Redis
-    if (useCache && redis) {
+    if (useCache && redis && feedItems.length > 0) {
       try {
         await redis.setex(
           cacheKey,
