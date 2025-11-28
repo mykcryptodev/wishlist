@@ -30,7 +30,7 @@ export async function GET() {
         `${URL}/images/screenshot-3.png`,
       ],
       primaryCategory: "shopping",
-      tags: ["holidays", "gift", "christmas", "exchange", "secret santa"],
+      tags: ["holidays", "gift", "christmas", "exchange", "santa"],
       heroImageUrl: `${URL}/images/hero.png`,
       tagline: "Holiday shopping coordination",
       ogTitle: appName,
