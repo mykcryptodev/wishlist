@@ -20,7 +20,8 @@ export async function GET() {
       iconUrl: `${URL}/images/logo.png`,
       splashImageUrl: `${URL}/images/logo.png`,
       splashBackgroundColor: "#fcf8f3",
-      webhookUrl: `https://api.neynar.com/f/app/841ac11e-a86a-4938-874a-fb3050c964a0/event`,
+      webhookUrl:
+        "https://api.neynar.com/f/app/841ac11e-a86a-4938-874a-fb3050c964a0/event",
       subtitle: "Holiday shopping coordination",
       description: appDescription,
       screenshotUrls: [
