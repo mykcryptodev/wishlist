@@ -18,6 +18,8 @@ export async function GET() {
       name: appName,
       homeUrl: URL,
       iconUrl: `${URL}/images/logo.png`,
+      imageUrl: `${URL}/images/logo.png`,
+      buttonTitle: "Make a Wish",
       splashImageUrl: `${URL}/images/logo.png`,
       splashBackgroundColor: "#fcf8f3",
       webhookUrl:
@@ -37,6 +39,7 @@ export async function GET() {
       ogDescription: appDescription,
       ogImageUrl: `${URL}/images/hero.png`,
       noindex: false,
+      castShareUrl: URL,
     },
   });
 }
