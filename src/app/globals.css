@@ -431,3 +431,35 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
+
+/* Farcaster embed styling */
+.farcaster-embed-body {
+  overflow-x: scroll;
+}
+
+.farcaster-embed-container,
+.not-prose.farcaster-embed-container {
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.farcaster-embed-container,
+.not-prose.farcaster-embed-container,
+.farcaster-embed-container *,
+.not-prose.farcaster-embed-container *,
+.farcaster-embed-container iframe,
+.not-prose.farcaster-embed-container iframe,
+.farcaster-embed-container > *,
+.not-prose.farcaster-embed-container > *,
+[class*="farcaster-embed"],
+div[class*="farcaster-embed"] {
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-border-opacity: 0 !important;
+}
