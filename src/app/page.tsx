@@ -3,11 +3,12 @@ import Link from "next/link";
 
 import { FulfilledWishes } from "@/components/fulfilled-wishes";
 import { LiveAnnouncementBanner } from "@/components/live-announcement-banner";
+import { Testimonials } from "@/components/testimonials";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
+
 import "react-farcaster-embed/dist/styles.css";
-import { Testimonials } from "@/components/testimonials";
 
 export default function Home() {
   return (
