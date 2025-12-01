@@ -12,7 +12,8 @@ import { NeynarUser } from "@/types/neynar";
 
 interface UserWithWishlistStatus extends NeynarUser {
   hasWishlist?: boolean;
-  wishlistAddress?: string; // The specific verified address that has a wishlist
+  wishlistAddress?: string; // The primary verified address that has a wishlist (for backward compatibility)
+  wishlistAddresses?: string[]; // All verified addresses that have wishlists
 }
 
 interface NeynarSearchResponse {
@@ -22,6 +23,60 @@ interface NeynarSearchResponse {
       cursor?: string;
     };
   };
+}
+
+// Interface for client.farcaster.xyz response
+interface FarcasterClientUserResponse {
+  result: {
+    user: {
+      fid: number;
+      username: string;
+      displayName: string;
+    };
+    extras: {
+      fid: number;
+      custodyAddress: string;
+      ethWallets: string[];
+      walletLabels?: {
+        address: string;
+        labels: string[];
+      }[];
+    };
+  };
+}
+
+async function getPrimaryWallet(fid: number): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://client.farcaster.xyz/v2/user?fid=${fid}`,
+      {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data: FarcasterClientUserResponse = await response.json();
+    
+    // Look for a wallet labeled "primary"
+    const primaryWallet = data.result.extras.walletLabels?.find(
+      w => w.labels.includes("primary")
+    );
+
+    if (primaryWallet) {
+      return primaryWallet.address;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching primary wallet for FID ${fid}:`, error);
+    return null;
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -112,20 +167,46 @@ export async function GET(request: NextRequest) {
         addressesWithWishlists.map(addr => addr.toLowerCase()),
       );
 
-      // Check each user's verified addresses against the wishlist
-      usersWithWishlistStatus = data.result.users.map(user => {
-        // Find the specific address that has a wishlist (if any)
-        const userWishlistAddress =
-          user.verified_addresses?.eth_addresses?.find(addr =>
+      // Enhance users with primary wallet data and check wishlist status
+      usersWithWishlistStatus = await Promise.all(
+        data.result.users.map(async user => {
+          // Fetch primary wallet from client.farcaster.xyz
+          const primaryWallet = await getPrimaryWallet(user.fid);
+          
+          // Combine verified addresses with the primary wallet (if found)
+          // We prioritize the primary wallet by placing it first if it exists
+          let allAddresses = user.verified_addresses?.eth_addresses || [];
+          
+          if (primaryWallet) {
+            // Add primary wallet if not already in the list
+            if (!allAddresses.some(addr => addr.toLowerCase() === primaryWallet.toLowerCase())) {
+              allAddresses = [primaryWallet, ...allAddresses];
+            } else {
+              // If it is in the list, move it to the front? 
+              // For now, we just ensure it's considered for wishlist checking.
+              // Actually, let's make sure we explicitly check the primary wallet first.
+            }
+          }
+
+          // Find all addresses that have a wishlist
+          const userWishlistAddresses = allAddresses.filter(addr =>
             wishlistAddressesSet.has(addr.toLowerCase()),
           );
+          
+          // If primary wallet has a wishlist, prioritize it as the main wishlistAddress
+          let mainWishlistAddress = userWishlistAddresses[0];
+          if (primaryWallet && wishlistAddressesSet.has(primaryWallet.toLowerCase())) {
+            mainWishlistAddress = primaryWallet;
+          }
 
-        return {
-          ...user,
-          hasWishlist: !!userWishlistAddress,
-          wishlistAddress: userWishlistAddress,
-        };
-      });
+          return {
+            ...user,
+            hasWishlist: userWishlistAddresses.length > 0,
+            wishlistAddress: mainWishlistAddress, 
+            wishlistAddresses: userWishlistAddresses,
+          };
+        })
+      );
     } catch (contractError) {
       console.error("Error checking wishlist status:", contractError);
       // If contract call fails, continue without wishlist status
