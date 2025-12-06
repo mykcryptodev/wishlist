@@ -445,21 +445,6 @@
   overflow-x: hidden;
 }
 
-.farcaster-embed-container,
-.not-prose.farcaster-embed-container,
-.farcaster-embed-container *,
-.not-prose.farcaster-embed-container *,
-.farcaster-embed-container iframe,
-.not-prose.farcaster-embed-container iframe,
-.farcaster-embed-container > *,
-.not-prose.farcaster-embed-container > *,
-[class*="farcaster-embed"],
-div[class*="farcaster-embed"] {
+.farcaster-embed-container:before {
   border: none !important;
-  border-width: 0 !important;
-  border-style: none !important;
-  border-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-  --tw-border-opacity: 0 !important;
 }
