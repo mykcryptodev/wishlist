@@ -75,16 +75,7 @@ export function FulfilledWishes() {
   }
 
   return (
-    <div className="py-16">
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-2 text-outlined">
-          ✨ $WISH Fund Recipients ✨
-        </h2>
-        <p className="text-muted-foreground text-lg">
-          Wishes being fulfilled by the community treasury
-        </p>
-      </div>
-
+    <div>
       {loading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
           {[1, 2, 3, 4].map(i => (

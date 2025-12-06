@@ -3,9 +3,12 @@ import Link from "next/link";
 
 import { FulfilledWishes } from "@/components/fulfilled-wishes";
 import { LiveAnnouncementBanner } from "@/components/live-announcement-banner";
+import { Testimonials } from "@/components/testimonials";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
+
+import "react-farcaster-embed/dist/styles.css";
 
 export default function Home() {
   return (
@@ -105,6 +108,18 @@ export default function Home() {
 
         <TreasuryWethBalance />
 
+        <div className="text-center mt-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-outlined">
+            ✨ $WISH Fund Recipients ✨
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Wishes being fulfilled by the community treasury
+          </p>
+        </div>
+
+        <div className="py-4">
+          <Testimonials />
+        </div>
         {/* Fulfilled Wishes Section */}
         <FulfilledWishes />
 
