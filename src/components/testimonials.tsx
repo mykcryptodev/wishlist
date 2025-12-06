@@ -1,4 +1,5 @@
 import { FarcasterEmbed } from "react-farcaster-embed";
+
 import { Card } from "./ui/card";
 
 const testimonials = [
