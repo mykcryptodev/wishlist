@@ -10,6 +10,7 @@ const testimonials = [
   "https://farcaster.xyz/psych3/0x25534958",
   "https://farcaster.xyz/ksa/0xfb8d8661",
   "https://farcaster.xyz/wealthmagnet.eth/0xcdbf563c",
+  "https://farcaster.xyz/tonyminh/0xbe367450",
   "https://farcaster.xyz/coolbeans1r.eth/0xa9580f36",
 ];
 
