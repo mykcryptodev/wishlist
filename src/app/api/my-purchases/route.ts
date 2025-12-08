@@ -24,6 +24,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get("userAddress");
+    const offsetParam = searchParams.get("offset");
+    const limitParam = searchParams.get("limit");
+
+    const offset = Math.max(0, Number(offsetParam ?? 0));
+    const limit = Math.max(0, Number(limitParam ?? 0));
+    const usePagination = limit > 0;
 
     if (!userAddress) {
       return NextResponse.json(
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
         shouldUseCache(chain.id)
       );
     const cacheKey =
-      shouldCacheWishFund && redis
+      shouldCacheWishFund && redis && !usePagination
         ? getMyPurchasesCacheKey(chain.id, normalizedUserAddress)
         : null;
 
@@ -79,6 +85,17 @@ export async function GET(request: NextRequest) {
         totalItemsResult.result[0].data || totalItemsResult.result[0].result,
       ) || 0;
 
+    if (usePagination && offset >= totalItems) {
+      return NextResponse.json({
+        success: true,
+        items: [],
+        count: 0,
+        totalItems,
+        offset,
+        limit,
+      });
+    }
+
     console.log(
       `[My Purchases] Total items: ${totalItems}, checking for user: ${userAddress}`,
     );
@@ -86,7 +103,12 @@ export async function GET(request: NextRequest) {
     // Check each item to see if user is a purchaser
     // Note: This could be optimized with batch calls
     const itemChecks = [];
-    for (let itemId = 1; itemId <= totalItems; itemId++) {
+    const startItemId = usePagination ? offset + 1 : 1;
+    const endItemId = usePagination
+      ? Math.min(totalItems, offset + limit)
+      : totalItems;
+
+    for (let itemId = startItemId; itemId <= endItemId; itemId++) {
       itemChecks.push(
         thirdwebReadContract(
           [
@@ -121,6 +143,9 @@ export async function GET(request: NextRequest) {
         success: true,
         items: [],
         count: 0,
+        totalItems,
+        offset,
+        limit: usePagination ? limit : undefined,
       } as const;
 
       if (cacheKey && redis) {
@@ -194,6 +219,9 @@ export async function GET(request: NextRequest) {
       success: true,
       items: existingItems,
       count: existingItems.length,
+      totalItems,
+      offset,
+      limit: usePagination ? limit : undefined,
     };
 
     if (cacheKey && redis) {
