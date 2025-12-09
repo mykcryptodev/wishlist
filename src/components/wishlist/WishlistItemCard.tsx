@@ -56,8 +56,11 @@ export function WishlistItemCard({
   const [isOpeningMiniApp, setIsOpeningMiniApp] = useState(false);
 
   const formatPrice = (priceInWei: string) => {
+    if (!priceInWei || priceInWei === "undefined" || priceInWei === "null") {
+      return "Price not specified";
+    }
     const price = parseFloat(priceInWei) / 1e18;
-    if (price === 0) return "Price not specified";
+    if (isNaN(price) || price === 0) return "Price not specified";
     return `$${price.toFixed(2)}`;
   };
 
