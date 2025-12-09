@@ -3,9 +3,14 @@
  *
  * This module provides typed wrappers around the Thirdweb API for contract interactions.
  * Documentation: https://portal.thirdweb.com/connect/ecosystems/api-reference
+ *
+ * For multiple calls, uses Multicall3 contract directly via RPC to bypass API rate limits.
  */
 
+import { type Address } from "viem";
+
 import { chain } from "@/constants";
+import { multicallReadContract } from "@/lib/multicall";
 
 const THIRDWEB_API_URL = "https://api.thirdweb.com/v1";
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
@@ -148,6 +153,7 @@ export async function thirdwebWriteContract(
 
 /**
  * Read from a smart contract using the Thirdweb API
+ * For multiple calls, uses Multicall3 contract directly via RPC to bypass API rate limits
  *
  * @param calls - Array of contract calls to execute
  * @param chainId - The blockchain network ID (default: Base mainnet)
@@ -168,6 +174,63 @@ export async function thirdwebReadContract(
   calls: ContractCall[],
   chainId: number = chain.id,
 ): Promise<ThirdwebApiResponse<ReadContractResult[]>> {
+  // Use multicall directly for multiple calls to bypass API rate limits
+  if (calls.length > 1) {
+    try {
+      const results = await multicallReadContract(
+        calls.map(call => ({
+          contractAddress: call.contractAddress as Address,
+          method: call.method,
+          params: call.params,
+        })),
+        chainId,
+      );
+
+      // Convert multicall results to API format
+      // The API returns both `data` (hex string) and `result` (decoded value)
+      // Existing code uses: `result.data || result.result`
+      const apiResults: ReadContractResult[] = results.map(decodedResult => {
+        if (
+          decodedResult === null ||
+          (typeof decodedResult === "object" &&
+            decodedResult !== null &&
+            "__error" in decodedResult)
+        ) {
+          return { success: false };
+        }
+
+        // For boolean results, the API returns the boolean in `result` and hex in `data`
+        // For other types, it returns the decoded value in `result` and hex in `data`
+        // We need to get the raw hex data to match API format
+        // Since we decoded it, we'll need to re-encode or return the decoded value
+
+        // The existing code pattern `result.data || result.result` will work if we put
+        // the decoded value in `result` field. For simple types like bool, this works.
+        // For complex types (tuples), the decoded value is already an object/array.
+        return {
+          success: true,
+          result: decodedResult,
+          // Include data field for compatibility (though decoded result takes precedence)
+          data:
+            typeof decodedResult === "boolean"
+              ? decodedResult
+                ? "0x0000000000000000000000000000000000000000000000000000000000000001"
+                : "0x0000000000000000000000000000000000000000000000000000000000000000"
+              : undefined,
+        };
+      });
+
+      return { result: apiResults };
+    } catch (error) {
+      // Fallback to API if multicall fails
+      console.warn(
+        "Multicall failed, falling back to Thirdweb API:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  // Single call or fallback: use API
   try {
     const response = await fetch(`${THIRDWEB_API_URL}/contracts/read`, {
       method: "POST",

@@ -42,8 +42,14 @@ export const getWishlistAddressesCacheKey = (chainId: number) => {
 export const getMyPurchasesCacheKey = (
   chainId: number,
   userAddress: string,
+  offset?: number,
+  limit?: number,
 ) => {
-  return `my-purchases:${chainId}:${userAddress.toLowerCase()}`;
+  const baseKey = `my-purchases:${chainId}:${userAddress.toLowerCase()}`;
+  if (offset !== undefined && limit !== undefined) {
+    return `${baseKey}:o${offset}:l${limit}`;
+  }
+  return baseKey;
 };
 
 export const getFeedCacheKey = (
