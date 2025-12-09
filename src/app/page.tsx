@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { FulfilledWishes } from "@/components/fulfilled-wishes";
 import { LiveAnnouncementBanner } from "@/components/live-announcement-banner";
+import { LivestreamScheduleBanner } from "@/components/livestream-schedule-banner";
 import { Testimonials } from "@/components/testimonials";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function Home() {
       </div>
 
       <main className="container mx-auto px-4 py-8 relative z-10">
+        <LivestreamScheduleBanner />
         <LiveAnnouncementBanner />
         {/* Hero Section */}
         <div className="text-center py-16">
