@@ -189,38 +189,36 @@ export async function thirdwebReadContract(
       // Convert multicall results to API format
       // The API returns both `data` (hex string) and `result` (decoded value)
       // Existing code uses: `result.data || result.result`
-      const apiResults: ReadContractResult[] = results.map(
-        (decodedResult, index) => {
-          if (
-            decodedResult === null ||
-            (typeof decodedResult === "object" &&
-              decodedResult !== null &&
-              "__error" in decodedResult)
-          ) {
-            return { success: false };
-          }
+      const apiResults: ReadContractResult[] = results.map(decodedResult => {
+        if (
+          decodedResult === null ||
+          (typeof decodedResult === "object" &&
+            decodedResult !== null &&
+            "__error" in decodedResult)
+        ) {
+          return { success: false };
+        }
 
-          // For boolean results, the API returns the boolean in `result` and hex in `data`
-          // For other types, it returns the decoded value in `result` and hex in `data`
-          // We need to get the raw hex data to match API format
-          // Since we decoded it, we'll need to re-encode or return the decoded value
+        // For boolean results, the API returns the boolean in `result` and hex in `data`
+        // For other types, it returns the decoded value in `result` and hex in `data`
+        // We need to get the raw hex data to match API format
+        // Since we decoded it, we'll need to re-encode or return the decoded value
 
-          // The existing code pattern `result.data || result.result` will work if we put
-          // the decoded value in `result` field. For simple types like bool, this works.
-          // For complex types (tuples), the decoded value is already an object/array.
-          return {
-            success: true,
-            result: decodedResult,
-            // Include data field for compatibility (though decoded result takes precedence)
-            data:
-              typeof decodedResult === "boolean"
-                ? decodedResult
-                  ? "0x0000000000000000000000000000000000000000000000000000000000000001"
-                  : "0x0000000000000000000000000000000000000000000000000000000000000000"
-                : undefined,
-          };
-        },
-      );
+        // The existing code pattern `result.data || result.result` will work if we put
+        // the decoded value in `result` field. For simple types like bool, this works.
+        // For complex types (tuples), the decoded value is already an object/array.
+        return {
+          success: true,
+          result: decodedResult,
+          // Include data field for compatibility (though decoded result takes precedence)
+          data:
+            typeof decodedResult === "boolean"
+              ? decodedResult
+                ? "0x0000000000000000000000000000000000000000000000000000000000000001"
+                : "0x0000000000000000000000000000000000000000000000000000000000000000"
+              : undefined,
+        };
+      });
 
       return { result: apiResults };
     } catch (error) {

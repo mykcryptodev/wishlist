@@ -5,12 +5,12 @@
  */
 
 import {
+  type Address,
   createPublicClient,
   decodeAbiParameters,
   decodeFunctionResult,
   encodeFunctionData,
   http,
-  type Address,
 } from "viem";
 import { base, baseSepolia } from "viem/chains";
 
@@ -150,10 +150,6 @@ function decodeResult(
   } catch (error) {
     // Fallback: try decodeFunctionResult with ABI
     try {
-      const outputType = returnType.startsWith("(")
-        ? returnType
-        : `(${returnType})`;
-
       const abi = [
         {
           name: methodName,
@@ -172,7 +168,7 @@ function decodeResult(
         data: returnData,
       });
       return decoded;
-    } catch (abiError) {
+    } catch {
       // Final fallback: try to decode as raw value for simple types
       if (returnType === "bool" || returnType.trim() === "bool") {
         return BigInt(returnData) === BigInt(1);
