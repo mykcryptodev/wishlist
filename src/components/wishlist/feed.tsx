@@ -3,13 +3,9 @@
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import {
-  AccountAvatar,
-  AccountName,
-  AccountProvider,
-  Blobbie,
-} from "thirdweb/react";
+import { AccountAvatar, AccountProvider, Blobbie } from "thirdweb/react";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useWishlistFeed } from "@/hooks/useWishlistFeed";
@@ -154,11 +150,11 @@ export function WishlistFeed() {
           {data.items.map(item => (
             <div key={`${item.transactionHash}-${item.itemId}`}>
               {/* Attribution Header with Account Info */}
-              <AccountProvider address={item.owner} client={client}>
-                <Link
-                  className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity group"
-                  href={`/wishlist/${item.owner}`}
-                >
+              <Link
+                className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity group"
+                href={`/wishlist/${item.owner}`}
+              >
+                <AccountProvider address={item.owner} client={client}>
                   <AccountAvatar
                     className="h-8 w-8 rounded-full ring-2 ring-primary/10 group-hover:ring-primary/30 transition-all"
                     fallbackComponent={
@@ -168,21 +164,20 @@ export function WishlistFeed() {
                       />
                     }
                   />
-                  <div className="flex items-baseline gap-2 text-sm">
-                    <AccountName
-                      className="font-semibold text-foreground"
-                      fallbackComponent={
-                        <span className="font-semibold text-foreground">
-                          {shortenAddress(item.owner)}
-                        </span>
-                      }
-                    />
-                    <span className="text-muted-foreground">
-                      wished for this
-                    </span>
-                  </div>
-                </Link>
-              </AccountProvider>
+                </AccountProvider>
+                <div className="flex items-baseline gap-2 text-sm">
+                  <AccountDisplayName
+                    address={item.owner}
+                    className="font-semibold text-foreground"
+                    fallbackComponent={
+                      <span className="font-semibold text-foreground">
+                        {shortenAddress(item.owner)}
+                      </span>
+                    }
+                  />
+                  <span className="text-muted-foreground">wished for this</span>
+                </div>
+              </Link>
 
               {/* Wishlist Item Card */}
               <WishlistItemCard

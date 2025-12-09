@@ -3,13 +3,9 @@
 import { ExternalLink, Gift } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  AccountAvatar,
-  AccountName,
-  AccountProvider,
-  Blobbie,
-} from "thirdweb/react";
+import { AccountAvatar, AccountProvider, Blobbie } from "thirdweb/react";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,20 +119,21 @@ export function FulfilledWishes() {
                           />
                         }
                       />
-                      <div className="flex-1 min-w-0">
-                        <CardDescription className="text-xs mb-1">
-                          Recipient
-                        </CardDescription>
-                        <AccountName
-                          className="font-semibold text-foreground"
-                          fallbackComponent={
-                            <span className="font-semibold text-sm truncate block">
-                              {`${item.owner.slice(0, 6)}...${item.owner.slice(-4)}`}
-                            </span>
-                          }
-                        />
-                      </div>
                     </AccountProvider>
+                    <div className="flex-1 min-w-0">
+                      <CardDescription className="text-xs mb-1">
+                        Recipient
+                      </CardDescription>
+                      <AccountDisplayName
+                        address={item.owner}
+                        className="font-semibold text-foreground"
+                        fallbackComponent={
+                          <span className="font-semibold text-sm truncate block">
+                            {`${item.owner.slice(0, 6)}...${item.owner.slice(-4)}`}
+                          </span>
+                        }
+                      />
+                    </div>
                   </Link>
 
                   <Badge className="backdrop-blur-sm bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">

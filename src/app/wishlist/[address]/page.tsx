@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import {
   AccountAddress,
   AccountAvatar,
-  AccountName,
   AccountProvider,
   Blobbie,
   useActiveAccount,
@@ -18,6 +17,7 @@ import {
 import { shortenAddress } from "thirdweb/utils";
 import { isAddressEqual } from "viem";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { ConnectButton } from "@/components/auth/ConnectButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -320,11 +320,11 @@ export default function PublicWishlistPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Header Section with Profile */}
         <div className="text-center py-8 space-y-6">
-          <AccountProvider address={address as `0x${string}`} client={client}>
-            {/* Profile Section */}
-            <div className="flex flex-col items-center gap-4">
-              {/* Avatar */}
-              <div className="relative">
+          {/* Profile Section */}
+          <div className="flex flex-col items-center gap-4">
+            {/* Avatar */}
+            <div className="relative">
+              <AccountProvider address={address as `0x${string}`} client={client}>
                 <AccountAvatar
                   className="w-24 h-24 rounded-full ring-4 ring-primary/20"
                   fallbackComponent={
@@ -334,43 +334,44 @@ export default function PublicWishlistPage() {
                     />
                   }
                 />
-              </div>
-
-              {/* Wishlist Title and Share Button */}
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  <AccountName
-                    fallbackComponent={
-                      <AccountAddress formatFn={addr => shortenAddress(addr)} />
-                    }
-                  />
-                  &apos;s wishlist
-                </h1>
-              </div>
-              <Button
-                className="gap-2"
-                size="sm"
-                variant="outline"
-                onClick={handleShareClick}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </>
-                )}
-              </Button>
-
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Browse this wishlist and mark items you&apos;d like to purchase
-              </p>
+              </AccountProvider>
             </div>
-          </AccountProvider>
+
+            {/* Wishlist Title and Share Button */}
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <AccountDisplayName
+                  address={address}
+                  fallbackComponent={
+                    <AccountAddress formatFn={addr => shortenAddress(addr)} />
+                  }
+                />
+                &apos;s wishlist
+              </h1>
+            </div>
+            <Button
+              className="gap-2"
+              size="sm"
+              variant="outline"
+              onClick={handleShareClick}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </>
+              )}
+            </Button>
+
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Browse this wishlist and mark items you&apos;d like to purchase
+            </p>
+          </div>
           {!isOwner && items.length > 0 && (
             <div className="relative">
               <Image

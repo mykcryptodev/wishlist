@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AccountAvatar, AccountName, AccountProvider } from "thirdweb/react";
+import { AccountAvatar, AccountProvider } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
 import { isAddressEqual } from "viem";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -353,31 +354,32 @@ export function PurchasersDialog({
                       client={client}
                     >
                       <AccountAvatar className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <AccountName
-                            className="font-medium text-sm truncate"
-                            fallbackComponent={
-                              <span className="font-medium text-sm truncate text-muted-foreground">
-                                {shortenAddress(purchaser.purchaser)}
-                              </span>
-                            }
-                          />
-                          {currentUserAddress &&
-                            isAddressEqual(
-                              purchaser.purchaser as `0x${string}`,
-                              currentUserAddress as `0x${string}`,
-                            ) && (
+                    </AccountProvider>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <AccountDisplayName
+                          address={purchaser.purchaser}
+                          className="font-medium text-sm truncate"
+                          fallbackComponent={
+                            <span className="font-medium text-sm truncate text-muted-foreground">
+                              {shortenAddress(purchaser.purchaser)}
+                            </span>
+                          }
+                        />
+                        {currentUserAddress &&
+                          isAddressEqual(
+                            purchaser.purchaser as `0x${string}`,
+                            currentUserAddress as `0x${string}`,
+                          ) && (
                             <Badge className="text-xs" variant="secondary">
                               You
                             </Badge>
                           )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Signed up {formatDate(purchaser.signedUpAt)}
-                        </p>
                       </div>
-                    </AccountProvider>
+                      <p className="text-xs text-muted-foreground">
+                        Signed up {formatDate(purchaser.signedUpAt)}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

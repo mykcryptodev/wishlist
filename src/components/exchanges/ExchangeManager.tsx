@@ -14,13 +14,9 @@ import {
 import Link from "next/link";
 import { useEffect,useState } from "react";
 import { toast } from "sonner";
-import {
-  AccountAvatar,
-  AccountName,
-  AccountProvider,
-  Blobbie,
-} from "thirdweb/react";
+import { AccountAvatar, AccountProvider, Blobbie } from "thirdweb/react";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -376,18 +372,18 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                       ) : members && members.length > 0 ? (
                         <div className="space-y-2">
                           {members.map(member => (
-                            <AccountProvider
+                            <Link
                               key={member.wallet_address}
-                              address={member.wallet_address}
-                              client={client}
+                              className="block transition-transform hover:scale-[1.02]"
+                              href={`/wishlist/${member.wallet_address}`}
                             >
-                              <Link
-                                className="block transition-transform hover:scale-[1.02]"
-                                href={`/wishlist/${member.wallet_address}`}
-                              >
-                                <Card className="py-1 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
-                                  <CardContent className="p-4">
-                                    <div className="flex items-center gap-4">
+                              <Card className="py-1 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-4">
+                                    <AccountProvider
+                                      address={member.wallet_address}
+                                      client={client}
+                                    >
                                       <AccountAvatar
                                         className="size-6 flex-shrink-0 rounded-full"
                                         fallbackComponent={
@@ -397,21 +393,22 @@ export function ExchangeManager({ walletAddress }: ExchangeManagerProps) {
                                           />
                                         }
                                       />
-                                      <div className="flex-1 min-w-0">
-                                        <AccountName
-                                          className="font-semibold text-base mb-1 truncate block"
-                                          fallbackComponent={
-                                            <span className="font-semibold text-base mb-1 truncate block text-muted-foreground">
-                                              {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
-                                            </span>
-                                          }
-                                        />
-                                      </div>
+                                    </AccountProvider>
+                                    <div className="flex-1 min-w-0">
+                                      <AccountDisplayName
+                                        address={member.wallet_address}
+                                        className="font-semibold text-base mb-1 truncate block"
+                                        fallbackComponent={
+                                          <span className="font-semibold text-base mb-1 truncate block text-muted-foreground">
+                                            {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
+                                          </span>
+                                        }
+                                      />
                                     </div>
-                                  </CardContent>
-                                </Card>
-                              </Link>
-                            </AccountProvider>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </Link>
                           ))}
                         </div>
                       ) : (

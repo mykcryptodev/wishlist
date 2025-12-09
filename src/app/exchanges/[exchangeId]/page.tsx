@@ -6,13 +6,13 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   AccountAvatar,
-  AccountName,
   AccountProvider,
   Blobbie,
   useActiveAccount,
 } from "thirdweb/react";
 import { isAddressEqual } from "viem";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { ConnectButton } from "@/components/auth/ConnectButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -269,20 +269,21 @@ export default function ExchangeWishlistsPage() {
                       />
                     }
                   />
-                  <div>
-                    <AccountName
-                      className="text-lg font-semibold"
-                      fallbackComponent={
-                        <span className="font-semibold">
-                          {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
-                        </span>
-                      }
-                    />
-                    <CardDescription className="mt-1">
-                      Joined {new Date(member.joined_at).toLocaleDateString()}
-                    </CardDescription>
-                  </div>
                 </AccountProvider>
+                <div>
+                  <AccountDisplayName
+                    address={member.wallet_address}
+                    className="text-lg font-semibold"
+                    fallbackComponent={
+                      <span className="font-semibold">
+                        {`${member.wallet_address.slice(0, 6)}...${member.wallet_address.slice(-4)}`}
+                      </span>
+                    }
+                  />
+                  <CardDescription className="mt-1">
+                    Joined {new Date(member.joined_at).toLocaleDateString()}
+                  </CardDescription>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button asChild variant="outline">

@@ -3,13 +3,9 @@
 import { User } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  AccountAvatar,
-  AccountName,
-  AccountProvider,
-  Blobbie,
-} from "thirdweb/react";
+import { AccountAvatar, AccountProvider, Blobbie } from "thirdweb/react";
 
+import { AccountDisplayName } from "@/components/account/AccountDisplayName";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -224,14 +220,14 @@ export function WishlistDirectory({
  */
 function WishlistCard({ address }: { address: string }) {
   return (
-    <AccountProvider address={address} client={client}>
-      <Link
-        className="block transition-transform hover:scale-[1.02]"
-        href={`/wishlist/${address}`}
-      >
-        <Card className="h-full cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
+    <Link
+      className="block transition-transform hover:scale-[1.02]"
+      href={`/wishlist/${address}`}
+    >
+      <Card className="h-full cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            <AccountProvider address={address} client={client}>
               <AccountAvatar
                 className="h-12 w-12 flex-shrink-0 rounded-full"
                 fallbackComponent={
@@ -241,20 +237,21 @@ function WishlistCard({ address }: { address: string }) {
                   />
                 }
               />
-              <div className="flex-1 min-w-0">
-                <AccountName
-                  className="font-semibold text-base mb-1 truncate block"
-                  fallbackComponent={
-                    <span className="font-semibold text-base mb-1 truncate block text-muted-foreground">
-                      {`${address.slice(0, 6)}...${address.slice(-4)}`}
-                    </span>
-                  }
-                />
-              </div>
+            </AccountProvider>
+            <div className="flex-1 min-w-0">
+              <AccountDisplayName
+                address={address}
+                className="font-semibold text-base mb-1 truncate block"
+                fallbackComponent={
+                  <span className="font-semibold text-base mb-1 truncate block text-muted-foreground">
+                    {`${address.slice(0, 6)}...${address.slice(-4)}`}
+                  </span>
+                }
+              />
             </div>
-          </CardContent>
-        </Card>
-      </Link>
-    </AccountProvider>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
