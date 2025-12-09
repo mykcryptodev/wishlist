@@ -12,6 +12,28 @@ import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 export const dynamic = "force-dynamic";
 
+interface PurchaseItem {
+  id: string;
+  owner: string;
+  title: string;
+  description: string;
+  url: string;
+  imageUrl: string;
+  price: string;
+  exists: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface MyPurchasesResponse {
+  success: true;
+  items: PurchaseItem[];
+  count: number;
+  totalItems: number;
+  offset?: number;
+  limit?: number;
+}
+
 /**
  * Get all items that the user is signed up to purchase
  *
@@ -40,28 +62,86 @@ export async function GET(request: NextRequest) {
 
     const normalizedUserAddress = userAddress.toLowerCase();
     const wishFundAddress = multisig[chain.id];
-    const shouldCacheWishFund =
-      !!(
-        wishFundAddress &&
-        isAddressEqual(
-          wishFundAddress as `0x${string}`,
-          userAddress as `0x${string}`,
-        ) &&
-        shouldUseCache(chain.id)
-      );
-    const cacheKey =
-      shouldCacheWishFund && redis && !usePagination
-        ? getMyPurchasesCacheKey(chain.id, normalizedUserAddress)
-        : null;
+    const isWishFundAddress = !!(
+      wishFundAddress &&
+      isAddressEqual(
+        wishFundAddress as `0x${string}`,
+        userAddress as `0x${string}`,
+      )
+    );
+    const shouldCacheWishFund = isWishFundAddress && shouldUseCache(chain.id);
 
-    if (cacheKey && redis) {
+    // For multisig address, check cache first
+    if (shouldCacheWishFund && redis) {
+      // Check for paginated cache first
+      if (usePagination) {
+        const paginatedCacheKey = getMyPurchasesCacheKey(
+          chain.id,
+          normalizedUserAddress,
+          offset,
+          limit,
+        );
+        try {
+          const cachedPaginatedResponse = (await redis.get(
+            paginatedCacheKey,
+          )) as MyPurchasesResponse | null;
+          if (cachedPaginatedResponse) {
+            console.log(
+              `[My Purchases] Returning cached paginated Wish Fund data for ${normalizedUserAddress} (offset: ${offset}, limit: ${limit})`,
+            );
+            return NextResponse.json(cachedPaginatedResponse);
+          }
+        } catch (error) {
+          console.error("[My Purchases] Redis cache read error:", error);
+        }
+      }
+
+      // Check for full dataset cache
+      const fullCacheKey = getMyPurchasesCacheKey(
+        chain.id,
+        normalizedUserAddress,
+      );
       try {
-        const cachedResponse = await redis.get(cacheKey);
-        if (cachedResponse) {
+        const cachedFullResponse = (await redis.get(
+          fullCacheKey,
+        )) as MyPurchasesResponse | null;
+        if (cachedFullResponse) {
           console.log(
-            `[My Purchases] Returning cached Wish Fund data for ${normalizedUserAddress}`,
+            `[My Purchases] Found cached full Wish Fund data for ${normalizedUserAddress}`,
           );
-          return NextResponse.json(cachedResponse);
+
+          // If paginated request, slice the cached data
+          if (usePagination && cachedFullResponse.items) {
+            const allItems = cachedFullResponse.items;
+            const paginatedItems = allItems.slice(offset, offset + limit);
+            const paginatedResponse: MyPurchasesResponse = {
+              ...cachedFullResponse,
+              items: paginatedItems,
+              count: paginatedItems.length,
+              offset,
+              limit,
+            };
+
+            // Cache the paginated result for faster future access
+            const paginatedCacheKey = getMyPurchasesCacheKey(
+              chain.id,
+              normalizedUserAddress,
+              offset,
+              limit,
+            );
+            try {
+              await redis.set(paginatedCacheKey, paginatedResponse, {
+                ex: CACHE_TTL.ONE_DAY,
+              });
+            } catch (error) {
+              console.error("[My Purchases] Redis cache write error:", error);
+            }
+
+            return NextResponse.json(paginatedResponse);
+          }
+
+          // Non-paginated request, return full cached data
+          return NextResponse.json(cachedFullResponse);
         }
       } catch (error) {
         console.error("[My Purchases] Redis cache read error:", error);
@@ -100,14 +180,19 @@ export async function GET(request: NextRequest) {
       `[My Purchases] Total items: ${totalItems}, checking for user: ${userAddress}`,
     );
 
+    // For multisig address, always fetch all items to cache the full dataset
+    // For other addresses, only fetch requested range
+    const shouldFetchAll = isWishFundAddress && shouldCacheWishFund;
+    const startItemId = shouldFetchAll ? 1 : usePagination ? offset + 1 : 1;
+    const endItemId = shouldFetchAll
+      ? totalItems
+      : usePagination
+        ? Math.min(totalItems, offset + limit)
+        : totalItems;
+
     // Check each item to see if user is a purchaser
     // Note: This could be optimized with batch calls
     const itemChecks = [];
-    const startItemId = usePagination ? offset + 1 : 1;
-    const endItemId = usePagination
-      ? Math.min(totalItems, offset + limit)
-      : totalItems;
-
     for (let itemId = startItemId; itemId <= endItemId; itemId++) {
       itemChecks.push(
         thirdwebReadContract(
@@ -148,9 +233,36 @@ export async function GET(request: NextRequest) {
         limit: usePagination ? limit : undefined,
       } as const;
 
-      if (cacheKey && redis) {
+      // Cache empty response for multisig address
+      if (shouldCacheWishFund && redis) {
         try {
-          await redis.set(cacheKey, emptyResponse, { ex: CACHE_TTL.ONE_DAY });
+          // Cache full empty dataset
+          const fullCacheKey = getMyPurchasesCacheKey(
+            chain.id,
+            normalizedUserAddress,
+          );
+          const fullEmptyResponse = {
+            success: true,
+            items: [],
+            count: 0,
+            totalItems,
+          };
+          await redis.set(fullCacheKey, fullEmptyResponse, {
+            ex: CACHE_TTL.ONE_DAY,
+          });
+
+          // If paginated, also cache paginated empty response
+          if (usePagination) {
+            const paginatedCacheKey = getMyPurchasesCacheKey(
+              chain.id,
+              normalizedUserAddress,
+              offset,
+              limit,
+            );
+            await redis.set(paginatedCacheKey, emptyResponse, {
+              ex: CACHE_TTL.ONE_DAY,
+            });
+          }
         } catch (error) {
           console.error("[My Purchases] Redis cache write error:", error);
         }
@@ -215,6 +327,67 @@ export async function GET(request: NextRequest) {
 
     console.log(`[My Purchases] Returning ${existingItems.length} items`);
 
+    // For multisig address, cache the full dataset
+    if (shouldCacheWishFund && redis && shouldFetchAll) {
+      const fullCacheKey = getMyPurchasesCacheKey(
+        chain.id,
+        normalizedUserAddress,
+      );
+      const fullResponsePayload = {
+        success: true,
+        items: existingItems,
+        count: existingItems.length,
+        totalItems,
+      };
+
+      try {
+        await redis.set(fullCacheKey, fullResponsePayload, {
+          ex: CACHE_TTL.ONE_DAY,
+        });
+        console.log(
+          `[My Purchases] Cached full Wish Fund dataset for ${normalizedUserAddress} (TTL: ${CACHE_TTL.ONE_DAY}s)`,
+        );
+      } catch (error) {
+        console.error("[My Purchases] Redis cache write error:", error);
+      }
+
+      // If this was a paginated request, slice the data and cache the paginated result
+      if (usePagination) {
+        const paginatedItems = existingItems.slice(offset, offset + limit);
+        const paginatedResponsePayload = {
+          success: true,
+          items: paginatedItems,
+          count: paginatedItems.length,
+          totalItems,
+          offset,
+          limit,
+        };
+
+        const paginatedCacheKey = getMyPurchasesCacheKey(
+          chain.id,
+          normalizedUserAddress,
+          offset,
+          limit,
+        );
+        try {
+          await redis.set(paginatedCacheKey, paginatedResponsePayload, {
+            ex: CACHE_TTL.ONE_DAY,
+          });
+          console.log(
+            `[My Purchases] Cached paginated Wish Fund data for ${normalizedUserAddress} (offset: ${offset}, limit: ${limit})`,
+          );
+        } catch (error) {
+          console.error("[My Purchases] Redis cache write error:", error);
+        }
+
+        return NextResponse.json(paginatedResponsePayload);
+      }
+
+      // Non-paginated request, return full dataset
+      return NextResponse.json(fullResponsePayload);
+    }
+
+    // For non-multisig addresses or when not caching, return as before
     const responsePayload = {
       success: true,
       items: existingItems,
@@ -223,17 +396,6 @@ export async function GET(request: NextRequest) {
       offset,
       limit: usePagination ? limit : undefined,
     };
-
-    if (cacheKey && redis) {
-      try {
-        await redis.set(cacheKey, responsePayload, { ex: CACHE_TTL.ONE_DAY });
-        console.log(
-          `[My Purchases] Cached Wish Fund data for ${normalizedUserAddress} (TTL: ${CACHE_TTL.ONE_DAY}s)`,
-        );
-      } catch (error) {
-        console.error("[My Purchases] Redis cache write error:", error);
-      }
-    }
 
     return NextResponse.json(responsePayload);
   } catch (error) {

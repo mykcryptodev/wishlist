@@ -80,12 +80,6 @@ export default function MyPurchasesPage() {
     fetchMyPurchases();
   }, [userAddress]);
 
-  const formatPrice = (priceInWei: string) => {
-    const price = parseFloat(priceInWei) / 1e18;
-    if (price === 0) return "Price not specified";
-    return `$${price.toFixed(2)}`;
-  };
-
   if (!userAddress) {
     return (
       <div className="min-h-screen bg-background">
