@@ -71,14 +71,16 @@ export function LivestreamScheduleBanner() {
                 <Image
                   fill
                   alt="Holiday livestream"
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 768px) 100vw, 288px"
-                  src="/images/monster-elf.png"
+                  src="/images/monster.png"
                 />
               </div>
               <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-red-600 shadow-lg">
                 <CalendarClock className="h-4 w-4" />
-                <span className="text-sm font-semibold">Dec 13 • 12:00 PM ET</span>
+                <span className="text-sm font-semibold">
+                  Dec 13 • 12:00 PM ET
+                </span>
               </div>
             </div>
 
@@ -89,23 +91,31 @@ export function LivestreamScheduleBanner() {
                   Upcoming Livestream
                 </Badge>
                 {countdownLabel && (
-                  <p className="text-sm text-white/80">Countdown: {countdownLabel}</p>
+                  <p className="text-sm text-white/80">
+                    Countdown: {countdownLabel}
+                  </p>
                 )}
               </div>
 
               <h2 className="text-2xl font-bold leading-tight md:text-3xl flex items-center gap-2">
-                Wishlist Holiday Livestream — win up to $2,000 in gifts
+                Wishlist Holiday Livestream
               </h2>
 
               <div className="space-y-2 text-base text-white/90">
                 <p>
-                  Join us live on <strong>December 13, 2025 at 12:00 PM ET</strong>. Make your wishlist and
-                  show up to the stream for a chance to have your wishes granted.
+                  Join us live on{" "}
+                  <strong>December 13, 2025 at 12:00 PM ET</strong>. Make your
+                  wishlist and show up to the stream for a chance to have your
+                  wishes come true.
                 </p>
                 <p>
-                  We’ll pick wishlists during the broadcast and purchase gifts for the winners — up to <strong>$2,000 per wisher</strong>.
+                  We’ll pick random wishlists during the broadcast and purchase
+                  gifts for the winners — up to{" "}
+                  <strong>$2,000 per wisher</strong>.
                 </p>
-                <p className="text-white/80 text-sm">Optional: RSVP to add the livestream to your calendar.</p>
+                <p className="text-white/80 text-sm">
+                  Optional: RSVP to add the livestream to your calendar.
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
