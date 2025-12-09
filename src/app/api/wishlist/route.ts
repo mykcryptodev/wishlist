@@ -5,6 +5,7 @@ import { chain, wishlist } from "@/constants";
 import { requireAuth } from "@/lib/auth-utils";
 import { invalidateWishlistAddressesCache } from "@/lib/cache-utils";
 import {
+  type ReadContractResult,
   thirdwebReadContract,
   thirdwebWriteContract,
 } from "@/lib/thirdweb-http-api";
@@ -205,7 +206,7 @@ export async function GET(request: NextRequest) {
     // Check if the API returned primitive values instead of tuples
     // This happens when multicall fails and Thirdweb API doesn't decode tuples properly
     const hasPrimitiveReturns = itemDetailsResult.result.some(
-      (item: any, index: number) => {
+      (item: ReadContractResult, index: number) => {
         const data = item.data || item.result;
         // Check if data is a primitive (BigInt, number, or numeric string) instead of array/object
         // Don't check item.success because primitives might still have success: true
@@ -228,7 +229,7 @@ export async function GET(request: NextRequest) {
     );
 
     // If we got primitive returns, make individual calls to get full item data
-    let items: any[];
+    let items: ReadContractResult[];
     if (hasPrimitiveReturns) {
       console.warn(
         `Batch call returned primitives for ${itemIds.length} items, falling back to individual calls`,
@@ -294,7 +295,18 @@ export async function GET(request: NextRequest) {
         // 1. Array format: [id, owner, title, description, url, imageUrl, price, exists, createdAt, updatedAt]
         // 2. Object format: { id, owner, title, ... }
         // 3. BigInt/primitive format: When API returns just a value instead of tuple (shouldn't happen but handle it)
-        let itemData: any;
+        let itemData: {
+          id: unknown;
+          owner?: unknown;
+          title?: unknown;
+          description?: unknown;
+          url?: unknown;
+          imageUrl?: unknown;
+          price?: unknown;
+          exists?: unknown;
+          createdAt?: unknown;
+          updatedAt?: unknown;
+        };
 
         if (Array.isArray(data)) {
           // Check if array has required elements
@@ -392,7 +404,7 @@ export async function GET(request: NextRequest) {
       `[Wishlist API] Returning ${processedItems.length} items for user ${userAddress}`,
     );
     if (processedItems.length > 0 && processedItems[0]) {
-      console.log(`[Wishlist API] First item:`, {
+      console.log("[Wishlist API] First item:", {
         id: processedItems[0].id,
         title: processedItems[0].title,
         owner: processedItems[0].owner,
