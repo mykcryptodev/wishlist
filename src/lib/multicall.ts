@@ -233,9 +233,16 @@ export async function multicallReadContract(
   ] as const;
 
   // Encode all calls
-  const encodedCalls = calls.map(call =>
-    encodeCall(call.contractAddress, call.method, call.params),
-  );
+  // Convert BigInt params to strings/numbers for encoding
+  const encodedCalls = calls.map(call => {
+    const convertedParams = call.params.map(param => {
+      if (typeof param === "bigint") {
+        return param.toString();
+      }
+      return param;
+    });
+    return encodeCall(call.contractAddress, call.method, convertedParams);
+  });
 
   // Execute multicall
   const result = await publicClient.readContract({

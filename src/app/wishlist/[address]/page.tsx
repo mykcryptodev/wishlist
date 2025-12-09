@@ -85,9 +85,33 @@ export default function PublicWishlistPage() {
       const data = await response.json();
 
       if (data.success) {
-        setItems(data.items);
+        console.log(
+          `[Wishlist Page] Received ${data.items?.length || 0} items from API`,
+          data.items?.slice(0, 2),
+        );
+
+        // Filter out any items with invalid IDs before setting state
+        const validItems = (data.items || []).filter(
+          (item: WishlistItem) =>
+            item.id != null &&
+            item.id !== undefined &&
+            item.id !== "undefined" &&
+            item.id !== "null",
+        );
+
+        if (validItems.length !== (data.items?.length || 0)) {
+          console.warn(
+            `Filtered out ${(data.items?.length || 0) - validItems.length} items with invalid IDs`,
+          );
+        }
+
+        console.log(
+          `[Wishlist Page] Setting ${validItems.length} valid items to state`,
+        );
+
+        setItems(validItems);
         // Fetch purchaser data for each item
-        await fetchPurchaserData(data.items);
+        await fetchPurchaserData(validItems);
       } else {
         console.error("API returned error:", data);
         toast.error(
@@ -107,14 +131,25 @@ export default function PublicWishlistPage() {
     if (isOwner) {
       const dataMap: Record<string, ItemPurchaserData> = {};
       itemsList.forEach(item => {
-        dataMap[item.id] = { count: 0, isUserPurchaser: false };
+        if (item.id) {
+          dataMap[item.id] = { count: 0, isUserPurchaser: false };
+        }
       });
       setPurchaserData(dataMap);
       return;
     }
 
     try {
-      const purchaserPromises = itemsList.map(async item => {
+      // Filter out items without valid IDs
+      const validItems = itemsList.filter(
+        item => item.id != null && item.id !== undefined,
+      );
+
+      if (validItems.length === 0) {
+        return;
+      }
+
+      const purchaserPromises = validItems.map(async item => {
         try {
           const headers: HeadersInit = {};
           // Send JWT token if available (more secure)
@@ -122,8 +157,11 @@ export default function PublicWishlistPage() {
             headers["Authorization"] = `Bearer ${token}`;
           }
 
+          // Ensure item.id is converted to string
+          const itemId = String(item.id);
+
           const response = await fetch(
-            `/api/wishlist/${item.id}/purchasers?itemId=${item.id}`,
+            `/api/wishlist/${itemId}/purchasers?itemId=${itemId}`,
             { headers },
           );
           const data = await response.json();
@@ -244,17 +282,29 @@ export default function PublicWishlistPage() {
 
   // Refetch purchaser data when user connects/disconnects wallet or token changes
   useEffect(() => {
-    if (items.length > 0) {
-      fetchPurchaserData(items);
+    // Only fetch if we have valid items with IDs
+    const validItems = items.filter(
+      item => item.id != null && item.id !== undefined,
+    );
+    if (validItems.length > 0 && !isOwner) {
+      fetchPurchaserData(validItems);
     }
-  }, [currentUserAddress, token, items.length]);
+  }, [currentUserAddress, token, items]);
 
   // Additional effect to refetch after token finishes loading
   useEffect(() => {
-    if (!isTokenLoading && items.length > 0 && (token || currentUserAddress)) {
-      fetchPurchaserData(items);
+    const validItems = items.filter(
+      item => item.id != null && item.id !== undefined,
+    );
+    if (
+      !isTokenLoading &&
+      validItems.length > 0 &&
+      !isOwner &&
+      (token || currentUserAddress)
+    ) {
+      fetchPurchaserData(validItems);
     }
-  }, [isTokenLoading]);
+  }, [isTokenLoading, items, isOwner, token, currentUserAddress]);
 
   if (loading) {
     return (
@@ -422,8 +472,8 @@ export default function PublicWishlistPage() {
           <Card className="max-w-7xl mx-auto bg-muted/50">
             <CardContent className="flex flex-col items-center gap-4 text-center">
               <p className="text-sm text-muted-foreground">
-                🎁 You&apos;re viewing your own wishlist. Purchaser information is
-                hidden from you to keep gifts a surprise!
+                🎁 You&apos;re viewing your own wishlist. Purchaser information
+                is hidden from you to keep gifts a surprise!
               </p>
               <Button asChild size="lg">
                 <Link href="/wishlist">add an item</Link>
