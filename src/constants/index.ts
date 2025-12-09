@@ -6,7 +6,17 @@ export const appDescription =
   "Create your perfect holiday wishlist. Collaborate with family and friends!";
 
 // CHAINS
-export const chain = base;
+export const chain = {
+  ...base,
+  ...(process.env.NEXT_PUBLIC_BASE_RPC_URL &&
+  process.env.NEXT_PUBLIC_BASE_RPC_URL !== ""
+    ? {
+        rpcOverrides: {
+          [base.id]: process.env.NEXT_PUBLIC_BASE_RPC_URL,
+        },
+      }
+    : {}),
+};
 
 // YOUTUBE
 export const youtubeChannelId =
