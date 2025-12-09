@@ -176,12 +176,7 @@ export function FulfilledWishes() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-xl font-semibold">Wish Fund Purchases</h3>
-          <p className="text-sm text-muted-foreground">
-            Rotating through items fulfilled by wishlist.holiday
-          </p>
-        </div>
+        <h3 className="text-xl font-semibold">Wish Fund Purchases</h3>
         <Button
           size="sm"
           variant="outline"
