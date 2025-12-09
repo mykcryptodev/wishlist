@@ -8,7 +8,7 @@ import {
   redis,
   shouldUseCache,
 } from "@/lib/redis";
-import { thirdwebReadContract } from "@/lib/thirdweb-http-api";
+import { ContractCall, thirdwebReadContract } from "@/lib/thirdweb-http-api";
 
 export const dynamic = "force-dynamic";
 
@@ -191,28 +191,28 @@ export async function GET(request: NextRequest) {
         : totalItems;
 
     // Check each item to see if user is a purchaser
-    // Note: This could be optimized with batch calls
-    const itemChecks = [];
+    // NOTE: The contract doesn't support reverse lookups (no getItemsByPurchaser method),
+    // so we must check all items. This is inefficient but necessary. However:
+    // 1. We batch all calls into a single API request (1 call instead of N calls)
+    // 2. Results are cached for 24 hours, so subsequent requests use cache
+    // 3. This full check only happens on cache miss
+    // Batch all calls into a single API request to avoid rate limits
+    const batchCalls: ContractCall[] = [];
     for (let itemId = startItemId; itemId <= endItemId; itemId++) {
-      itemChecks.push(
-        thirdwebReadContract(
-          [
-            {
-              contractAddress: wishlist[chain.id],
-              method:
-                "function checkIsPurchaser(uint256,address) view returns (bool)",
-              params: [itemId.toString(), userAddress],
-            },
-          ],
-          chain.id,
-        ).then(result => ({
-          itemId,
-          isPurchaser: result.result[0].data || result.result[0].result,
-        })),
-      );
+      batchCalls.push({
+        contractAddress: wishlist[chain.id],
+        method:
+          "function checkIsPurchaser(uint256,address) view returns (bool)",
+        params: [itemId.toString(), userAddress],
+      });
     }
 
-    const checkResults = await Promise.all(itemChecks);
+    // Make a single batched API call instead of many individual calls
+    const batchResult = await thirdwebReadContract(batchCalls, chain.id);
+    const checkResults = batchResult.result.map((result, index) => ({
+      itemId: startItemId + index,
+      isPurchaser: result.data || result.result,
+    }));
     const purchasingItemIds = checkResults
       .filter(r => r.isPurchaser === true)
       .map(r => r.itemId);
@@ -272,20 +272,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch full details for items user is purchasing
-    const itemDetailsPromises = purchasingItemIds.map(itemId =>
-      thirdwebReadContract(
-        [
-          {
-            contractAddress: wishlist[chain.id],
-            method:
-              "function getItem(uint256) view returns ((uint256,address,string,string,string,string,uint256,bool,uint256,uint256))",
-            params: [itemId.toString()],
-          },
-        ],
-        chain.id,
-      ).then(result => {
+    // Batch all getItem calls into a single API request
+    const itemDetailsCalls: ContractCall[] = purchasingItemIds.map(itemId => ({
+      contractAddress: wishlist[chain.id],
+      method:
+        "function getItem(uint256) view returns ((uint256,address,string,string,string,string,uint256,bool,uint256,uint256))",
+      params: [itemId.toString()],
+    }));
+
+    const itemDetailsBatchResult = await thirdwebReadContract(
+      itemDetailsCalls,
+      chain.id,
+    );
+
+    const items = itemDetailsBatchResult.result
+      .map(result => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const itemData: any = result.result[0].data || result.result[0].result;
+        const itemData: any = result.data || result.result;
+
+        // Skip failed decodings
+        if (!itemData) {
+          return null;
+        }
 
         // Handle both array and object formats
         if (Array.isArray(itemData)) {
@@ -317,10 +325,8 @@ export async function GET(request: NextRequest) {
               itemData.updatedAt?.toString() || itemData[9]?.toString(),
           };
         }
-      }),
-    );
-
-    const items = await Promise.all(itemDetailsPromises);
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     // Filter out any items that don't exist
     const existingItems = items.filter(item => item.exists);
