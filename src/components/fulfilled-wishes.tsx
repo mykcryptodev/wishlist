@@ -224,13 +224,16 @@ export function FulfilledWishes() {
       {items.length > 0 && (
         <div className="relative">
           <Carousel
+            className="w-full"
             opts={{ loop: true, align: "start" }}
             setApi={setCarouselApi}
-            className="w-full"
           >
             <CarouselContent className="pb-10">
               {items.map(item => (
-                <CarouselItem key={item.id} className="md:basis-full lg:basis-full">
+                <CarouselItem
+                  key={item.id}
+                  className="md:basis-full lg:basis-full"
+                >
                   <Card className="group overflow-hidden transition-all hover:shadow-lg border-accent/30">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-4">
