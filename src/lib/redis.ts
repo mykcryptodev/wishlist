@@ -77,6 +77,15 @@ export const getYouTubeLastLiveVideoIdKey = () => {
   return "youtube:live:last-video-id";
 };
 
+export const getBurnLeaderboardCacheKey = (limit: number) => {
+  return `burn-leaderboard:limit-${limit}`;
+};
+
+export const getBurnEventsCacheKey = (staker?: string, limit?: number) => {
+  const stakerKey = staker ? staker.toLowerCase() : "all";
+  return `burn-events:${stakerKey}:limit-${limit || 50}`;
+};
+
 // Cache TTL constants
 export const CACHE_TTL = {
   FIVE_SECONDS: 5, // 5 seconds (real-time price data)

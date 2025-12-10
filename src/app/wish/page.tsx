@@ -12,6 +12,7 @@ import {
 import Image from "next/image";
 
 import { Claim } from "@/components/airdrop/claim";
+import { BurnLeaderboard } from "@/components/burn-leaderboard";
 import Buy from "@/components/buy";
 import Stake from "@/components/stake";
 import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
@@ -183,6 +184,10 @@ export default function WishPage() {
 
           <div className="text-center">
             <Stake />
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <BurnLeaderboard />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
