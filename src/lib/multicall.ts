@@ -73,48 +73,63 @@ function decodeResult(
     throw new Error(`Could not parse method name from: ${methodSignature}`);
   }
 
-  // Extract return type - handle both single types and tuples
+  // Extract return type - handle both single types, tuples, and arrays of tuples
   // Tuples are wrapped in parentheses: returns ((uint256,address,...))
+  // Arrays: returns ((uint256,address,...)[])
   // Single types: returns (bool) or returns (uint256)
+  // Method signature may include modifiers like "external view" before returns
   let returnType: string;
-  const returnsMatch = methodSignature.match(/returns\s+(.+)$/);
+  let isArray = false;
+
+  // Match "returns" followed by the return type (handles "external view returns" etc.)
+  const returnsMatch = methodSignature.match(/returns\s+(.+)$/i);
   if (!returnsMatch) {
     throw new Error(`Could not parse return type from: ${methodSignature}`);
   }
 
-  const returnsPart = returnsMatch[1].trim();
+  let returnsPart = returnsMatch[1].trim();
 
-  // Check if it's a tuple (starts with double parentheses)
-  if (returnsPart.startsWith("((")) {
-    // Tuple return type - extract the inner tuple (without outer parentheses)
-    // Find the matching closing parentheses for the inner tuple
-    let depth = 0;
-    let endIndex = -1;
-    // Start from index 1 to skip the first opening parenthesis
-    for (let i = 1; i < returnsPart.length; i++) {
-      if (returnsPart[i] === "(") depth++;
-      if (returnsPart[i] === ")") depth--;
-      if (depth === 0) {
-        // Found the matching closing parenthesis for the inner tuple
-        endIndex = i + 1; // Position after the closing ')'
-        break;
+  // Check if it's an array type (ends with [])
+  if (returnsPart.endsWith("[]")) {
+    isArray = true;
+    returnsPart = returnsPart.slice(0, -2); // Remove "[]"
+  }
+
+  // Check if it's a tuple (starts with parentheses)
+  if (returnsPart.startsWith("(")) {
+    // Tuple return type - extract the tuple content
+    // Handle both single tuple: (address,uint256,bool)
+    // and wrapped tuple: ((address,uint256,bool))
+    if (returnsPart.startsWith("((")) {
+      // Double parentheses - find matching closing parens
+      let depth = 0;
+      let endIndex = -1;
+      for (let i = 1; i < returnsPart.length; i++) {
+        if (returnsPart[i] === "(") depth++;
+        if (returnsPart[i] === ")") depth--;
+        if (depth === 0) {
+          endIndex = i + 1;
+          break;
+        }
       }
+      if (endIndex === -1) {
+        throw new Error(
+          `Could not parse tuple return type from: ${methodSignature}`,
+        );
+      }
+      returnType = returnsPart.substring(1, endIndex);
+    } else {
+      // Single parentheses - extract content
+      returnType = returnsPart;
     }
-    if (endIndex === -1) {
-      throw new Error(
-        `Could not parse tuple return type from: ${methodSignature}`,
-      );
-    }
-    // Extract inner tuple: from index 1 (after first '(') to endIndex (including the closing ')')
-    // Example: "((uint256,...))" -> extract "(uint256,...)"
-    returnType = returnsPart.substring(1, endIndex);
   } else {
-    // Single return type - extract from parentheses
+    // Single return type - extract from parentheses if present
     const singleMatch = returnsPart.match(/\(([^)]+)\)/);
-    if (!singleMatch) {
-      throw new Error(`Could not parse return type from: ${methodSignature}`);
+    if (singleMatch) {
+      returnType = singleMatch[1].trim();
+    } else {
+      returnType = returnsPart;
     }
-    returnType = singleMatch[1].trim();
   }
 
   // Extract parameter types for ABI
@@ -124,31 +139,68 @@ function decodeResult(
 
   // Create function ABI for decoding
   // Viem requires tuples to be specified with 'tuple' type and components array
-  let abiParameter: { type: string; components?: Array<{ type: string }> };
+  let abiParameter: {
+    type: string;
+    components?: Array<{ type: string; name?: string }>;
+  };
 
   if (returnType.startsWith("(")) {
     // It's a tuple - parse the components
     const tupleContent = returnType.slice(1, -1); // Remove outer parentheses
-    const components = tupleContent.split(",").map(c => ({
-      type: c.trim(),
-    }));
+
+    // Parse tuple components, handling both named and unnamed formats
+    // Examples:
+    // - Named: "uint256 id, address owner, string title"
+    // - Unnamed: "address, uint256, bool"
+    // Split by comma, but be careful - we'll use a simple approach since Solidity
+    // doesn't allow nested tuples in return types for our use cases
+    const componentStrings = tupleContent.split(",").map(c => c.trim());
+
+    const components = componentStrings.map(componentStr => {
+      // Each component is either "type" or "type name"
+      // Split by whitespace - the last token is the name (if present)
+      const parts = componentStr.split(/\s+/).filter(p => p.length > 0);
+
+      if (parts.length === 0) {
+        throw new Error(`Invalid tuple component: "${componentStr}"`);
+      }
+
+      if (parts.length === 1) {
+        // No name, just type: "uint256" or "address"
+        return { type: parts[0].trim() };
+      } else {
+        // Has name: "uint256 id" -> type: "uint256", name: "id"
+        // The last part is the name, everything else is the type
+        // Handle multi-word types like "uint256" (single word) correctly
+        const type = parts.slice(0, -1).join(" ").trim();
+        const name = parts[parts.length - 1].trim();
+
+        // Validate that type is not empty
+        if (!type) {
+          throw new Error(
+            `Invalid tuple component - empty type: "${componentStr}"`,
+          );
+        }
+
+        return { type, name };
+      }
+    });
 
     abiParameter = {
-      type: "tuple",
+      type: isArray ? "tuple[]" : "tuple",
       components,
     };
   } else {
     // Simple type
-    abiParameter = { type: returnType };
+    abiParameter = { type: isArray ? `${returnType}[]` : returnType };
   }
 
-  try {
-    // Use decodeAbiParameters with proper tuple format
-    const decoded = decodeAbiParameters([abiParameter], returnData);
-    // decodeAbiParameters returns an array, get the first element
-    return decoded[0];
-  } catch (error) {
-    // Fallback: try decodeFunctionResult with ABI
+  // Try decodeFunctionResult first for tuples, as it handles function ABIs better
+  // For simple types, decodeAbiParameters is fine
+  const isTuple = returnType.startsWith("(");
+
+  if (isTuple) {
+    // For tuples, use decodeFunctionResult which handles function ABIs better
     try {
       const abi = [
         {
@@ -168,12 +220,35 @@ function decodeResult(
         data: returnData,
       });
       return decoded;
-    } catch {
+    } catch (error) {
+      // Fallback to decodeAbiParameters
+      try {
+        const decoded = decodeAbiParameters([abiParameter], returnData);
+        return decoded[0];
+      } catch (fallbackError) {
+        console.error(`Error decoding tuple result for ${methodName}:`, {
+          decodeFunctionResult: error instanceof Error ? error.message : error,
+          decodeAbiParameters:
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : fallbackError,
+          returnType,
+          abiParameter: JSON.stringify(abiParameter, null, 2),
+        });
+        throw error; // Throw the original error
+      }
+    }
+  } else {
+    // For simple types, use decodeAbiParameters
+    try {
+      const decoded = decodeAbiParameters([abiParameter], returnData);
+      return decoded[0];
+    } catch (error) {
       // Final fallback: try to decode as raw value for simple types
       if (returnType === "bool" || returnType.trim() === "bool") {
         return BigInt(returnData) === BigInt(1);
       }
-      throw error; // Throw the original decodeAbiParameters error
+      throw error;
     }
   }
 }
