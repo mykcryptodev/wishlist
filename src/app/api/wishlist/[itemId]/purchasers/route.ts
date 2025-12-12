@@ -273,6 +273,18 @@ export async function GET(request: NextRequest) {
       chain.id,
     );
 
+    // Check if the first call was successful
+    if (!result.result[0]?.success && !result.result[0]?.data && !result.result[0]?.result) {
+      console.error("Failed to fetch purchasers - decoding error or API failure");
+      // Return empty purchasers array instead of failing completely
+      return NextResponse.json({
+        success: true,
+        purchasers: [],
+        count: 0,
+        isOwner: false,
+      });
+    }
+
     // Extract data from thirdweb API response (handles both .data and .result formats)
     const purchasersRaw = result.result[0].data || result.result[0].result;
 

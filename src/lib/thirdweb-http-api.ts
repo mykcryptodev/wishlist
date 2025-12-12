@@ -220,13 +220,26 @@ export async function thirdwebReadContract(
         };
       });
 
+      // Check if too many results failed - if more than half failed, fall back to API
+      const failedCount = apiResults.filter(r => !r.success).length;
+      if (failedCount > 0 && failedCount >= calls.length / 2) {
+        // More than half failed, likely a systemic issue - fall back to API
+        console.warn(
+          `${failedCount}/${calls.length} multicall decodings failed, falling back to Thirdweb API`,
+        );
+        throw new Error(
+          `Too many multicall decodings failed: ${failedCount}/${calls.length}`,
+        );
+      }
+
       return { result: apiResults };
     } catch (error) {
-      // Fallback to API if multicall fails
+      // Fallback to API if multicall fails or too many decodings fail
       console.warn(
         "Multicall failed, falling back to Thirdweb API:",
         error instanceof Error ? error.message : error,
       );
+      // Continue to API fallback below
     }
   }
 
