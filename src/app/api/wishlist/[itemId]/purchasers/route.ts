@@ -6,15 +6,15 @@ import { optionalAuth, requireAuth } from "@/lib/auth-utils";
 import { invalidatePurchasersCache } from "@/lib/cache-utils";
 import { getApprovedPurchasers, isInAnyExchange } from "@/lib/exchange-utils";
 import {
-  thirdwebReadContract,
-  thirdwebWriteContract,
-} from "@/lib/thirdweb-http-api";
-import {
   CACHE_TTL,
   getItemPurchasersCacheKey,
   redis,
   shouldUseCache,
 } from "@/lib/redis";
+import {
+  thirdwebReadContract,
+  thirdwebWriteContract,
+} from "@/lib/thirdweb-http-api";
 
 const PURCHASERS_CACHE_TTL = CACHE_TTL.FIVE_MINUTES;
 

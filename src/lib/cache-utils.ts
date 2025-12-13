@@ -1,7 +1,7 @@
 import {
+  getItemPurchasersCachePrefix,
   getUserSearchCacheKey,
   getWishlistAddressesCacheKey,
-  getItemPurchasersCachePrefix,
   redis,
   shouldUseCache,
 } from "./redis";
