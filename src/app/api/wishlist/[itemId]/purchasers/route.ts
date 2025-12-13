@@ -3,11 +3,20 @@ import { isAddressEqual } from "viem";
 
 import { chain, wishlist } from "@/constants";
 import { optionalAuth, requireAuth } from "@/lib/auth-utils";
+import { invalidatePurchasersCache } from "@/lib/cache-utils";
 import { getApprovedPurchasers, isInAnyExchange } from "@/lib/exchange-utils";
 import {
   thirdwebReadContract,
   thirdwebWriteContract,
 } from "@/lib/thirdweb-http-api";
+import {
+  CACHE_TTL,
+  getItemPurchasersCacheKey,
+  redis,
+  shouldUseCache,
+} from "@/lib/redis";
+
+const PURCHASERS_CACHE_TTL = CACHE_TTL.FIVE_MINUTES;
 
 /**
  * Sign up purchaser endpoint
@@ -78,6 +87,8 @@ export async function POST(request: NextRequest) {
       ],
       chain.id,
     );
+
+    await invalidatePurchasersCache(chain.id, itemIdNum);
 
     return NextResponse.json({
       success: true,
@@ -165,6 +176,8 @@ export async function DELETE(request: NextRequest) {
       chain.id,
     );
 
+    await invalidatePurchasersCache(chain.id, itemIdNum);
+
     return NextResponse.json({
       success: true,
       transactionId: result.result.transactionIds[0],
@@ -216,6 +229,25 @@ export async function GET(request: NextRequest) {
     // Get the authenticated user's wallet address (if any)
     const authenticatedAddress = await optionalAuth(request);
 
+    const useCache = shouldUseCache(chain.id) && !!redis;
+    const cacheKey = useCache
+      ? getItemPurchasersCacheKey(chain.id, itemIdNum, authenticatedAddress)
+      : null;
+
+    if (cacheKey && redis) {
+      const cachedResponse = await redis.get<{
+        success: boolean;
+        purchasers: unknown[];
+        count: number;
+        isOwner: boolean;
+        message?: string;
+      }>(cacheKey);
+
+      if (cachedResponse) {
+        return NextResponse.json(cachedResponse);
+      }
+    }
+
     // Get the item owner using the public items mapping
     const itemResult = await thirdwebReadContract(
       [
@@ -243,13 +275,19 @@ export async function GET(request: NextRequest) {
         authenticatedAddress as `0x${string}`,
       )
     ) {
-      return NextResponse.json({
+      const response = {
         success: true,
         purchasers: [],
         count: 0,
         isOwner: true,
         message: "Item owners cannot view purchaser information",
-      });
+      } as const;
+
+      if (cacheKey && redis) {
+        await redis.set(cacheKey, response, { ex: PURCHASERS_CACHE_TTL });
+      }
+
+      return NextResponse.json(response);
     }
 
     // Get purchasers for the item
@@ -331,23 +369,35 @@ export async function GET(request: NextRequest) {
     // If owner is NOT in any exchanges, show all purchasers to everyone
     if (!ownerHasExchanges) {
       const count = purchasers.length;
-      return NextResponse.json({
+      const response = {
         success: true,
         purchasers,
         count,
         isOwner: false,
-      });
+      } as const;
+
+      if (cacheKey && redis) {
+        await redis.set(cacheKey, response, { ex: PURCHASERS_CACHE_TTL });
+      }
+
+      return NextResponse.json(response);
     }
 
     // Owner IS in exchanges - apply privacy restrictions
     // Only authenticated users in the same exchanges can see purchasers
     if (!authenticatedAddress) {
-      return NextResponse.json({
+      const response = {
         success: true,
         purchasers: [],
         count: 0,
         isOwner: false,
-      });
+      } as const;
+
+      if (cacheKey && redis) {
+        await redis.set(cacheKey, response, { ex: PURCHASERS_CACHE_TTL });
+      }
+
+      return NextResponse.json(response);
     }
 
     // Get approved purchasers for the item owner (all members of owner's exchanges)
@@ -360,12 +410,18 @@ export async function GET(request: NextRequest) {
 
     // If viewer is not in any of the owner's exchanges, they can't see purchasers
     if (!isViewerInExchange) {
-      return NextResponse.json({
+      const response = {
         success: true,
         purchasers: [],
         count: 0,
         isOwner: false,
-      });
+      } as const;
+
+      if (cacheKey && redis) {
+        await redis.set(cacheKey, response, { ex: PURCHASERS_CACHE_TTL });
+      }
+
+      return NextResponse.json(response);
     }
 
     // Filter purchasers to only include those in the item owner's exchanges
@@ -378,12 +434,18 @@ export async function GET(request: NextRequest) {
 
     const count = purchasers.length;
 
-    return NextResponse.json({
+    const response = {
       success: true,
       purchasers,
       count,
       isOwner: false,
-    });
+    } as const;
+
+    if (cacheKey && redis) {
+      await redis.set(cacheKey, response, { ex: PURCHASERS_CACHE_TTL });
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching purchasers:", error);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import {
   getUserSearchCacheKey,
   getWishlistAddressesCacheKey,
+  getItemPurchasersCachePrefix,
   redis,
   shouldUseCache,
 } from "./redis";
@@ -83,5 +84,36 @@ export async function invalidateWishlistAddressesCache(
   } catch (error) {
     console.error("Error invalidating wishlist addresses cache:", error);
     // Don't throw - cache invalidation failure shouldn't break the request
+  }
+}
+
+/**
+ * Invalidate all purchaser caches for a given item
+ * This should be called when a purchaser signs up or removes themselves
+ */
+export async function invalidatePurchasersCache(
+  chainId: number,
+  itemId: number,
+): Promise<void> {
+  if (!shouldUseCache(chainId)) {
+    return;
+  }
+
+  if (!redis) {
+    return;
+  }
+
+  try {
+    const prefix = getItemPurchasersCachePrefix(chainId, itemId);
+    const keys = await redis.keys(`${prefix}*`);
+
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      console.log(
+        `[Cache] Invalidated ${keys.length} purchaser cache entries for item ${itemId} on chain ${chainId}`,
+      );
+    }
+  } catch (error) {
+    console.error("Error invalidating purchasers cache:", error);
   }
 }

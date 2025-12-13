@@ -39,6 +39,19 @@ export const getWishlistAddressesCacheKey = (chainId: number) => {
   return `wishlist-addresses:${chainId}`;
 };
 
+export const getItemPurchasersCacheKey = (
+  chainId: number,
+  itemId: number,
+  viewerAddress?: string,
+) => {
+  const viewerKey = viewerAddress ? viewerAddress.toLowerCase() : "anon";
+  return `purchasers:${chainId}:${itemId}:viewer:${viewerKey}`;
+};
+
+export const getItemPurchasersCachePrefix = (chainId: number, itemId: number) => {
+  return `purchasers:${chainId}:${itemId}:viewer:`;
+};
+
 export const getMyPurchasesCacheKey = (
   chainId: number,
   userAddress: string,
