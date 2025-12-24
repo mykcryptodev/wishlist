@@ -5,7 +5,6 @@ import { FulfilledWishes } from "@/components/fulfilled-wishes";
 import { LiveAnnouncementBanner } from "@/components/live-announcement-banner";
 import { LivestreamScheduleBanner } from "@/components/livestream-schedule-banner";
 import { Testimonials } from "@/components/testimonials";
-import { TreasuryWethBalance } from "@/components/treasury-weth-balance";
 import { Button } from "@/components/ui/button";
 import { WishlistDirectory } from "@/components/wishlist/wishlist-directory";
 
@@ -108,14 +107,13 @@ export default function Home() {
           />
         </div>
 
-        <TreasuryWethBalance />
-
-        <div className="text-center mt-16">
+        <div className="mt-16 rounded-3xl border border-border/60 bg-background/80 px-6 py-10 text-center shadow-lg backdrop-blur">
           <h2 className="text-3xl md:text-4xl font-bold text-outlined">
-            ✨ $WISH Fund Recipients ✨
+            🎁 The $WISH experiment has wrapped
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Wishes being fulfilled by the community treasury
+          <p className="mt-4 text-lg text-muted-foreground">
+            Thank you for being part of the journey. Wishing you and yours a
+            joyful, peaceful, and happy holidays! ✨
           </p>
         </div>
 
