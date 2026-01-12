@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i.ytimg.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.mypinata.cloud",
+        pathname: "/ipfs/**",
+      },
     ],
   },
 };
